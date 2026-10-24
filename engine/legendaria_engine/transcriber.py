@@ -22,6 +22,7 @@ class Options:
     beam_size: int = 5
     vad_filter: bool = True
     word_timestamps: bool = True
+    clip: tuple[float, float] | None = None  # transcribe only this time range (seconds)
 
 
 class Backend(Protocol):
@@ -75,12 +76,20 @@ class FasterWhisperBackend:
 
         compute_type = options.compute_type.get(device, "default")
         model = WhisperModel(str(options.model_path), device=device, compute_type=compute_type)
+        extra = {"clip_timestamps": list(options.clip)} if options.clip else {}
         segments_iter, info = model.transcribe(
             str(media),
             language=options.language,
             beam_size=options.beam_size,
             vad_filter=options.vad_filter,
             word_timestamps=options.word_timestamps,
+            **extra,
+        )
+        # Progress covers the clip when there is one (times stay absolute, from the media start).
+        offset, total = (
+            (options.clip[0], options.clip[1] - options.clip[0])
+            if options.clip
+            else (0.0, info.duration)
         )
         reporter.emit(
             "start",
@@ -110,8 +119,8 @@ class FasterWhisperBackend:
                     words=words,
                 )
             )
-            reporter.progress(seg.end, info.duration)
-        reporter.progress(info.duration, info.duration)
+            reporter.progress(max(0.0, seg.end - offset), total)
+        reporter.progress(total, total)
         return Transcript(
             source=media.name,
             language=info.language,

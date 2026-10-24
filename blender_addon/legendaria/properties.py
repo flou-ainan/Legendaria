@@ -10,7 +10,7 @@ from .i18n import N_, tr
 
 # Filled by refresh_engine_info(). Blender needs these lists to stay alive while enums use them.
 ENGINE = {"path": None, "version": "", "error": "", "models_dir": "", "outdated": False}
-MIN_ENGINE = "0.1.0.dev1"  # oldest flosub with what this add-on uses (cue styles)
+MIN_ENGINE = "0.1.0.dev2"  # oldest flosub with what this add-on uses (cue styles, --clip/--update)
 MODEL_ITEMS: list[tuple[str, str, str]] = []
 LANGUAGE_ITEMS: list[tuple[str, str, str]] = [("auto", "Auto-detect", "Detect the spoken language")]
 STYLE_ITEMS: list[tuple[str, str, str]] = [

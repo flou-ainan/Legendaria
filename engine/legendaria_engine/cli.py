@@ -44,6 +44,17 @@ def write_outputs(
     return written
 
 
+def parse_clip(value: str) -> tuple[float, float]:
+    """`START,END` in seconds → (start, end); raises ValueError on bad input."""
+    try:
+        start, end = (float(v) for v in value.split(","))
+    except ValueError as exc:
+        raise ValueError(f"--clip must be START,END in seconds, got '{value}'") from exc
+    if start < 0 or end <= start:
+        raise ValueError(f"--clip end must be after start, got '{value}'")
+    return start, end
+
+
 def check_style(config: dict, style: str | None) -> str:
     """The style to use: `--style` if given, else the config default; must exist."""
     style = style or config["style"]
@@ -78,6 +89,10 @@ def cmd_transcribe(args: argparse.Namespace, reporter: Reporter) -> int:
         }
     )
     style = check_style(config, args.style)
+    clip = parse_clip(args.clip) if args.clip else None
+    if args.update and not clip:
+        reporter.error("--update needs --clip (the time range to replace)")
+        return 2
     if config["device"] != "cpu":  # make pip-installed CUDA libraries loadable (may re-exec)
         from legendaria_engine.cuda_libs import ensure_cuda_libs
 
@@ -95,10 +110,14 @@ def cmd_transcribe(args: argparse.Namespace, reporter: Reporter) -> int:
         beam_size=config["beam_size"],
         vad_filter=config["vad_filter"],
         word_timestamps=config["word_timestamps"],
+        clip=clip,
     )
     transcript = get_backend(config.get("backend", "faster-whisper")).transcribe(
         media, options, reporter
     )
+    if args.update:
+        base = Transcript.load(Path(args.update).expanduser())
+        transcript = base.merged_with(transcript, *clip)
     out_dir = Path(args.output_dir).expanduser() if args.output_dir else media.parent
     outputs = write_outputs(transcript, out_dir / media.stem, config["formats"], config, style)
     reporter.emit(
@@ -180,6 +199,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--style", help="cue style: subtitles (default), captions, or one from your config"
     )
     t.add_argument("--output-dir", help="where to write the files (default: next to the input)")
+    t.add_argument("--clip", help="transcribe only START,END (seconds from the media start)")
+    t.add_argument(
+        "--update",
+        help="with --clip: transcript JSON to update; segments in the range are replaced",
+    )
     t.set_defaults(func=cmd_transcribe)
 
     e = sub.add_parser("export", help="turn a transcript JSON into cues/SRT/VTT")

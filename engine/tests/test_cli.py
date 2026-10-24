@@ -87,3 +87,19 @@ def test_human_reporter_download_and_done(capsys):
     reporter.emit("done", outputs=["a.srt"])
     err = capsys.readouterr().err
     assert "50%" in err and "done" in err and "Saved: a.srt" in err
+
+
+def test_clip_parsing():
+    import pytest
+
+    assert cli.parse_clip("1.5,3") == (1.5, 3.0)
+    for bad in ("3,1", "x,2", "5", "-1,2"):
+        with pytest.raises(ValueError):
+            cli.parse_clip(bad)
+
+
+def test_update_needs_clip(tmp_path, capsys):
+    media = tmp_path / "a.mp3"
+    media.write_bytes(b"")
+    code, events, _ = run(["transcribe", str(media), "--update", "x.json"], capsys)
+    assert code == 2 and "--clip" in events[-1]["message"]

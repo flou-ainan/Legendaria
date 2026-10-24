@@ -130,6 +130,27 @@ try:
     )
     view.language = "en_US"
 
+    # Every icon name used in the add-on exists in this Blender (a bad one breaks the panel).
+    import ast as _ast
+
+    valid_icons = set(
+        bpy.types.UILayout.bl_rna.functions["label"].parameters["icon"].enum_items.keys()
+    )
+    used = set()
+    for path in (ROOT / "legendaria").glob("*.py"):
+        for node in _ast.walk(_ast.parse(path.read_text(encoding="utf-8"))):
+            if (
+                not isinstance(node, _ast.Call)
+                or getattr(node.func, "attr", "") == "invoke_confirm"
+            ):
+                continue  # confirm dialogs use their own icon list (test_source_rules.py)
+            used |= {
+                kw.value.value
+                for kw in node.keywords
+                if kw.arg == "icon" and isinstance(kw.value, _ast.Constant)
+            }
+    check("all icons exist", used <= valid_icons, str(sorted(used - valid_icons)))
+
     # Engine detection.
     found = properties.refresh_engine_info()
     check("engine found", found, str(properties.ENGINE))
@@ -170,6 +191,66 @@ try:
         check("real captions created", count > 5, str(count))
         texts = [s.text for s in compat.top_strips(editor) if strips.is_ours(s)]
         check("captions are short", max(len(t) for t in texts) <= 22, max(texts, key=len))
+        # Regenerate a range (stage 2c): only captions whose middle is inside change.
+        settings.media_strip = sound.name
+        fps = strips.scene_fps(scene)
+        low, high = int(sound.frame_start + 10 * fps), int(sound.frame_start + 20 * fps)
+        scene.use_preview_range = True
+        scene.frame_preview_start, scene.frame_preview_end = low, high - 1
+        before = {
+            (s.frame_final_start, s.text) for s in compat.top_strips(editor) if strips.is_ours(s)
+        }
+        outside_before = {b for b in before if not low <= b[0] < high}
+        editor.active_strip = sound
+        plan = operators.Plan(bpy.context, True, sound.name, range_only=True)
+        check(
+            "range plan counts captions in range",
+            plan.replaced > 0 and plan.clip[0] > 9.0,
+            f"{plan.replaced} {plan.clip}",
+        )
+        job = operators.engine_bridge.EngineJob(
+            properties.ENGINE["path"],
+            [
+                "transcribe",
+                plan.media_file,
+                "--model",
+                "tiny",
+                "--style",
+                "captions",
+                "--format",
+                "json,cues",
+                "--output-dir",
+                str(out_dir),
+                "--clip",
+                "{:.3f},{:.3f}".format(*plan.clip),
+                "--update",
+                settings.transcript_path,
+            ],
+        )
+        code = job.wait(timeout=600)
+        done = next((e for e in job.poll() if e.get("event") == "done"), None)
+        check("range engine run", code == 0 and done, job.stderr_tail())
+        cues_path = next(Path(p) for p in done["outputs"] if p.endswith(".cues.json"))
+        operators.finish_strips(bpy.context, plan, cues_path, "captions")
+        after = [
+            (s.frame_final_start, s.frame_final_end, s.text)
+            for s in compat.top_strips(editor)
+            if strips.is_ours(s)
+        ]
+        outside_after = {(a, t) for a, _, t in after if not low <= a < high}
+        check(
+            "captions outside the range untouched",
+            outside_before <= outside_after,
+            str(outside_before - outside_after),
+        )
+        spans = sorted((a, b) for a, b, _ in after)
+        check(
+            "no overlapping captions",
+            all(spans[i][1] <= spans[i + 1][0] for i in range(len(spans) - 1)),
+            str(spans),
+        )
+        scene.use_preview_range = False
+
         settings.style = "subtitles"
         result = bpy.ops.legendaria.reapply_style()
         after = [s for s in compat.top_strips(editor) if strips.is_ours(s)]

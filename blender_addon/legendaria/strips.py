@@ -63,12 +63,22 @@ def overlaps(strip, frame_start: int, frame_end: int) -> bool:
     return strip.frame_final_start < frame_end and strip.frame_final_end > frame_start
 
 
-def tagged_in_range(editor, channel: int, frame_start: int, frame_end: int) -> list:
-    """Our caption strips on `channel` that overlap the range (they would be replaced)."""
+def tagged_in_range(
+    editor, channel: int, frame_start: int, frame_end: int, by_midpoint: bool = False
+) -> list:
+    """Our caption strips on `channel` in the range (they would be replaced).
+
+    By default any overlap counts; with `by_midpoint` only strips whose middle frame is
+    inside the range (the rule used when regenerating part of a video).
+    """
+
+    def inside(s) -> bool:
+        if by_midpoint:
+            return frame_start <= (s.frame_final_start + s.frame_final_end) / 2 < frame_end
+        return overlaps(s, frame_start, frame_end)
+
     return [
-        s
-        for s in compat.top_strips(editor)
-        if s.channel == channel and is_ours(s) and overlaps(s, frame_start, frame_end)
+        s for s in compat.top_strips(editor) if s.channel == channel and is_ours(s) and inside(s)
     ]
 
 
@@ -105,21 +115,42 @@ def load_cues(path: Path) -> dict:
     return data
 
 
-def create_strips(scene, editor, cues: list[dict], media_strip, channel: int, style: str) -> list:
-    """Replace our strips on `channel` within the media's visible range with new cue strips.
+def create_strips(
+    scene, editor, cues: list[dict], media_strip, channel: int, style: str, frame_range=None
+) -> list:
+    """Replace our strips on `channel` with new cue strips; returns the new strips.
 
-    Cues outside the visible (trimmed) part of the media are skipped or clipped.
-    Returns the new strips.
+    Without `frame_range` the whole visible (trimmed) part of the media is replaced.
+    With `frame_range=(start, end)` only captions whose middle falls in the range are
+    replaced, and new strips are trimmed so they never overlap the captions kept around it.
     """
     fps = scene_fps(scene)
     content_start, visible_start, visible_end = media_range(media_strip)
-    for old in tagged_in_range(editor, channel, visible_start, visible_end):
-        compat.remove_strip(editor, old)
+    if frame_range:
+        low, high = max(frame_range[0], visible_start), min(frame_range[1], visible_end)
+        old = tagged_in_range(editor, channel, low, high, by_midpoint=True)
+    else:
+        low, high = visible_start, visible_end
+        old = tagged_in_range(editor, channel, low, high)
+    for strip in old:
+        compat.remove_strip(editor, strip)
+    kept = [
+        (s.frame_final_start, s.frame_final_end)
+        for s in tagged_in_range(editor, channel, visible_start, visible_end)
+    ]
     preset = load_preset(style)
     created = []
     for index, cue in enumerate(cues, start=1):
         start = max(timecode.seconds_to_frame(cue["start"], fps, content_start), visible_start)
         end = min(timecode.seconds_to_frame(cue["end"], fps, content_start), visible_end)
+        if frame_range and not low <= (start + end) / 2 < high:
+            continue
+        for kept_start, kept_end in kept:  # never overlap captions that stay
+            if kept_start < end and kept_end > start:
+                if kept_start <= start:
+                    start = kept_end
+                else:
+                    end = kept_start
         if end <= start:
             continue
         strip = compat.new_text_strip(editor, f"LGD {index:04d}", channel, start, end)
@@ -128,7 +159,16 @@ def create_strips(scene, editor, cues: list[dict], media_strip, channel: int, st
         strip[WORDS] = json.dumps(cue.get("words", []), ensure_ascii=False)
         apply_preset(strip, preset, scene.render.resolution_y)
         created.append(strip)
+        kept.append((start, end))  # later cues must not overlap this one either
     return created
+
+
+def selected_caption_range(editor) -> tuple[int, int] | None:
+    """Frame span of the selected caption strips, or None when none is selected."""
+    chosen = [s for s in compat.top_strips(editor) if is_ours(s) and s.select]
+    if not chosen:
+        return None
+    return min(s.frame_final_start for s in chosen), max(s.frame_final_end for s in chosen)
 
 
 def read_cues(

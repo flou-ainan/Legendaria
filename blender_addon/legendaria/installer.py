@@ -30,7 +30,7 @@ from .engine_bridge import EXE, managed_engine, user_data_dir
 
 UV_VERSION = "0.13.0"
 PYTHON_VERSION = "3.11"
-ENGINE_SPEC = "legendaria>=0.1.0.dev1,<0.2"
+ENGINE_SPEC = "legendaria>=0.1.0.dev2,<0.2"
 DEFAULT_MODEL = "small"
 UV_URL = "https://github.com/astral-sh/uv/releases/download/{version}/{asset}"
 

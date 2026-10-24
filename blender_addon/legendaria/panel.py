@@ -86,7 +86,10 @@ class LEGENDARIA_PT_main(bpy.types.Panel):
             layout.operator("legendaria.generate", icon="PLAY")
             if settings.status:
                 layout.label(text=settings.status)
-            layout.operator("legendaria.reapply_style", icon="FILE_REFRESH")
+            row = layout.row(align=True)
+            row.operator("legendaria.reapply_style", icon="FILE_REFRESH")
+            op = row.operator("legendaria.generate", text="Regenerate range", icon="PREVIEW_RANGE")
+            op.range_only = True
 
         layout.separator()
         row = layout.row(align=True)
