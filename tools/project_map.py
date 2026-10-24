@@ -3,8 +3,8 @@
 Usage: python3 tools/project_map.py engine/legendaria_engine/*.py
 
 For each file it prints the line count, the module docstring and a table with every
-top-level function, class and method: name, signature, line and the first line of
-its docstring. Paste the output into PROJECT.md and complete it by hand where useful.
+public top-level function, class and method: name, signature, line and the first line
+of its docstring (names starting with "_" are skipped). Paste the output into PROJECT.md and complete it by hand where useful.
 """
 
 from __future__ import annotations
@@ -40,6 +40,8 @@ def rows(tree: ast.Module) -> list[tuple[str, int, str]]:
     out = []
     for node in tree.body:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if node.name.startswith("_"):
+                continue  # private helpers stay out of the map
             out.append((signature(node), node.lineno, first_line(node)))
         elif isinstance(node, ast.ClassDef):
             out.append((f"class {node.name}", node.lineno, first_line(node)))

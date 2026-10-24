@@ -31,9 +31,25 @@ uv run flosub transcribe some-clip.mp3 --format srt
 
 `uv` creates `engine/.venv` with Python 3.11, whatever Python your system has. Models download to your per-user data folder (`flosub models list` shows where).
 
-### Blender add-on
+### Blender add-on (`blender_addon/`)
 
-Coming in stage 2 (see plan 01).
+The add-on finds `flosub` on your PATH, so install the engine as a tool first: `uv tool install --editable "./engine[cuda]"` (drop `[cuda]` without an NVIDIA GPU).
+
+```bash
+# pure-Python tests (no Blender needed)
+uvx pytest blender_addon/tests
+
+# build the extension zip, then install it: Edit → Preferences → Get Extensions → ⌄ → Install from Disk
+mkdir -p dist && blender --command extension build --source-dir blender_addon/legendaria --output-dir dist
+
+# tests inside Blender (run with every Blender version you can; CI uses 4.2 LTS and the latest)
+blender -b --factory-startup --python-exit-code 1 --python blender_addon/tests/blender_smoke.py -- --media some-clip.mp3 [--real]
+
+# scripted GUI session with screenshots (see the script's docstring)
+xvfb-run -a -s "-screen 0 1600x900x24" blender --python blender_addon/tests/ui_walkthrough.py -- --media some-clip.mp3 --out shots/
+```
+
+Every user-visible string must be in `blender_addon/legendaria/locales/pt_BR.json`; `python3 blender_addon/tests/test_i18n.py pt_BR` lists what is missing. API differences between Blender versions go in `compat.py` only.
 
 ### Keeping `docs/PROJECT.md` in sync
 

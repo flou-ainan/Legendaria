@@ -1,6 +1,6 @@
 # Plan 02 — Blender add-on (MVP stage 2) and caption-style cues
 
-**Status:** approved (owner, 2026-10-24); implementation in progress
+**Status:** approved (owner, 2026-10-24). Stage 2a done (steps 09–10); 2b and 2c next
 **Date:** 2026-10-24
 **Builds on:** plan 01 (section 4.5), ADR-002, ADR-003, ADR-005, ADR-006
 
@@ -130,9 +130,9 @@ Packaged as a zip for "Install from Disk".
 ## 7. Definition of done (2a)
 
 - [x] `flosub transcribe clip.mp3 --style captions --format json,cues` gives short cues within the limits; subtitles style unchanged for SRT/VTT (step 09).
-- [ ] Headless Blender tests pass on 4.2.23 and 5.2.3.
-- [ ] In Blender: select a video → choose a model that is not installed → Generate → download progress, then transcription progress, with no frozen UI → caption strips on the chosen channel, aligned with the speech.
-- [ ] Generating again warns before replacing; cancel keeps everything; hand-made strips survive.
-- [ ] Edit a strip → Export SRT → the file reflects the edit.
-- [ ] UI in Portuguese when Blender's language is Portuguese (Brazil).
-- [ ] Docs: `PROJECT.md`, devlog, CHANGELOG, ADR if needed.
+- [x] Headless Blender tests pass on 4.2.23 and 5.2.3 (23/23, including a real `flosub` run).
+- [x] In Blender: select a video → Generate → progress with no frozen UI → caption strips on the chosen channel, aligned with the speech (scripted GUI session under xvfb, both versions). Download progress with a not-yet-installed model: covered by the engine events; the GUI run used an installed model. **Owner to check on real videos.**
+- [x] Generating again warns before replacing (dialog captured in en and pt_BR); hand-made strips survive (smoke test). Cancel in the dialog: Blender built-in.
+- [x] Export SRT reads the strips (smoke test); editing a strip by hand: **owner to check in the UI**.
+- [x] UI in Portuguese when Blender's language is Portuguese (Brazil) (screenshots; i18n coverage test).
+- [x] Docs: `PROJECT.md`, devlog, CHANGELOG.

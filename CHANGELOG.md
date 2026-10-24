@@ -7,6 +7,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- **Blender add-on** (extension `legendaria`, Blender 4.2+): "Legendária" tab in the Video Sequencer; pick model (auto-download), language and style; generate CapCut-style caption strips in the background with progress and cancel; confirmation before replacing captions; re-apply a style without transcribing again; export SRT/VTT from the edited strips; English and Brazilian Portuguese UI; style presets in JSON.
 - Cue styles: `captions` (short CapCut-style phrases) and `subtitles` (film-style lines, wrapped in two lines), configurable in JSON; `--style` on `transcribe` and `export`; new `cues` output format (`<name>.cues.json`).
 
 ### Fixed

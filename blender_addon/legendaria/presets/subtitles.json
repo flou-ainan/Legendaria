@@ -1,0 +1,19 @@
+{
+  "$comment": "Style of film-style subtitle strips. Sizes are for a 1080 px tall video and scale with the scene resolution. Copy this file to <user config dir>/presets/subtitles.json to override it.",
+  "version": 1,
+  "font_size": 48,
+  "location": [0.5, 0.06],
+  "align_x": "CENTER",
+  "align_y": "BOTTOM",
+  "wrap_width": 0.9,
+  "color": [1.0, 1.0, 1.0, 1.0],
+  "use_bold": false,
+  "use_outline": false,
+  "outline_color": [0.0, 0.0, 0.0, 1.0],
+  "outline_width": 0.05,
+  "use_shadow": true,
+  "shadow_color": [0.0, 0.0, 0.0, 0.8],
+  "use_box": true,
+  "box_color": [0.0, 0.0, 0.0, 0.55],
+  "box_margin": 0.01
+}
