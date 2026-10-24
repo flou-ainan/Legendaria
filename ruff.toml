@@ -11,3 +11,7 @@ quote-style = "double"
 
 [lint.isort]
 known-first-party = ["legendaria_engine"]
+
+[lint.per-file-ignores]
+# Blender's API expects plain set/dict class attributes (bl_options = {"REGISTER"}).
+"blender_addon/**" = ["RUF012"]

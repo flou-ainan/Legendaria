@@ -1,0 +1,22 @@
+schema_version = "1.0.0"
+
+id = "legendaria"
+version = "0.1.0"
+name = "Legendária"
+tagline = "Automatic CapCut-style subtitles with local Whisper"
+maintainer = "flou-ainan"
+type = "add-on"
+website = "https://github.com/flou-ainan/Legendaria"
+tags = ["Sequencer"]
+
+blender_version_min = "4.2.0"
+
+license = ["SPDX:GPL-3.0-or-later"]
+copyright = ["2026 flou-ainan and Legendária contributors"]
+
+[permissions]
+files = "Read media and write transcripts and subtitle files"
+network = "The transcription engine downloads speech recognition models"
+
+[build]
+paths_exclude_pattern = ["__pycache__/", "/.git/", "*.zip", "tests/"]

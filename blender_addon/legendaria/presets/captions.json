@@ -1,0 +1,19 @@
+{
+  "$comment": "Style of caption strips (CapCut-like). Sizes are for a 1080 px tall video and scale with the scene resolution. Copy this file to <user config dir>/presets/captions.json to override it.",
+  "version": 1,
+  "font_size": 76,
+  "location": [0.5, 0.2],
+  "align_x": "CENTER",
+  "align_y": "CENTER",
+  "wrap_width": 0.8,
+  "color": [1.0, 1.0, 1.0, 1.0],
+  "use_bold": true,
+  "use_outline": true,
+  "outline_color": [0.0, 0.0, 0.0, 1.0],
+  "outline_width": 0.08,
+  "use_shadow": true,
+  "shadow_color": [0.0, 0.0, 0.0, 0.6],
+  "use_box": false,
+  "box_color": [0.0, 0.0, 0.0, 0.6],
+  "box_margin": 0.02
+}
