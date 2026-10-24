@@ -3,7 +3,7 @@
 > A condensed map of the project, so agents and people can find what they need without rereading the code.
 > **Update this file with every change to the project** (files, functions, stack, structure). Conventions: `docs/dev-docs/README.md`.
 
-**Last updated:** 2026-10-24 — step 08 (social preview cover, PyPI release workflow, `legendaria` 0.1.0.dev0).
+**Last updated:** 2026-10-24 — step 09 (engine cues: captions/subtitles styles; plan 02).
 
 ---
 
@@ -126,10 +126,12 @@ User files at runtime (per OS, via `platformdirs`; overridable with `LEGENDARIA_
 Generated with `python3 tools/project_map.py <files>` and then reviewed. Regenerate it whenever code changes.
 
 **Data files:**
-- `engine/legendaria_engine/defaults/config.json`: engine defaults (model `small`, language `auto`, device `auto`, compute types, beam size, VAD, word timestamps, output formats, UI language list).
+- `engine/legendaria_engine/defaults/config.json`: engine defaults (model `small`, language `auto`, device `auto`, compute types, beam size, VAD, word timestamps, default `style`, cue `styles` (`subtitles`: film-style, up to 84 chars / 6 s, 2 lines of 42; `captions`: CapCut-style, up to 4 words / 22 chars / 2.2 s), output formats, UI language list).
 - `engine/legendaria_engine/defaults/models.json`: model catalog (tiny, base, small, medium, large-v3, large-v3-turbo) with HF repo, size, VRAM, notes.
-- `engine/schemas/*.schema.json`: JSON Schemas for config, models and transcript v1.
-- `engine/tests/`: `conftest.py` (isolated dirs, sample transcript), `test_formats.py`, `test_schema.py`, `test_config.py`, `test_cli.py`, `test_transcriber.py` (GPU→CPU fallback with a fake run).
+- `engine/schemas/*.schema.json`: JSON Schemas for config (incl. styles), models, transcript v1 and cues v1.
+- `engine/tests/`: `conftest.py` (isolated dirs, sample transcript), `test_cues.py` (chunking rules), `test_formats.py`, `test_schema.py`, `test_config.py`, `test_cli.py`, `test_transcriber.py` (GPU→CPU fallback with a fake run). 51 tests.
+
+**Outputs of `flosub transcribe` / `export`:** `<name>.json` (transcript v1: segments + word timings, the source of truth), `<name>.cues.json` (cues v1 in one style), `<name>.srt` / `.vtt` (from the cues). `export` re-chunks a saved transcript in any style without transcribing again.
 
 **Progress event protocol** (stdout, one JSON object per line, `--progress json`):
 - `start`: model, device, compute_type, language, duration.
@@ -140,31 +142,39 @@ Generated with `python3 tools/project_map.py <files>` and then reviewed. Regener
 
 A `warning` followed by a new `start` means the run restarted on the CPU.
 
-### engine/legendaria_engine/cli.py — 194 lines
+### engine/legendaria_engine/__init__.py — 3 lines
+Legendária transcription engine.
+
+### engine/legendaria_engine/__main__.py — 5 lines
+Allow `python -m legendaria_engine`.
+
+### engine/legendaria_engine/cli.py — 228 lines
 `flosub` command line: transcribe, export, models, config.
 
 | Function / class | Line | What it does |
 |---|---|---|
-| `write_outputs(transcript, stem, formats)` | 17 | Write the requested formats next to `stem` (no extension); returns the paths. |
-| `parse_formats(value)` | 31 | argparse type: comma-separated format list, validated against FORMATS. |
-| `cmd_transcribe(args, reporter)` | 42 | `flosub transcribe`: resolve config and model, transcribe, write the outputs. |
-| `cmd_export(args, reporter)` | 85 | `flosub export`: convert a transcript JSON to SRT/VTT. |
-| `cmd_models(args, reporter)` | 95 | `flosub models list|download`. |
-| `cmd_config(args, reporter)` | 122 | `flosub config show|path`. |
-| `build_parser()` | 131 | The argparse tree for all subcommands. |
-| `main(argv)` | 174 | Entry point: run a subcommand and turn every failure into an `error` event. |
+| `output_path(stem, fmt)` | 18 | `<stem>.<fmt>`, or `<stem>.cues.json`; dots in the stem are kept (`a.b.mp4` → `a.b.srt`). |
+| `write_outputs(transcript, stem, formats, config, style)` | 24 | Write the requested formats next to `stem` (no extension); returns the paths. |
+| `check_style(config, style)` | 47 | The style to use: `--style` if given, else the config default; must exist. |
+| `parse_formats(value)` | 55 | argparse type: comma-separated format list, validated against FORMATS. |
+| `cmd_transcribe(args, reporter)` | 66 | `flosub transcribe`: resolve config and model, transcribe, write the outputs. |
+| `cmd_export(args, reporter)` | 110 | `flosub export`: turn a transcript JSON into cues / SRT / VTT in a given style. |
+| `cmd_models(args, reporter)` | 123 | `flosub models list|download`. |
+| `cmd_config(args, reporter)` | 150 | `flosub config show|path`. |
+| `build_parser()` | 159 | The argparse tree for all subcommands. |
+| `main(argv)` | 208 | Entry point: run a subcommand and turn every failure into an `error` event. |
 
-### engine/legendaria_engine/config.py — 88 lines
+### engine/legendaria_engine/config.py — 109 lines
 Layered JSON configuration: shipped defaults → user file → command-line values.
 
 | Function / class | Line | What it does |
 |---|---|---|
-| `class ConfigError` | 14 | A config file is malformed or holds an invalid value. |
-| `read_json(path)` | 18 | Read a JSON object from a file, dropping `$schema`; raise ConfigError on bad JSON. |
-| `deep_merge(base, override)` | 30 | Return `base` updated with `override`; nested objects are merged key by key. |
-| `validate(config, source)` | 41 | Check the values the engine relies on, with errors that name the bad key. |
-| `load_config(overrides)` | 67 | Defaults, then the user's `config.json` if present, then non-None `overrides`. |
-| `load_models()` | 79 | The model catalog: shipped `models.json` plus the user's additions or changes. |
+| `class ConfigError` | 22 | A config file is malformed or holds an invalid value. |
+| `read_json(path)` | 26 | Read a JSON object from a file, dropping `$schema`; raise ConfigError on bad JSON. |
+| `deep_merge(base, override)` | 38 | Return `base` updated with `override`; nested objects are merged key by key. |
+| `validate(config, source)` | 49 | Check the values the engine relies on, with errors that name the bad key. |
+| `load_config(overrides)` | 88 | Defaults, then the user's `config.json` if present, then non-None `overrides`. |
+| `load_models()` | 100 | The model catalog: shipped `models.json` plus the user's additions or changes. |
 
 ### engine/legendaria_engine/cuda_libs.py — 56 lines
 Make the NVIDIA libraries installed by pip (cuBLAS, cuDNN) visible to CTranslate2.
@@ -173,6 +183,21 @@ Make the NVIDIA libraries installed by pip (cuBLAS, cuDNN) visible to CTranslate
 |---|---|---|
 | `nvidia_lib_dirs()` | 18 | Library folders of the installed `nvidia.*` packages (empty when not installed). |
 | `ensure_cuda_libs()` | 33 | Expose the NVIDIA libraries to the current process. Call before importing ctranslate2. |
+
+### engine/legendaria_engine/cues.py — 124 lines
+Cues: the timed text blocks shown on screen, built from word timings by a style.
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `class Cue` | 20 | One block of text on screen, with the words it contains. |
+| `class CueList` | 30 | Cues for one media file in one style (cues JSON v1). |
+| `CueList.to_dict()` | 39 | Plain dict ready for JSON. |
+| `CueList.save(path)` | 43 | Write as pretty UTF-8 JSON. |
+| `_join(words)` | 48 | Concatenate words as Whisper spells them: a leading space marks a new word, |
+| `_ends_with(word, chars)` | 54 |  |
+| `make_cues(transcript, style, style_name)` | 59 | Chunk the transcript's words into cues that respect the style's limits. |
+| `_apply_min_duration(cues, min_duration)` | 107 | Stretch cues shorter than `min_duration`, without overlapping the next cue. |
+| `wrap_lines(text, line_length)` | 117 | Split text into two balanced lines when it is longer than `line_length`. |
 
 ### engine/legendaria_engine/events.py — 111 lines
 Progress reporting: JSON lines for programs (the Blender add-on), a progress bar for humans.
@@ -194,19 +219,13 @@ Progress reporting: JSON lines for programs (the Blender add-on), a progress bar
 | `make_reporter(mode)` | 107 | `json`, `human`, or `auto` (human when stdout is a terminal, JSON otherwise). |
 
 ### engine/legendaria_engine/formats.py — 37 lines
-Subtitle writers: transcript → SRT / VTT text.
+Subtitle writers: cues → SRT / VTT text.
 
 | Function / class | Line | What it does |
 |---|---|---|
 | `format_timestamp(seconds, separator)` | 10 | `HH:MM:SS,mmm` (SRT) or `HH:MM:SS.mmm` (VTT). Hours keep counting past 24. |
-| `to_srt(transcript)` | 19 | Numbered SRT cues, one per segment. |
-| `to_vtt(transcript)` | 28 | WebVTT cues, one per segment. |
-
-### engine/legendaria_engine/__init__.py — 3 lines
-Legendária transcription engine.
-
-### engine/legendaria_engine/__main__.py — 5 lines
-Allow `python -m legendaria_engine`.
+| `to_srt(cues, line_length)` | 19 | Numbered SRT blocks, one per cue; long cues wrap into two lines. |
+| `to_vtt(cues, line_length)` | 28 | WebVTT blocks, one per cue; long cues wrap into two lines. |
 
 ### engine/legendaria_engine/models.py — 105 lines
 List, download and locate Whisper models (stored in the per-OS data dir).
@@ -257,6 +276,7 @@ Speech-to-text. A small backend interface keeps room for other engines (e.g. App
 | `class FasterWhisperBackend` | 47 | faster-whisper (CTranslate2): CUDA on NVIDIA GPUs, int8 on CPU. |
 | `FasterWhisperBackend.transcribe(media, options, reporter)` | 57 | Try each device in turn; in `auto` mode a GPU failure falls back to the CPU. |
 | `get_backend(name)` | 129 | Instantiate a backend by name. |
+
 
 ### tools/project_map.py — 80 lines
 Print the "File map" entries of docs/PROJECT.md for Python files.

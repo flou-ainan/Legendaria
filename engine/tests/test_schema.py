@@ -24,3 +24,12 @@ def test_rejects_other_versions(transcript):
     data = transcript.to_dict() | {"version": 2}
     with pytest.raises(ValueError, match="version"):
         Transcript.from_dict(data)
+
+
+def test_cues_match_json_schema(transcript):
+    from legendaria_engine.config import load_config
+    from legendaria_engine.cues import make_cues
+
+    schema = json.loads((SCHEMAS / "cues.schema.json").read_text(encoding="utf-8"))
+    cues = make_cues(transcript, load_config()["styles"]["captions"], "captions")
+    jsonschema.validate(cues.to_dict(), schema)

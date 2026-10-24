@@ -9,23 +9,47 @@ from pathlib import Path
 
 from legendaria_engine import __version__, paths
 from legendaria_engine.config import ConfigError, load_config
+from legendaria_engine.cues import make_cues
 from legendaria_engine.events import Reporter, make_reporter
 from legendaria_engine.formats import FORMATS, WRITERS
 from legendaria_engine.schema import Transcript
 
 
-def write_outputs(transcript: Transcript, stem: Path, formats: list[str]) -> list[str]:
-    """Write the requested formats next to `stem` (no extension); returns the paths."""
+def output_path(stem: Path, fmt: str) -> Path:
+    """`<stem>.<fmt>`, or `<stem>.cues.json`; dots in the stem are kept (`a.b.mp4` → `a.b.srt`)."""
+    suffix = "cues.json" if fmt == "cues" else fmt
+    return stem.parent / f"{stem.name}.{suffix}"
+
+
+def write_outputs(
+    transcript: Transcript, stem: Path, formats: list[str], config: dict, style: str
+) -> list[str]:
+    """Write the requested formats next to `stem` (no extension); returns the paths.
+
+    `json` is the full transcript; `cues`, `srt` and `vtt` use the cues of `style`.
+    """
     stem.parent.mkdir(parents=True, exist_ok=True)
+    rules = config["styles"][style]
+    cues = make_cues(transcript, rules, style) if set(formats) - {"json"} else None
     written = []
     for fmt in formats:
-        target = stem.with_suffix(f".{fmt}")
+        target = output_path(stem, fmt)
         if fmt == "json":
             transcript.save(target)
+        elif fmt == "cues":
+            cues.save(target)
         else:
-            target.write_text(WRITERS[fmt](transcript), encoding="utf-8")
+            target.write_text(WRITERS[fmt](cues, rules.get("line_length")), encoding="utf-8")
         written.append(str(target))
     return written
+
+
+def check_style(config: dict, style: str | None) -> str:
+    """The style to use: `--style` if given, else the config default; must exist."""
+    style = style or config["style"]
+    if style not in config["styles"]:
+        raise ConfigError(f"Unknown style '{style}'. Available: {', '.join(config['styles'])}")
+    return style
 
 
 def parse_formats(value: str | None) -> list[str] | None:
@@ -53,6 +77,7 @@ def cmd_transcribe(args: argparse.Namespace, reporter: Reporter) -> int:
             "formats": args.format,
         }
     )
+    style = check_style(config, args.style)
     if config["device"] != "cpu":  # make pip-installed CUDA libraries loadable (may re-exec)
         from legendaria_engine.cuda_libs import ensure_cuda_libs
 
@@ -75,7 +100,7 @@ def cmd_transcribe(args: argparse.Namespace, reporter: Reporter) -> int:
         media, options, reporter
     )
     out_dir = Path(args.output_dir).expanduser() if args.output_dir else media.parent
-    outputs = write_outputs(transcript, out_dir / media.stem, config["formats"])
+    outputs = write_outputs(transcript, out_dir / media.stem, config["formats"], config, style)
     reporter.emit(
         "done", outputs=outputs, segments=len(transcript.segments), language=transcript.language
     )
@@ -83,12 +108,15 @@ def cmd_transcribe(args: argparse.Namespace, reporter: Reporter) -> int:
 
 
 def cmd_export(args: argparse.Namespace, reporter: Reporter) -> int:
-    """`flosub export`: convert a transcript JSON to SRT/VTT."""
+    """`flosub export`: turn a transcript JSON into cues / SRT / VTT in a given style."""
     source = Path(args.file).expanduser()
     transcript = Transcript.load(source)
-    stem = Path(args.output).with_suffix("") if args.output else source.with_suffix("")
-    outputs = write_outputs(transcript, stem, args.format)
-    reporter.emit("done", outputs=outputs, segments=len(transcript.segments))
+    config = load_config()
+    style = check_style(config, args.style)
+    default_stem = source.parent / source.name.removesuffix(".json")
+    stem = Path(args.output) if args.output else default_stem
+    outputs = write_outputs(transcript, stem, args.format, config, style)
+    reporter.emit("done", outputs=outputs, segments=len(transcript.segments), style=style)
     return 0
 
 
@@ -147,13 +175,19 @@ def build_parser() -> argparse.ArgumentParser:
     t.add_argument("--model", help="model name (see `flosub models list`) or a model folder")
     t.add_argument("--language", help="language code (pt, en, ...) or 'auto'")
     t.add_argument("--device", choices=["auto", "cuda", "cpu"])
-    t.add_argument("--format", type=parse_formats, help="comma-separated: json,srt,vtt")
+    t.add_argument("--format", type=parse_formats, help="comma-separated: json,cues,srt,vtt")
+    t.add_argument(
+        "--style", help="cue style: subtitles (default), captions, or one from your config"
+    )
     t.add_argument("--output-dir", help="where to write the files (default: next to the input)")
     t.set_defaults(func=cmd_transcribe)
 
-    e = sub.add_parser("export", help="convert a transcript JSON to SRT/VTT")
+    e = sub.add_parser("export", help="turn a transcript JSON into cues/SRT/VTT")
     e.add_argument("file")
-    e.add_argument("--format", type=parse_formats, default=["srt"], help="comma-separated: srt,vtt")
+    e.add_argument(
+        "--format", type=parse_formats, default=["srt"], help="comma-separated: cues,srt,vtt"
+    )
+    e.add_argument("--style", help="cue style: subtitles (default), captions, or your own")
     e.add_argument("--output", help="output path without extension (default: next to the JSON)")
     e.set_defaults(func=cmd_export)
 

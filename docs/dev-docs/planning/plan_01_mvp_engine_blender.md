@@ -49,7 +49,7 @@ Phases 3–5 are far from the MVP, but the MVP must not block them. The constrai
 - **`.ass` is not an editor:** it cannot be edited interactively. Blender's VSE gives visual editing plus Python scripting (ADR-002).
 - **Blender's bundled Python lacks faster-whisper and CUDA.** The add-on runs the engine as an external process and exchanges JSON with it (ADR-003).
 
-Environment checked on 2026-10-23: Blender 4.2.0, Python 3.10.12, faster-whisper 1.2.1, ctranslate2 4.6.1, nvidia-cudnn-cu12 9.1, nvidia-cublas-cu12 12.1, ffmpeg 4.4.2, NVIDIA driver 595, RTX 2070 Super 8 GB.
+Environment checked on 2026-10-23: Blender 4.2.0 (correction 2026-10-24: only a dangling `~/.local/bin/blender` symlink existed; Blender 4.2.23 and 5.2.3 were installed portably for plan 02), Python 3.10.12, faster-whisper 1.2.1, ctranslate2 4.6.1, nvidia-cudnn-cu12 9.1, nvidia-cublas-cu12 12.1, ffmpeg 4.4.2, NVIDIA driver 595, RTX 2070 Super 8 GB.
 
 ### 4.2 Fixes over the brainstorm's sample code
 
