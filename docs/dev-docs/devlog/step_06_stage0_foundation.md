@@ -9,7 +9,7 @@
 
 - **Community files:**
   - `CONTRIBUTING.md`: setup, branch/commit/PR workflow, docs rules, code style, adding a language, licensing.
-  - `CODE_OF_CONDUCT.md`: Contributor Covenant 2.0, the text provided by GitHub's API. The contact method is still pending (see below).
+  - `CODE_OF_CONDUCT.md`: Contributor Covenant 2.0, the text provided by GitHub's API. Reports go to the maintainer's email (owner's choice).
   - `SECURITY.md` (private reporting) and `CHANGELOG.md` (Keep a Changelog).
   - Both READMEs link to `CONTRIBUTING.md`.
 - **Quality tooling:**
@@ -42,7 +42,6 @@
 
 ## Pending / next steps
 
-- **Code of Conduct contact:** the owner chooses how people report conduct problems. Replace `__CONTACT__` in `CODE_OF_CONDUCT.md`.
 - After the first green CI run: add `ci` as a required status check on `main`.
 - Reserve the `legendaria` name on PyPI (needs the owner's PyPI account).
 - Stage 1: the engine.

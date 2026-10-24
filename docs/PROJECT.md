@@ -142,5 +142,5 @@ Short description of the file's role.
 
 - Plan 01 approved, with no open questions left. `main` is protected: every change goes through a PR (ADR-008).
 - Brand kit in `assets/brand/` (Montserrat; glowing banner at the top of both READMEs).
-- Stage 0 (project foundation) done, pending the Code of Conduct contact.
+- Stage 0 (project foundation) done.
 - Next: stage 1 (engine).
