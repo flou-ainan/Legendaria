@@ -26,6 +26,19 @@ TAGLINES = {
     "pt-BR": "LEGENDAS LIVRES · ESTILO CAPCUT",
 }
 
+# Social preview ("cover"): what the project does, in each language.
+PITCH = {
+    "en": (
+        "Auto subtitles in Blender · runs on your own GPU",
+        "Open source · English &amp; Português",
+    ),
+    "pt-BR": (
+        "Legendas automáticas no Blender · na sua GPU",
+        "Código aberto · Português &amp; English",
+    ),
+}
+REPO_URL = "github.com/flou-ainan/Legendaria"
+
 DEFS = """<defs>
     <linearGradient id="lg" gradientUnits="userSpaceOnUse" x1="328" y1="819" x2="510" y2="1276">
       <stop offset="0" stop-color="#FF9A45"/><stop offset="0.4" stop-color="#E9707A"/>
@@ -99,6 +112,21 @@ def text(x, y, size, anchor, tagline, tag_size, tag_dy):
         font-size="{tag_size}" letter-spacing="{tag_size * 0.16:.1f}" fill="#E9B79C">{tagline}</text>"""
 
 
+def cover(lang):
+    """1280x640 social preview: glowing symbol, wordmark, tagline, pitch lines and repo link."""
+    line1, line2 = PITCH[lang]
+    font = 'font-family="Montserrat" font-weight="500"'
+    return (
+        background(1280, 640)
+        + symbol(70, 150, 330)
+        + text(470, 250, 96, "start", TAGLINES[lang], 22, 56)
+        + f'<text x="472" y="380" {font} font-size="29" fill="#E7E2F2">{line1}</text>'
+        + f'<text x="472" y="425" {font} font-size="29" fill="#9E97B3">{line2}</text>'
+        + '<rect x="472" y="470" width="470" height="56" rx="28" fill="none" stroke="#C259B8" stroke-width="2"/>'
+        + f'<text x="707" y="507" text-anchor="middle" {font} font-size="24" fill="#F3B9A2">{REPO_URL}</text>'
+    )
+
+
 def svg(w, h, body):
     """Wrap a body in <svg> with defs, title and label."""
     return (
@@ -120,3 +148,5 @@ for lang, tagline in TAGLINES.items():
         background(1280, 640) + symbol(80, 205, 410) + text(555, 352, 110, "start", tagline, 26, 66)
     )
     (OUT / f"banner-{lang}.svg").write_text(svg(1280, 640, banner), encoding="utf-8")
+    # Social preview for link cards (GitHub, chat apps).
+    (OUT / f"cover-{lang}.svg").write_text(svg(1280, 640, cover(lang)), encoding="utf-8")

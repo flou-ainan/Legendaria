@@ -11,7 +11,8 @@ The brand has two finishes of the same symbol:
 
 | File | Use |
 |---|---|
-| `banner-en.svg` / `banner-pt-BR.svg` | **Main key art**, 1280×640: glowing symbol + wordmark + tagline. Top of the README; social preview |
+| `banner-en.svg` / `banner-pt-BR.svg` | **Main key art**, 1280×640: glowing symbol + wordmark + tagline. Top of the READMEs |
+| `cover-en.svg` / `cover-pt-BR.svg` | **Social preview**, 1280×640: key art plus what the project does and the repo link. PNGs in `png/social-preview-<lang>.png`; upload the English one under GitHub → Settings → Social preview |
 | `hero-en.svg` / `hero-pt-BR.svg` | Square key art, 1024×1024: website hero, video thumbnails, posts |
 | `legendaria-symbol.svg` | Flat symbol, full color, transparent background |
 | `legendaria-symbol-mono.svg` | Single color (`currentColor`): watermarks, print, the Blender UI |
@@ -31,7 +32,7 @@ Every SVG here has its text converted to paths, so it renders the same without t
 | en | FREE SUBTITLES · CAPCUT STYLE |
 | pt-BR | LEGENDAS LIVRES · ESTILO CAPCUT |
 
-To add a language, add an entry to `TAGLINES` in `source/generate_hero.py` and regenerate.
+To add a language, add entries to `TAGLINES` and `PITCH` in `source/generate_hero.py` and regenerate.
 
 ## Colors
 

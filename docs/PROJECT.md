@@ -3,7 +3,7 @@
 > A condensed map of the project, so agents and people can find what they need without rereading the code.
 > **Update this file with every change to the project** (files, functions, stack, structure). Conventions: `docs/dev-docs/README.md`.
 
-**Last updated:** 2026-10-24 — step 07 (stage 1: engine `flosub` working on GPU and CPU).
+**Last updated:** 2026-10-24 — step 08 (social preview cover, PyPI release workflow, `legendaria` 0.1.0.dev0).
 
 ---
 
@@ -100,10 +100,11 @@ Legendaria/
 │   └── project_map.py       # prints the "File map" entries below from the source
 ├── .github/
 │   ├── workflows/ci.yml     # pre-commit + engine tests on Linux/macOS/Windows; aggregate `ci` check
+│   ├── workflows/release.yml  # on tag vX.Y.Z: test, build, publish the engine to PyPI (Trusted Publishing, env `pypi`)
 │   ├── ISSUE_TEMPLATE/      # bug, feature, translation forms + links to Discussions / security
 │   └── pull_request_template.md
 ├── assets/
-│   └── brand/           # brand kit: glowing key art (banner/hero per language), flat symbol/icons/lockups, PNGs, favicon
+│   └── brand/           # brand kit: glowing key art (banner/hero/cover per language), flat symbol/icons/lockups, PNGs, favicon
 └── docs/
     ├── PROJECT.md           # this file
     └── dev-docs/
@@ -277,15 +278,16 @@ Generate the Legendária brand SVGs.
 | `write(name, body, vb, w, h, title)` | 28 | Write one SVG with viewBox, title and accessible label. |
 | `lockup(name, font, weight, fill, bg)` | 62 | Symbol + "Legendária" wordmark (text; convert to paths afterwards). |
 
-### assets/brand/source/generate_hero.py — 122 lines
+### assets/brand/source/generate_hero.py — 152 lines
 Generate the glowing Legendária key art (hero and banner) as SVG.
 
 | Function / class | Line | What it does |
 |---|---|---|
-| `symbol(x, y, width)` | 57 | Glowing symbol placed so its stroke box starts at (x, y) with the given width. |
-| `background(w, h)` | 82 | Dark radial background with faint diagonal shapes and bands. |
-| `text(x, y, size, anchor, tagline, tag_size, tag_dy)` | 94 | Montserrat wordmark with glow plus the spaced tagline. |
-| `svg(w, h, body)` | 102 | Wrap a body in <svg> with defs, title and label. |
+| `symbol(x, y, width)` | 70 | Glowing symbol placed so its stroke box starts at (x, y) with the given width. |
+| `background(w, h)` | 95 | Dark radial background with faint diagonal shapes and bands. |
+| `text(x, y, size, anchor, tagline, tag_size, tag_dy)` | 107 | Montserrat wordmark with glow plus the spaced tagline. |
+| `cover(lang)` | 115 | 1280x640 social preview: glowing symbol, wordmark, tagline, pitch lines and repo link. |
+| `svg(w, h, body)` | 130 | Wrap a body in <svg> with defs, title and label. |
 
 
 ## 7. In progress

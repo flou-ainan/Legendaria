@@ -50,6 +50,13 @@ Coming in stage 2 (see plan 01).
    - Add user-visible changes to `CHANGELOG.md` under "Unreleased".
 4. **Open a pull request.** CI runs lint and tests on Linux, macOS and Windows, and must pass. PRs are squash-merged, so the PR title becomes the commit message on `main`; give it a Conventional Commits title.
 
+## Releasing (maintainers)
+
+1. Bump `version` in `engine/pyproject.toml` and `engine/legendaria_engine/__init__.py`, and move the "Unreleased" entries of `CHANGELOG.md` under the new version. Merge that through a PR.
+2. Tag `main` and push the tag: `git tag v0.2.0 && git push origin v0.2.0`.
+3. The `Release` workflow checks that the tag matches the version, runs the tests, builds, and publishes to [PyPI](https://pypi.org/project/legendaria/) through Trusted Publishing (no tokens).
+4. Create a GitHub Release from the tag, with the changelog notes.
+
 ## Code style
 
 - Python is formatted and linted by [ruff](https://docs.astral.sh/ruff/) (config in `ruff.toml`). `pre-commit` runs it for you.
