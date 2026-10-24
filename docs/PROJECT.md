@@ -295,5 +295,5 @@ Generate the glowing Legendária key art (hero and banner) as SVG.
 - Plan 01 approved, with no open questions left. `main` is protected: every change goes through a PR (ADR-008).
 - Brand kit in `assets/brand/` (Montserrat; glowing banner at the top of both READMEs).
 - Stage 0 (project foundation) done.
-- Stage 1 (engine) done.
+- Stage 1 (engine) done; `legendaria` 0.1.0.dev0 published on PyPI (name reserved).
 - Next: stage 2 (Blender add-on).

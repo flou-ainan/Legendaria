@@ -27,4 +27,7 @@
 
 ## Release result
 
-(filled in after the tag run)
+- Tag `v0.1.0.dev0` on `d8054c4`. The `Release` run (id 40070081622) built and published successfully.
+- https://pypi.org/project/legendaria/ now lists `0.1.0.dev0`: **the name is reserved**. It is a pre-release, so a plain `pip install legendaria` will not pick it up by accident.
+- Verified from a clean environment: `uvx --isolated --from legendaria==0.1.0.dev0 flosub --version` → `flosub 0.1.0.dev0`, and `models list` works.
+- GitHub pre-release created for the tag.
