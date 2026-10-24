@@ -1,9 +1,9 @@
 # Plan 01 — MVP: transcription engine + Blender add-on, and the product roadmap
 
-**Status:** approved (open questions in the last section still pending)
+**Status:** approved (only the project name and the translation question are still open)
 **Date:** 2026-10-23 (revised 2026-10-24)
 **Origin:** `references/origin_brainstorm.md`
-**Related decisions:** ADR-001 to ADR-007
+**Related decisions:** ADR-001 to ADR-008
 
 ## 1. Vision
 
@@ -29,11 +29,12 @@ Open Subtitler is a free, open-source automatic subtitle creator, in the spirit 
 
 | Phase | Content | Platforms | Distance |
 |---|---|---|---|
-| **1. MVP** | Engine CLI + Blender add-on: transcribe, text strips, SRT/VTT export, model download, pt_BR/en UI | Linux (NVIDIA + CPU), code already portable | **now** |
-| 2. CapCut styles | Short word-timed chunks, current-word highlight, style presets (JSON), burn-in render | Linux | next |
-| 3. Cross-platform | Windows (CUDA + CPU) and macOS (CPU; Apple Silicon acceleration under evaluation), CI matrix | all | later |
-| 4. Easy install | Per-OS installer that installs the add-on and sets up the engine automatically | all | later |
-| 5. User docs and outreach | GitHub Pages site (en + pt-BR), YouTube tutorial, contribution guide | — | later |
+| **0. Foundation** | Contribution workflow, CI, templates, final name + logo (section 7) | all (CI) | **now** |
+| **1. MVP** | Engine CLI + Blender add-on: transcribe pt/en, text strips, SRT/VTT export, model download, "Install engine" button, pt_BR/en UI | Linux (NVIDIA + CPU), code already portable | next |
+| 2. CapCut styles | Short word-timed chunks, current-word highlight, style presets (JSON), burn-in through Blender render | Linux | after MVP |
+| 3. Cross-platform | Windows (CUDA + CPU) and macOS (CPU; Apple Silicon backend open to contributors) | all | later |
+| 4. Easy install | Native per-OS installers wrapping the "Install engine" flow, optionally bundling a portable Blender | all | later |
+| 5. User docs and outreach | MkDocs Material site on GitHub Pages (en + pt-BR), YouTube tutorial | — | later |
 | Out of scope for now | Mobile app (whisper.cpp / React Native), cloud API | — | future plan |
 
 Phases 3–5 are far from the MVP, but the MVP must not block them. The constraints they impose are listed in section 5.
@@ -165,6 +166,7 @@ README.md / README.pt-BR.md          # user-facing, bilingual
   3. `opensub` on PATH.
 
   It runs the engine with `subprocess.Popen` (argument list, no shell, Windows-safe flags) and parses the progress events. If no engine is found, the panel shows a friendly "Engine not installed" box with instructions.
+- **"Install engine" button** (preferences): downloads `uv` for the current OS, runs `uv venv --python 3.11` in the per-OS data dir, installs `opensub-engine` into it, and downloads the `small` model. Progress and errors appear in the UI. A "Repair / reinstall" action reruns the same steps. In the MVP the engine is installed from the git repository; later, from PyPI.
 - **Preferences:** engine path; model dropdown fed by `opensub models list`, with a **Download** button and a progress bar; language (auto / pt / en / ...); device.
 - **"Generate subtitles" operator** (modal):
   1. Takes the active `MOVIE` or `SOUND` strip and resolves its path with `bpy.path.abspath`.
@@ -181,6 +183,8 @@ README.md / README.pt-BR.md          # user-facing, bilingual
 
 - [ ] `opensub transcribe video.mp4` produces JSON, SRT and VTT on the GPU, with no manual `export`.
 - [ ] Without a GPU, or with `--device cpu`, it runs on CPU.
+- [ ] On a machine with no engine, "Install engine" in Blender leaves a working engine with the `small` model, with no terminal use.
+- [ ] Portuguese and English clips both transcribe correctly with auto-detection and with a fixed language.
 - [ ] `opensub models download medium` works and the model shows as installed.
 - [ ] The user config file overrides a default (for example the model) with no code change.
 - [ ] Engine tests pass (`pytest engine/tests`).
@@ -199,7 +203,9 @@ README.md / README.pt-BR.md          # user-facing, bilingual
 - **Docs site (phase 5):** user-facing docs are organized by language from the start (`docs/user/en/`, `docs/user/pt-BR/`), so a static site generator can publish them directly.
 - **i18n:** no user-visible string outside the translation layer, ever.
 
-## 6. Decided (2026-10-24)
+## 6. Decided
+
+Round 1 (2026-10-24):
 
 1. Engine environment: **dedicated venv**.
 2. Default model: **`small`**, with in-app download of the others.
@@ -210,18 +216,51 @@ README.md / README.pt-BR.md          # user-facing, bilingual
 7. Hackable through layered JSON configs (ADR-006).
 8. Cross-platform target: Linux, macOS, Windows 10+ (ADR-007).
 
-## 7. Open questions
+Round 2 (2026-10-24):
 
-1. **Installer strategy (phase 4).** Options:
-   - (a) The user installs Blender, installs our add-on zip, and clicks **"Install engine"** in the preferences. The add-on downloads `uv`, creates the venv and fetches the `small` model.
-   - (b) A native installer per OS (Inno Setup on Windows, `.pkg` on macOS, AppImage or script on Linux) that installs the engine and drops the add-on into Blender's extensions folder.
-   - (c) The same as (b), but also ships a portable Blender with the add-on preinstalled.
+9. **Installer:**
+   - First, option (a): the user installs the add-on zip, then clicks **"Install engine"** in the add-on preferences. The add-on downloads `uv`, creates the managed venv with the pinned Python, installs the engine and fetches the `small` model, all with a progress bar.
+   - Later, for less technical users: (b) a native installer per OS that wraps (a), and/or (c) the same plus a portable Blender with the add-on preinstalled. Both live in phase 4.
+10. **macOS:** CPU only (int8), which is already acceptable: it was tested on a Ryzen CPU. An Apple Silicon backend (`mlx-whisper`, or whisper.cpp with Metal) is left open for a contributor with a Mac, tracked as a "help wanted" issue. The backend interface in `transcriber.py` exists so that PR stays small.
+11. **Docs site:** MkDocs Material, published on GitHub Pages, with `docs/user/en/` and `docs/user/pt-BR/` (phase 5).
+12. **Transcription languages in the MVP:** **Portuguese and English** are first-class:
+    - The language selector offers auto / pt / en, and the full Whisper language list is configurable through JSON.
+    - Both languages are tested on real clips before the MVP is done.
+    - Translation (for example pt speech → en subtitles) is not in the MVP (open question 9).
+13. **Burn-in:** only through Blender's render in phase 2. The fast path (generate `.ass` and burn with FFmpeg/NVENC, no editor) goes to the backlog (section 8).
+14. **Python:** pinned (3.11) and installed by `uv` into the managed venv, independent of the system Python. This is still a venv: `uv` just creates it with a known Python version, so every user on every OS runs the same thing.
+15. **Contribution workflow:** the lightweight standard used by serious open-source projects (ADR-008, stage 0 below).
 
-   Recommendation: (a) first, since it is a single cross-platform codebase, then (b) as a wrapper around it.
-2. **macOS acceleration:** is CPU-only acceptable on Mac at first, or should Apple Silicon acceleration (`mlx-whisper`) be part of phase 3?
-3. **Docs site tool:** MkDocs Material (Python, built-in i18n, simple) or Docusaurus (React, also has i18n)? Recommendation: MkDocs Material.
-4. **Transcription languages:** besides auto-detection, should we ship tuned defaults for pt and en only? Do we want Whisper's "translate to English" mode in the MVP?
-5. **Burn-in (phase 2):** render only through Blender, or also a fast FFmpeg path (generate `.ass` and burn with NVENC) for users who do not want to open the editor?
-6. **Name and identity:** is "Open Subtitler" final (add-on id `open_subtitler`, command `opensub`)? Do we want a logo for the README and the site?
-7. **Contribution workflow:** branch + PR into `main`, Conventional Commits, `ruff` for lint/format, GitHub Actions with pytest on Linux/macOS/Windows from the MVP on?
-8. **Python for the managed venv:** pin a version (for example 3.11, installed by `uv`, independent of the system Python) or use whatever Python the system has?
+## 7. Stage 0 — Project foundation (before the engine)
+
+Following ADR-008:
+
+- [ ] `CONTRIBUTING.md` (English), linked from both READMEs. It covers how to set up, run tests, branch, commit and open a PR, plus a "your first contribution" section and how to add a translation.
+- [ ] `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1).
+- [ ] `SECURITY.md` (how to report a vulnerability privately).
+- [ ] `CHANGELOG.md` (Keep a Changelog format) and versioning with SemVer, starting at `0.1.0`.
+- [ ] `.github/ISSUE_TEMPLATE/` (bug report, feature request, translation) and `.github/pull_request_template.md`. The PR template includes "docs updated (devlog / PROJECT.md)".
+- [ ] `ruff` (lint and format) and `pre-commit` config. `pytest` is wired in once the engine exists.
+- [ ] GitHub Actions CI: ruff and pytest on Linux, macOS and Windows for every PR.
+- [ ] GitHub repository settings: protect `main` (PR required, CI must pass); labels `good first issue`, `help wanted`, `translation`; enable Discussions.
+- [ ] Final project name applied everywhere, then the logo (open question 6).
+
+## 8. Backlog (not scheduled)
+
+- Fast burn-in without the editor: transcript → `.ass` with styles → FFmpeg (NVENC when available).
+- Apple Silicon backend (contributor-led).
+- Subtitle translation (Whisper translate mode, or an LLM pass).
+- WhisperX-style forced alignment, if word timings are not precise enough.
+- Mobile app and cloud API (from the origin brainstorm).
+
+## 9. Open questions
+
+1. ~~Installer strategy~~: decided (9).
+2. ~~macOS acceleration~~: decided (10).
+3. ~~Docs site tool~~: decided (11).
+4. ~~Transcription languages~~: decided (12).
+5. ~~Burn-in~~: decided (13).
+6. **Name:** "Open Subtitler" is free on PyPI and GitHub, but it is easy to confuse with OpenSubtitles.org (a big brand in the same field), and `opensub` is taken (opensub.in). Alternatives were researched. **Pending owner's choice, then the logo.**
+7. ~~Contribution workflow~~: decided (15, ADR-008).
+8. ~~Python~~: decided (14).
+9. **Translation:** should subtitles in another language than the speech (for example pt audio → en subtitles) be a goal for phase 2, or stay in the backlog?

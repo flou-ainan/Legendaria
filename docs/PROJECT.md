@@ -3,7 +3,7 @@
 > A condensed map of the project, so agents and people can find what they need without rereading the code.
 > **Update this file with every change to the project** (files, functions, stack, structure). Conventions: `docs/dev-docs/README.md`.
 
-**Last updated:** 2026-10-24 — step 02 (English dev docs, product scope). No code yet.
+**Last updated:** 2026-10-24 — step 03 (round-2 decisions, ADR-008, stage 0 planned). No code yet.
 
 ---
 
@@ -66,6 +66,7 @@ engine/ (`opensub`) ── faster-whisper (GPU → CPU fallback) ──► trans
 | [005](dev-docs/decisions/ADR-005-language-policy.md) | English dev content; user content in en + pt_BR, open to more | accepted |
 | [006](dev-docs/decisions/ADR-006-json-configuration.md) | Layered JSON config files with JSON Schema | accepted |
 | [007](dev-docs/decisions/ADR-007-cross-platform.md) | Linux, macOS, Windows 10+ | accepted |
+| [008](dev-docs/decisions/ADR-008-contribution-workflow.md) | Branch + PR, Conventional Commits, SemVer, CI on 3 OSes | accepted |
 
 ## 5. Folder structure
 
@@ -104,5 +105,5 @@ Short description of the file's role.
 
 ## 7. In progress
 
-- Plan 01 is approved; the open questions in section 7 are waiting for answers.
-- Next: stage 1, the engine.
+- Plan 01 approved; open: project name (then logo) and the translation goal (plan 01, section 9).
+- Next: stage 0 (project foundation), then stage 1 (engine).
