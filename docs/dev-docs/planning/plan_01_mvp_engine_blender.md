@@ -1,13 +1,13 @@
 # Plan 01 — MVP: transcription engine + Blender add-on, and the product roadmap
 
-**Status:** approved (only the project name and the translation question are still open)
+**Status:** approved
 **Date:** 2026-10-23 (revised 2026-10-24)
 **Origin:** `references/origin_brainstorm.md`
-**Related decisions:** ADR-001 to ADR-008
+**Related decisions:** ADR-001 to ADR-009
 
 ## 1. Vision
 
-Open Subtitler is a free, open-source automatic subtitle creator, in the spirit of CapCut's auto captions:
+**Legendária** ("free subtitles, CapCut style"; CLI `flosub`) is a free, open-source automatic subtitle creator, in the spirit of CapCut's auto captions:
 
 - **For end users:** install with a "next → next → finish" installer, open Blender, drop a video in, click one button, and get editable, stylable subtitles. No terminal, no Python, no CUDA setup.
 - **For contributors:** clear docs, small modules, tests, and behavior driven by JSON config files, so most tweaks never touch code.
@@ -70,8 +70,8 @@ Environment checked on 2026-10-23: Blender 4.2.0, Python 3.10.12, faster-whisper
 ```
 engine/                              # MIT — transcription engine, own venv
 ├── LICENSE                          # MIT (same as root)
-├── pyproject.toml                   # package "opensub-engine", command `opensub`
-├── opensub_engine/
+├── pyproject.toml                   # package "legendaria", command `flosub`
+├── legendaria_engine/
 │   ├── __init__.py
 │   ├── cli.py                       # argparse: transcribe / export / models / config
 │   ├── config.py                    # loads defaults + user overrides + CLI flags
@@ -91,7 +91,7 @@ engine/                              # MIT — transcription engine, own venv
 │   └── transcript.schema.json
 └── tests/
 
-blender_addon/open_subtitler/        # GPL-3.0-or-later — Blender 4.2+ extension
+blender_addon/legendaria/        # GPL-3.0-or-later — Blender 4.2+ extension
 ├── LICENSE                          # GPL-3.0-or-later
 ├── blender_manifest.toml
 ├── __init__.py                      # register / unregister
@@ -121,13 +121,13 @@ README.md / README.pt-BR.md          # user-facing, bilingual
   - macOS: no-op.
 - **`config.py`:** three layers, each one overriding the previous:
   1. `defaults/config.json` (shipped).
-  2. User file in the per-OS config dir: `~/.config/open-subtitler/config.json`, `%APPDATA%\open-subtitler\config.json`, or `~/Library/Application Support/open-subtitler/config.json`.
+  2. User file in the per-OS config dir: `~/.config/legendaria/config.json`, `%APPDATA%\legendaria\config.json`, or `~/Library/Application Support/legendaria/config.json`.
   3. CLI flags.
 
-  `opensub config show` prints the merged result and `opensub config path` prints where the user file goes.
+  `flosub config show` prints the merged result and `flosub config path` prints where the user file goes.
 - **`models.py` + `models.json`:** catalog of the Whisper models (`tiny` … `large-v3`, `large-v3-turbo`), each with size, approximate VRAM, and a recommendation. The default is `small`.
-  - `opensub models list` shows the catalog and what is installed.
-  - `opensub models download <name>` downloads a model with progress events.
+  - `flosub models list` shows the catalog and what is installed.
+  - `flosub models download <name>` downloads a model with progress events.
   - Models are stored in the per-OS data dir, not in the HF cache, so the add-on can show and manage them.
   - Adding a model means adding an entry to `models.json`.
 - **`transcriber.py`:**
@@ -150,27 +150,27 @@ README.md / README.pt-BR.md          # user-facing, bilingual
   }
   ```
 - **`cli.py`:**
-  - `opensub transcribe <file> [--model] [--language] [--device auto|cuda|cpu] [--output-dir] [--format json,srt,vtt] [--human]`
-  - `opensub export <file.json> --format srt|vtt`
-  - `opensub models list|download`
-  - `opensub config show|path`
+  - `flosub transcribe <file> [--model] [--language] [--device auto|cuda|cpu] [--output-dir] [--format json,srt,vtt] [--human]`
+  - `flosub export <file.json> --format srt|vtt`
+  - `flosub models list|download`
+  - `flosub config show|path`
 - **CLI language:** English only in the MVP, since the CLI is a power-user tool. The add-on translates whatever it shows to the user.
 - **Tests (pytest):** timestamp formatting (0 s, 59.999 s, > 1 h, > 24 h), valid SRT/VTT output, schema round-trip, config layering, catalog validation against the JSON Schema. Real transcription is tested manually with a short clip.
 
-### 4.5 Stage 2 — Blender add-on (`blender_addon/open_subtitler/`)
+### 4.5 Stage 2 — Blender add-on (`blender_addon/legendaria/`)
 
 - **Compatibility:** Blender **4.2 and newer** (the extensions format starts at 4.2). `compat.py` isolates the VSE API changes, for example `sequence_editor.sequences` → `strips` in 4.4+ (the old API is removed in 5.0) and any renames to `new_effect` or the text strip properties. Manual testing covers 4.2 LTS and the latest stable release.
 - **`engine_bridge.py`:** locates the engine, in this order:
   1. Path set in preferences.
   2. Managed venv in the user data dir.
-  3. `opensub` on PATH.
+  3. `flosub` on PATH.
 
   It runs the engine with `subprocess.Popen` (argument list, no shell, Windows-safe flags) and parses the progress events. If no engine is found, the panel shows a friendly "Engine not installed" box with instructions.
-- **"Install engine" button** (preferences): downloads `uv` for the current OS, runs `uv venv --python 3.11` in the per-OS data dir, installs `opensub-engine` into it, and downloads the `small` model. Progress and errors appear in the UI. A "Repair / reinstall" action reruns the same steps. In the MVP the engine is installed from the git repository; later, from PyPI.
-- **Preferences:** engine path; model dropdown fed by `opensub models list`, with a **Download** button and a progress bar; language (auto / pt / en / ...); device.
+- **"Install engine" button** (preferences): downloads `uv` for the current OS, runs `uv venv --python 3.11` in the per-OS data dir, installs `legendaria` into it, and downloads the `small` model. Progress and errors appear in the UI. A "Repair / reinstall" action reruns the same steps. In the MVP the engine is installed from the git repository; later, from PyPI.
+- **Preferences:** engine path; model dropdown fed by `flosub models list`, with a **Download** button and a progress bar; language (auto / pt / en / ...); device.
 - **"Generate subtitles" operator** (modal):
   1. Takes the active `MOVIE` or `SOUND` strip and resolves its path with `bpy.path.abspath`.
-  2. Starts `opensub transcribe ... --format json`.
+  2. Starts `flosub transcribe ... --format json`.
   3. A timer updates the progress bar and the status line. `Esc` cancels and kills the process.
   4. When the engine finishes, the add-on creates one text strip per segment on the chosen channel, using the style from `presets/default.json`. Positions account for the media strip start and any trim at its head (`frame_offset_start`).
 - **"Export SRT/VTT" operator:**
@@ -181,11 +181,11 @@ README.md / README.pt-BR.md          # user-facing, bilingual
 
 ### 4.6 Definition of done (MVP)
 
-- [ ] `opensub transcribe video.mp4` produces JSON, SRT and VTT on the GPU, with no manual `export`.
+- [ ] `flosub transcribe video.mp4` produces JSON, SRT and VTT on the GPU, with no manual `export`.
 - [ ] Without a GPU, or with `--device cpu`, it runs on CPU.
 - [ ] On a machine with no engine, "Install engine" in Blender leaves a working engine with the `small` model, with no terminal use.
 - [ ] Portuguese and English clips both transcribe correctly with auto-detection and with a fixed language.
-- [ ] `opensub models download medium` works and the model shows as installed.
+- [ ] `flosub models download medium` works and the model shows as installed.
 - [ ] The user config file overrides a default (for example the model) with no code change.
 - [ ] Engine tests pass (`pytest engine/tests`).
 - [ ] Blender 4.2 and the latest stable: select a video → Generate → strips appear on the right channel, aligned with the audio; the progress bar moves; the UI does not freeze.
@@ -231,6 +231,12 @@ Round 2 (2026-10-24):
 14. **Python:** pinned (3.11) and installed by `uv` into the managed venv, independent of the system Python. This is still a venv: `uv` just creates it with a known Python version, so every user on every OS runs the same thing.
 15. **Contribution workflow:** the lightweight standard used by serious open-source projects (ADR-008, stage 0 below).
 
+Round 3 (2026-10-24):
+
+16. **Name (ADR-009):** the product is **Legendária**. The repository, the Python package (`legendaria`, import `legendaria_engine`) and the add-on id are `legendaria`, and the CLI command is **`flosub`**. Slogan: "free subtitles, CapCut style" / "legendas livres, estilo CapCut".
+17. **Translation:** not planned. It stays in the backlog until the owner revisits it.
+18. **`main` protection:** enabled. PRs are required, also for admins; linear history; no force-push or deletion; squash merge only; branches are deleted after merge. The required CI check is added when the CI workflow exists (stage 0).
+
 ## 7. Stage 0 — Project foundation (before the engine)
 
 Following ADR-008:
@@ -242,8 +248,10 @@ Following ADR-008:
 - [ ] `.github/ISSUE_TEMPLATE/` (bug report, feature request, translation) and `.github/pull_request_template.md`. The PR template includes "docs updated (devlog / PROJECT.md)".
 - [ ] `ruff` (lint and format) and `pre-commit` config. `pytest` is wired in once the engine exists.
 - [ ] GitHub Actions CI: ruff and pytest on Linux, macOS and Windows for every PR.
-- [ ] GitHub repository settings: protect `main` (PR required, CI must pass); labels `good first issue`, `help wanted`, `translation`; enable Discussions.
-- [ ] Final project name applied everywhere, then the logo (open question 6).
+- [x] Protect `main` (PR required, squash only). Still to do: make the CI check required once CI exists.
+- [ ] GitHub repository settings: labels `good first issue`, `help wanted`, `translation`; enable Discussions.
+- [x] Final project name applied everywhere (Legendária / `flosub`).
+- [ ] Logo.
 
 ## 8. Backlog (not scheduled)
 
@@ -260,7 +268,9 @@ Following ADR-008:
 3. ~~Docs site tool~~: decided (11).
 4. ~~Transcription languages~~: decided (12).
 5. ~~Burn-in~~: decided (13).
-6. **Name:** "Open Subtitler" is free on PyPI and GitHub, but it is easy to confuse with OpenSubtitles.org (a big brand in the same field), and `opensub` is taken (opensub.in). Alternatives were researched. **Pending owner's choice, then the logo.**
+6. ~~Name~~: decided (16, ADR-009).
 7. ~~Contribution workflow~~: decided (15, ADR-008).
 8. ~~Python~~: decided (14).
-9. **Translation:** should subtitles in another language than the speech (for example pt audio → en subtitles) be a goal for phase 2, or stay in the backlog?
+9. ~~Translation~~: decided (17), backlog.
+
+No open questions remain.

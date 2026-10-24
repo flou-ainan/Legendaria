@@ -1,15 +1,17 @@
-# Project Map — Open Subtitler
+# Project Map — Legendária
 
 > A condensed map of the project, so agents and people can find what they need without rereading the code.
 > **Update this file with every change to the project** (files, functions, stack, structure). Conventions: `docs/dev-docs/README.md`.
 
-**Last updated:** 2026-10-24 — step 03 (round-2 decisions, ADR-008, stage 0 planned). No code yet.
+**Last updated:** 2026-10-24 — step 04 (project renamed to Legendária, CLI `flosub`, `main` protected). No code yet.
 
 ---
 
 ## 1. Overview
 
-A free, open-source automatic subtitle creator, inspired by CapCut's auto captions:
+**Legendária** ("free subtitles, CapCut style") is a free, open-source automatic subtitle creator, inspired by CapCut's auto captions. Names (ADR-009): product **Legendária**; repository, Python package and add-on id `legendaria`; CLI command `flosub`.
+
+What it does:
 
 - Transcribes the audio locally on the GPU, with per-word timings.
 - Turns the result into **editable text strips in Blender's Video Sequence Editor**.
@@ -27,7 +29,7 @@ Two independent parts that talk through a JSON file and JSON-lines progress even
 [video strip in Blender's VSE]
         │  add-on launches the engine (subprocess, own venv)
         ▼
-engine/ (`opensub`) ── faster-whisper (GPU → CPU fallback) ──► transcript JSON v1 (segments + words)
+engine/ (`flosub`) ── faster-whisper (GPU → CPU fallback) ──► transcript JSON v1 (segments + words)
         │                                      │  progress: JSON lines on stdout
         ▼                                      ▼
    SRT / VTT (CLI)            add-on creates editable text strips
@@ -36,8 +38,8 @@ engine/ (`opensub`) ── faster-whisper (GPU → CPU fallback) ──► trans
                                         └──► Blender render with burned-in subtitles
 ```
 
-- **Engine (`engine/`, MIT):** a standalone Python package with its own venv and the `opensub` command (transcribe / export / models / config). It works on its own as a CLI.
-- **Add-on (`blender_addon/open_subtitler/`, GPL-3.0-or-later):** a Blender 4.2+ extension with a sidebar UI. It is translated through `bpy.app.translations` with `locales/*.json`.
+- **Engine (`engine/`, MIT):** a standalone Python package with its own venv and the `flosub` command (transcribe / export / models / config). It works on its own as a CLI.
+- **Add-on (`blender_addon/legendaria/`, GPL-3.0-or-later):** a Blender 4.2+ extension with a sidebar UI. It is translated through `bpy.app.translations` with `locales/*.json`.
 - **Config:** shipped JSON defaults, overridden by a per-OS user JSON file, overridden in turn by CLI flags or UI values (ADR-006).
 
 ## 3. Technologies / stack
@@ -67,11 +69,12 @@ engine/ (`opensub`) ── faster-whisper (GPU → CPU fallback) ──► trans
 | [006](dev-docs/decisions/ADR-006-json-configuration.md) | Layered JSON config files with JSON Schema | accepted |
 | [007](dev-docs/decisions/ADR-007-cross-platform.md) | Linux, macOS, Windows 10+ | accepted |
 | [008](dev-docs/decisions/ADR-008-contribution-workflow.md) | Branch + PR, Conventional Commits, SemVer, CI on 3 OSes | accepted |
+| [009](dev-docs/decisions/ADR-009-project-name.md) | Name: Legendária (`legendaria`), CLI `flosub` | accepted |
 
 ## 5. Folder structure
 
 ```
-Open-Subtitler/
+Legendaria/
 ├── AGENTS.md                # instructions for any AI agent
 ├── CLAUDE.md                # points to AGENTS.md
 ├── README.md                # user-facing, English
@@ -105,5 +108,5 @@ Short description of the file's role.
 
 ## 7. In progress
 
-- Plan 01 approved; open: project name (then logo) and the translation goal (plan 01, section 9).
-- Next: stage 0 (project foundation), then stage 1 (engine).
+- Plan 01 approved, with no open questions left. `main` is protected: every change goes through a PR (ADR-008).
+- Next: the logo, then the rest of stage 0 (project foundation), then stage 1 (engine).

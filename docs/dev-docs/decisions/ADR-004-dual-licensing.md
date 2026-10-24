@@ -10,7 +10,7 @@ The repository started under MIT. Blender's official extensions platform require
 ## Decision
 
 - `engine/` and the rest of the repository: **MIT** (the root `LICENSE`, plus `engine/LICENSE`).
-- `blender_addon/`: **GPL-3.0-or-later** (`blender_addon/open_subtitler/LICENSE`, plus SPDX headers in each file).
+- `blender_addon/`: **GPL-3.0-or-later** (`blender_addon/legendaria/LICENSE`, plus SPDX headers in each file).
 - The README explains the split.
 
 ## Alternatives considered

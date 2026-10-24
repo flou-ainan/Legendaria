@@ -9,7 +9,7 @@ Blender ships its own Python. Installing faster-whisper, CTranslate2, and the CU
 
 ## Decision
 
-The engine (`engine/`) is a standalone Python package with its **own venv** and the `opensub` command. The add-on runs it with `subprocess.Popen`:
+The engine (`engine/`) is a standalone Python package with its **own venv** and the `flosub` command. The add-on runs it with `subprocess.Popen`:
 
 - Progress arrives as JSON lines on stdout.
 - The result is a versioned JSON transcript file with segments and words with timings.
