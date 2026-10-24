@@ -251,7 +251,7 @@ Following ADR-008:
 - [x] Protect `main` (PR required, squash only). Still to do: make the CI check required once CI exists.
 - [ ] GitHub repository settings: labels `good first issue`, `help wanted`, `translation`; enable Discussions.
 - [x] Final project name applied everywhere (Legendária / `flosub`).
-- [ ] Logo.
+- [x] Logo: brand kit in `assets/brand/` (step 05).
 
 ## 8. Backlog (not scheduled)
 

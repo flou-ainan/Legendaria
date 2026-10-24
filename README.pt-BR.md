@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/lockup-nunito-dark.svg">
+    <img alt="Legendária" src="assets/brand/lockup-nunito-light.svg" width="520">
+  </picture>
+</p>
+
 # Legendária
 
 [English](README.md) | **Português (Brasil)**

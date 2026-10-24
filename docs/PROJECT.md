@@ -3,7 +3,7 @@
 > A condensed map of the project, so agents and people can find what they need without rereading the code.
 > **Update this file with every change to the project** (files, functions, stack, structure). Conventions: `docs/dev-docs/README.md`.
 
-**Last updated:** 2026-10-24 — step 04 (project renamed to Legendária, CLI `flosub`, `main` protected). No code yet.
+**Last updated:** 2026-10-24 — step 05 (brand kit / logo). No code yet.
 
 ---
 
@@ -81,6 +81,8 @@ Legendaria/
 ├── README.pt-BR.md          # user-facing, Brazilian Portuguese
 ├── LICENSE                  # MIT
 ├── .gitignore
+├── assets/
+│   └── brand/           # logo kit: SVG symbol/icons/lockups, PNGs, favicon (see its README)
 └── docs/
     ├── PROJECT.md           # this file
     └── dev-docs/
@@ -95,7 +97,16 @@ The target layout for `engine/` and `blender_addon/` is in plan 01, section 4.3.
 
 ## 6. File map
 
-There are no source files yet. Each source file will get an entry like this:
+### assets/brand/source/generate_brand_svgs.py — 60 lines
+Dev tool that writes the brand SVGs into `assets/brand/`. Constants: `GRAD` (the symbol gradient), `PATHS` (symbol strokes), `SYMBOL_VB`, `SMALL` / `SMALL_GRAD` (small icon). The lockup text has to be converted to paths with Inkscape afterwards (see `assets/brand/README.md`).
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `group(stroke, width=37)` | 21 | Wraps the symbol strokes in a `<g>` with the given stroke paint and width |
+| `write(name, body, vb, w, h, title)` | 24 | Writes one SVG file with a viewBox, title and accessible label |
+| `lockup(name, font, weight, fill, bg)` | 51 | Writes a symbol + "Legendária" wordmark SVG (text, not yet paths) |
+
+There is no engine or add-on code yet. Each source file will get an entry like this:
 
 ```markdown
 ### path/file.py — N lines
@@ -109,4 +120,5 @@ Short description of the file's role.
 ## 7. In progress
 
 - Plan 01 approved, with no open questions left. `main` is protected: every change goes through a PR (ADR-008).
-- Next: the logo, then the rest of stage 0 (project foundation), then stage 1 (engine).
+- Brand kit in `assets/brand/`; wordmark font pending (Montserrat or Nunito).
+- Next: the rest of stage 0 (project foundation), then stage 1 (engine).
