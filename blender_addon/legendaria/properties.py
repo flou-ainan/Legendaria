@@ -6,10 +6,11 @@ from __future__ import annotations
 import bpy
 
 from . import engine_bridge
-from .i18n import tr
+from .i18n import N_, tr
 
 # Filled by refresh_engine_info(). Blender needs these lists to stay alive while enums use them.
-ENGINE = {"path": None, "version": "", "error": "", "models_dir": ""}
+ENGINE = {"path": None, "version": "", "error": "", "models_dir": "", "outdated": False}
+MIN_ENGINE = "0.1.0.dev1"  # oldest flosub with what this add-on uses (cue styles)
 MODEL_ITEMS: list[tuple[str, str, str]] = []
 LANGUAGE_ITEMS: list[tuple[str, str, str]] = [("auto", "Auto-detect", "Detect the spoken language")]
 STYLE_ITEMS: list[tuple[str, str, str]] = [
@@ -34,10 +35,10 @@ def refresh_engine_info(context=None) -> bool:
     """Locate flosub and reload models, languages and styles. Returns True when found."""
     prefs = addon_prefs(context)
     custom = prefs.engine_path if prefs else ""
-    ENGINE.update(path=None, version="", error="", models_dir="")
+    ENGINE.update(path=None, version="", error="", models_dir="", outdated=False)
     engine = engine_bridge.find_engine(custom)
     if engine is None:
-        ENGINE["error"] = "Engine not found"
+        ENGINE["error"] = N_("Engine not found")
         return False
     try:
         ENGINE["version"] = engine_bridge.run_text(engine, ["--version"])
@@ -47,6 +48,9 @@ def refresh_engine_info(context=None) -> bool:
         ENGINE["error"] = str(exc)
         return False
     ENGINE["path"] = engine
+    ENGINE["outdated"] = engine_bridge.version_key(ENGINE["version"]) < engine_bridge.version_key(
+        MIN_ENGINE
+    )
     ENGINE["models_dir"] = models.get("models_dir", "")
     default_model = config.get("model", "small")
     entries = sorted(models["models"], key=lambda m: m["name"] != default_model)

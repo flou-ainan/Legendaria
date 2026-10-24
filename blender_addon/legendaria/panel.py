@@ -5,7 +5,39 @@ from __future__ import annotations
 
 import bpy
 
-from . import properties
+from . import operators, properties
+
+
+def draw_engine_box(layout) -> bool:
+    """Engine install / update / progress UI. Returns True when the engine is ready to use."""
+    engine = properties.ENGINE
+    status, progress = operators.install_status()
+    job = operators.INSTALL["job"]
+    if job is not None and job.running:
+        box = layout.box()
+        box.label(text="Installing the transcription engine…", icon="IMPORT")
+        if hasattr(box, "progress"):
+            box.progress(factor=progress, type="BAR", text=status)
+        else:
+            box.label(text=status)
+        box.operator("legendaria.cancel_install", icon="CANCEL")
+        return False
+    if job is not None and job.state["error"]:
+        box = layout.box()
+        box.label(text="Engine installation failed", icon="ERROR")
+        box.label(text=job.state["error"].splitlines()[0][:80])
+    if engine["path"] is None:
+        box = layout.box()
+        box.label(text="Transcription engine not found", icon="ERROR")
+        box.operator("legendaria.install_engine", icon="IMPORT")
+        box.operator("legendaria.refresh_engine", icon="FILE_REFRESH")
+        return False
+    if engine["outdated"]:
+        box = layout.box()
+        box.label(text="The engine is older than this add-on needs", icon="ERROR")
+        box.operator("legendaria.install_engine", text="Update engine", icon="IMPORT")
+        return False
+    return True
 
 
 class LEGENDARIA_PT_main(bpy.types.Panel):
@@ -23,11 +55,7 @@ class LEGENDARIA_PT_main(bpy.types.Panel):
         settings = context.scene.legendaria
         engine = properties.ENGINE
 
-        if engine["path"] is None:
-            box = layout.box()
-            box.label(text="Transcription engine not found", icon="ERROR")
-            box.label(text="Install it, then press Refresh.")
-            box.operator("legendaria.refresh_engine", icon="FILE_REFRESH")
+        if not draw_engine_box(layout):
             return
 
         editor = context.scene.sequence_editor

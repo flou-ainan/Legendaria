@@ -1,14 +1,18 @@
-import importlib.util
+import importlib
 import sys
+import types
 from pathlib import Path
 
 ADDON = Path(__file__).resolve().parents[1] / "legendaria"
 
+# Make `legendaria` importable as a package without running its __init__ (which needs bpy),
+# so modules that use relative imports (e.g. installer → engine_bridge) load in plain Python.
+if "legendaria" not in sys.modules:
+    package = types.ModuleType("legendaria")
+    package.__path__ = [str(ADDON)]
+    sys.modules["legendaria"] = package
+
 
 def load(name):
-    """Import an add-on module that does not need bpy, without importing the package."""
-    spec = importlib.util.spec_from_file_location(f"legendaria_{name}", ADDON / f"{name}.py")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
+    """Import an add-on module that does not need bpy."""
+    return importlib.import_module(f"legendaria.{name}")

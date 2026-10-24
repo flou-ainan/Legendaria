@@ -22,6 +22,11 @@ args = argparse.ArgumentParser()
 args.add_argument("--media", required=True)
 args.add_argument("--out", required=True)
 args.add_argument("--lang", default="en_US")
+args.add_argument(
+    "--install",
+    choices=["confirm", "run"],
+    help="test the Install engine flow instead (no engine on PATH): show the dialog, or run it",
+)
 opts = args.parse_args(sys.argv[sys.argv.index("--") + 1 :])
 OUT = Path(opts.out)
 OUT.mkdir(parents=True, exist_ok=True)
@@ -122,13 +127,21 @@ def tick():
     if i >= len(STEPS):
         return None
     _name, action, wait_until_idle = STEPS[i]
-    if wait_until_idle and settings.running:
+    if wait_until_idle == "install":
+        if installing():
+            return 1.0
+    elif wait_until_idle and settings.running:
         if not state["progress_shot"] and settings.progress > 0.05:
             shot("2-progress")
             state["progress_shot"] = True
             log(f"progress: {settings.status}")
         return 0.25
-    action()
+    try:
+        action()
+    except Exception as exc:  # end the session instead of hanging until the timeout
+        log(f"ERROR in step {_name}: {exc}")
+        bpy.ops.wm.quit_blender()
+        return None
     state["i"] += 1
     return 1.5
 
@@ -143,6 +156,53 @@ def finish():
     bpy.ops.wm.quit_blender()
 
 
+def install_invoke():
+    window, area = sequencer_area()
+    region = next(r for r in area.regions if r.type == "WINDOW")
+    with bpy.context.temp_override(window=window, area=area, region=region):
+        log(f"install invoked: {bpy.ops.legendaria.install_engine('INVOKE_DEFAULT')}")
+
+
+def install_run():
+    window, area = sequencer_area()
+    with bpy.context.temp_override(window=window, area=area):
+        log(f"install executed: {bpy.ops.legendaria.install_engine('EXEC_DEFAULT')}")
+
+
+def installing():
+    from importlib import import_module
+
+    ops = import_module(
+        type(bpy.context.scene.legendaria).__module__.rsplit(".", 1)[0] + ".operators"
+    )
+    job = ops.INSTALL["job"]
+    return job is not None and job.running
+
+
+def install_finish():
+    props = __import__(type(bpy.context.scene.legendaria).__module__, fromlist=["ENGINE"])
+    log(f"engine after install: {props.ENGINE['path']} {props.ENGINE['version']}")
+    bpy.ops.wm.quit_blender()
+
+
+INSTALL_STEPS = {
+    "confirm": [
+        ("setup", setup, False),
+        ("no-engine", lambda: shot("i1-no-engine"), False),
+        ("invoke", install_invoke, False),
+        ("dialog", lambda: shot("i2-install-confirm"), False),
+        ("quit", bpy.ops.wm.quit_blender, False),
+    ],
+    "run": [
+        ("setup", setup, False),
+        ("run", install_run, False),
+        ("progress", lambda: shot("i3-installing"), False),
+        ("wait", lambda: None, "install"),
+        ("ready", lambda: shot("i4-engine-ready"), False),
+        ("finish", install_finish, False),
+    ],
+}
+
 STEPS[:] = [
     ("setup", setup, False),
     ("idle", lambda: shot("1-idle"), False),
@@ -152,4 +212,6 @@ STEPS[:] = [
     ("confirm", lambda: shot("4-replace-warning"), False),
     ("finish", finish, False),
 ]
+if opts.install:
+    STEPS[:] = INSTALL_STEPS[opts.install]
 bpy.app.timers.register(tick, first_interval=2.0)
