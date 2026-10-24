@@ -1,8 +1,10 @@
-# Open Subtitler
+# Legendária
 
 **English** | [Português (Brasil)](README.pt-BR.md)
 
-Free, open-source automatic subtitles for your videos, inspired by CapCut's auto captions.
+**Free subtitles, CapCut style.** Free, open-source automatic subtitles for your videos, inspired by CapCut's auto captions.
+
+*Legendária* blends the Portuguese word *legenda* (subtitle) with *legendary*. Its command-line tool is called `flosub`.
 
 > 🚧 Early development. Nothing to install yet.
 

@@ -1,8 +1,10 @@
-# Open Subtitler
+# Legendária
 
 [English](README.md) | **Português (Brasil)**
 
-Legendas automáticas gratuitas e de código aberto para os seus vídeos, inspiradas nas legendas automáticas do CapCut.
+**Legendas livres, estilo CapCut.** Legendas automáticas gratuitas e de código aberto para os seus vídeos, inspiradas nas legendas automáticas do CapCut.
+
+O nome junta *legenda* com *legendary* (lendária, em inglês). A ferramenta de linha de comando se chama `flosub`.
 
 > 🚧 Em desenvolvimento inicial. Ainda não há nada para instalar.
 

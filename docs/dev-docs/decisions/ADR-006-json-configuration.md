@@ -14,7 +14,7 @@ Users and contributors should be able to change defaults, add models, tune subti
   - Add-on: `presets/*.json` (strip styles) and `locales/*.json` (translations).
 - **Layering:** shipped defaults → user file in the per-OS config dir (resolved with `platformdirs`) → CLI flags or UI values. Users never edit the installed files.
 - Each file carries a `"version"` field and has a published **JSON Schema** (`engine/schemas/`), so editors validate and autocomplete it.
-- `opensub config show` prints the merged config and `opensub config path` prints where the user file lives.
+- `flosub config show` prints the merged config and `flosub config path` prints where the user file lives.
 
 ## Alternatives considered
 
