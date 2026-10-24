@@ -32,7 +32,7 @@ See the [plan](docs/dev-docs/planning/plan_01_mvp_engine_blender.md) for the roa
 
 ## Contributing
 
-Contributions are welcome, including translations. Start with [AGENTS.md](AGENTS.md) and [docs/PROJECT.md](docs/PROJECT.md): together they explain the project layout, the conventions and the current work.
+Contributions are welcome, including translations. Read [CONTRIBUTING.md](CONTRIBUTING.md), then [AGENTS.md](AGENTS.md) and [docs/PROJECT.md](docs/PROJECT.md): together they explain the project layout, the conventions and the current work.
 
 ## License
 

@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: checks (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: "3.11"
+
+      - name: Lint and format (pre-commit)
+        run: uvx pre-commit@4.6.2 run --all-files --show-diff-on-failure
+
+      - name: Engine tests
+        if: hashFiles('engine/pyproject.toml') != ''
+        working-directory: engine
+        run: uv run --extra test pytest
+
+  # Single required status check for branch protection.
+  ci:
+    name: ci
+    if: always()
+    needs: [checks]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All checks passed
+        if: needs.checks.result != 'success'
+        run: exit 1

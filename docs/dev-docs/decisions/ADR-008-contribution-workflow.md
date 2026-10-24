@@ -15,7 +15,7 @@ Adopt the conventions most mid-sized GitHub projects share:
 - **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`). They make the history readable and the changelog easy to write.
 - **Versions:** [SemVer](https://semver.org/), starting at `0.1.0`. A git tag `vX.Y.Z` plus a GitHub Release with notes marks each release. `CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/).
 - **Quality gates:** `ruff` (lint + format) and `pytest`, run locally through `pre-commit` and in GitHub Actions CI on Linux, macOS and Windows.
-- **Community files:** `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1), `SECURITY.md`, issue templates (bug, feature, translation), and a PR template with a checklist (tests, devlog, `PROJECT.md`).
+- **Community files:** `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (Contributor Covenant 2.0, the version GitHub provides), `SECURITY.md`, issue templates (bug, feature, translation), and a PR template with a checklist (tests, devlog, `PROJECT.md`).
 - **Triage:** labels `good first issue`, `help wanted` (for example the Apple Silicon backend) and `translation`. GitHub Discussions holds questions, so issues stay actionable.
 - **The project's own docs rules** (AGENTS.md: plans, devlog, ADRs, `PROJECT.md`) apply to every PR.
 

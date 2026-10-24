@@ -241,15 +241,15 @@ Round 3 (2026-10-24):
 
 Following ADR-008:
 
-- [ ] `CONTRIBUTING.md` (English), linked from both READMEs. It covers how to set up, run tests, branch, commit and open a PR, plus a "your first contribution" section and how to add a translation.
-- [ ] `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1).
-- [ ] `SECURITY.md` (how to report a vulnerability privately).
-- [ ] `CHANGELOG.md` (Keep a Changelog format) and versioning with SemVer, starting at `0.1.0`.
-- [ ] `.github/ISSUE_TEMPLATE/` (bug report, feature request, translation) and `.github/pull_request_template.md`. The PR template includes "docs updated (devlog / PROJECT.md)".
-- [ ] `ruff` (lint and format) and `pre-commit` config. `pytest` is wired in once the engine exists.
-- [ ] GitHub Actions CI: ruff and pytest on Linux, macOS and Windows for every PR.
-- [x] Protect `main` (PR required, squash only). Still to do: make the CI check required once CI exists.
-- [ ] GitHub repository settings: labels `good first issue`, `help wanted`, `translation`; enable Discussions.
+- [x] `CONTRIBUTING.md` (English), linked from both READMEs. It covers how to set up, run tests, branch, commit and open a PR, plus a "your first contribution" section and how to add a translation.
+- [x] `CODE_OF_CONDUCT.md` (Contributor Covenant 2.0, as provided by GitHub).
+- [x] `SECURITY.md`; GitHub private vulnerability reporting enabled.
+- [x] `CHANGELOG.md` (Keep a Changelog format) and versioning with SemVer, starting at `0.1.0`.
+- [x] `.github/ISSUE_TEMPLATE/` (bug report, feature request, translation) and `.github/pull_request_template.md`. The PR template includes "docs updated (devlog / PROJECT.md)".
+- [x] `ruff` (lint and format) and `pre-commit` config, plus `.editorconfig` and `.gitattributes` (LF line endings). `pytest` is wired in once the engine exists.
+- [x] GitHub Actions CI: pre-commit (ruff) and, once the engine exists, pytest on Linux, macOS and Windows, with one aggregate `ci` check.
+- [x] Protect `main` (PR required, squash only, `ci` check required).
+- [x] GitHub repository settings: labels `good first issue`, `help wanted`, `translation`; enable Discussions.
 - [x] Final project name applied everywhere (Legendária / `flosub`).
 - [x] Logo: brand kit in `assets/brand/` (step 05).
 

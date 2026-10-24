@@ -1,0 +1,63 @@
+# Contributing to Legendária
+
+Thanks for helping! Every contribution counts: code, translations, docs, bug reports, testing on your OS or GPU. You can write issues and discussions in **English or Portuguese**. Code, commits and developer docs are in English.
+
+## Before you start
+
+- Read [`AGENTS.md`](AGENTS.md) (rules for humans and AI agents alike) and [`docs/PROJECT.md`](docs/PROJECT.md) (the project map).
+- See what is in progress in [`docs/dev-docs/`](docs/dev-docs/): `planning/`, `devlog/` and `decisions/`.
+- Looking for something to do? Try issues labeled [`good first issue`](https://github.com/flou-ainan/Legendaria/labels/good%20first%20issue) or [`help wanted`](https://github.com/flou-ainan/Legendaria/labels/help%20wanted).
+- For larger changes, open an issue or a discussion first, so we can agree on the approach.
+
+## Setup
+
+You need git, [uv](https://docs.astral.sh/uv/) and, for the add-on, Blender 4.2 or newer.
+
+```bash
+git clone https://github.com/flou-ainan/Legendaria.git
+cd Legendaria
+uvx pre-commit install        # runs ruff and other checks on every commit
+```
+
+The engine (`engine/`) and the add-on (`blender_addon/`) do not exist yet. This section will cover running the engine tests (`uv run --extra test pytest`) and installing the add-on in Blender once they do.
+
+## Workflow
+
+1. **Branch from `main`:** `feat/<topic>`, `fix/<topic>` or `docs/<topic>`. `main` is protected and only changes through pull requests.
+2. **Commit** with [Conventional Commits](https://www.conventionalcommits.org/): `feat: add VTT export`, `fix(engine): handle silent audio`, `docs: ...`, `refactor: ...`, `test: ...`, `chore: ...`.
+3. **Keep the docs in sync**, in the same PR (see [`docs/dev-docs/README.md`](docs/dev-docs/README.md)):
+   - Add a devlog step in `docs/dev-docs/devlog/`.
+   - Update `docs/PROJECT.md`: files, functions, line counts.
+   - Write a plan or an ADR when the change needs one.
+   - Add user-visible changes to `CHANGELOG.md` under "Unreleased".
+4. **Open a pull request.** CI runs lint and tests on Linux, macOS and Windows, and must pass. PRs are squash-merged, so the PR title becomes the commit message on `main`; give it a Conventional Commits title.
+
+## Code style
+
+- Python is formatted and linted by [ruff](https://docs.astral.sh/ruff/) (config in `ruff.toml`). `pre-commit` runs it for you.
+- Cross-platform always: use `pathlib`, pass `subprocess` an argument list (never `shell=True`), and hardcode no OS-specific paths.
+- Behavior that users may want to tweak belongs in JSON config files, not in code.
+- No user-visible string in code without going through the translation layer.
+
+## Adding a language
+
+English is the source language and Brazilian Portuguese (`pt_BR`) is always maintained. To add or fix a language:
+
+- **README:** copy `README.md` to `README.<lang>.md`, translate it, and add a link in the language line at the top of every README.
+- **Blender add-on:** add `blender_addon/legendaria/locales/<lang>.json` (format described in `locales/README.md`, once the add-on exists).
+- **Brand taglines:** add an entry to `TAGLINES` in `assets/brand/source/generate_hero.py`.
+
+Open a [translation issue](https://github.com/flou-ainan/Legendaria/issues/new?template=translation.yml) if you want to coordinate first.
+
+## Licensing
+
+By contributing, you agree that your contribution is licensed under the license of the folder you change:
+
+- **MIT** for the engine and the rest of the repository;
+- **GPL-3.0-or-later** for `blender_addon/`.
+
+See [ADR-004](docs/dev-docs/decisions/ADR-004-dual-licensing.md).
+
+## Conduct
+
+Everyone taking part follows our [Code of Conduct](CODE_OF_CONDUCT.md).
