@@ -154,9 +154,20 @@ class EngineJob:
         return "\n".join(self._stderr[-10:])
 
     def cancel(self) -> None:
-        """Stop the engine: terminate, then kill if it does not exit quickly."""
+        """Stop the engine: terminate, then kill if it does not exit quickly.
+
+        On Windows `flosub.exe` is a launcher that starts Python as a child process, so
+        the whole process tree is ended; otherwise the transcription would keep running.
+        """
         if self.finished:
             return
+        if sys.platform == "win32":
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(self.process.pid)],
+                check=False,
+                capture_output=True,
+                creationflags=subprocess.CREATE_NO_WINDOW,
+            )
         self.process.terminate()
         try:
             self.process.wait(timeout=3)

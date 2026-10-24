@@ -38,6 +38,7 @@
    - Blender's own pt_BR dictionary translated our "Language" label as "Linguagem"; the property is now named "Spoken language" ("Idioma falado").
    - Channel 0 now shows "Auto".
 6. **Re-apply style** used the active strip; it now uses the media strip of the last run.
+7. **Cancel on Windows** (found by CI): `flosub.exe` is a launcher that starts Python as a child, and terminating the launcher left the transcription running. `cancel()` now ends the whole process tree with `taskkill /F /T` on Windows.
 
 ## How it was tested
 
