@@ -26,3 +26,7 @@ output/
 .vscode/
 .idea/
 .DS_Store
+
+# Local-only notes (contain private data, never pushed)
+docs/whisper-blender-brainstorm.md
+docs/local/

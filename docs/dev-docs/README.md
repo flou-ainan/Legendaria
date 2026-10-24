@@ -1,93 +1,96 @@
-# Convenções de documentação de desenvolvimento
+# Development documentation conventions
 
-Toda a história do projeto fica em markdown dentro do repositório. Isso funciona como contingência: mesmo sem o ai-memory ou qualquer memória de agente, quem pegar o projeto no git entende o que existe, o que foi feito e o que está em andamento.
+The whole history of the project lives as markdown inside the repository. This is a contingency: even without ai-memory or any agent memory, anyone who clones the project can see what exists, what was done, and what is in progress.
 
-## Estrutura
+All files here are written in **English**.
+
+## Layout
 
 ```
 docs/
-├── PROJETO.md              # mapa do projeto, sempre atualizado
+├── PROJECT.md              # project map, always up to date
 └── dev-docs/
-    ├── README.md           # este arquivo
-    ├── planejamento/       # planos, escritos antes de implementar
-    ├── devlog/             # um passo por alteração ou etapa executada
-    └── decisoes/           # ADRs: decisões técnicas e seus motivos
+    ├── README.md           # this file
+    ├── planning/           # plans, written before implementing
+    ├── devlog/             # one step per change or executed stage
+    ├── decisions/          # ADRs: technical decisions and their reasons
+    └── references/         # background material (e.g. the origin brainstorm)
 ```
 
-## `docs/PROJETO.md`
+## `docs/PROJECT.md`
 
-Arquivo resumido para agentes e pessoas acharem rápido o que precisam, sem reler o código. Contém:
+A condensed file that helps agents and people find what they need fast, without rereading the code. It contains:
 
-1. Visão geral do projeto
-2. Arquitetura escolhida
-3. Tecnologias / stack
-4. Decisões técnicas (resumo com link para o ADR)
-5. Estrutura de pastas
-6. Mapa de arquivos: para cada arquivo de código, a quantidade de linhas e uma descrição básica de cada função ou classe, com a linha onde começa
+1. Project overview
+2. Chosen architecture
+3. Technologies / stack
+4. Technical decisions (summary linking to each ADR)
+5. Folder structure
+6. File map: for every source file, its line count and a short description of each function or class, with the line where it starts
 
-**Regra:** toda mudança no projeto atualiza o `PROJETO.md` no mesmo commit. Linhas podem ser contadas com `wc -l`.
+**Rule:** every change to the project updates `PROJECT.md` in the same commit. Count lines with `wc -l`.
 
-## Planejamento — `planejamento/plano_NN_<tema>.md`
+## Plans — `planning/plan_NN_<topic>.md`
 
-Escrito **antes** de implementar. Numeração sequencial (`plano_01_transcricao.md`).
+Written **before** implementing. Sequential numbering (`plan_02_capcut_styles.md`).
 
 ```markdown
-# Plano NN — <tema>
+# Plan NN — <topic>
 
-**Status:** proposto | aprovado | em execução | concluído | abandonado
-**Data:** AAAA-MM-DD
+**Status:** proposed | approved | in progress | done | abandoned
+**Date:** YYYY-MM-DD
 
-## Objetivo
-## Contexto
-## Mudanças propostas   (arquivos a criar/alterar e o que muda em cada um)
-## Questões em aberto
-## Critérios de pronto / como testar
+## Goal
+## Context
+## Proposed changes   (files to create/change and what changes in each)
+## Open questions
+## Definition of done / how to test
 ```
 
-Quando o status mudar, atualize o arquivo.
+Update the status as it changes.
 
-## Devlog — `devlog/passo_NN_<tema>.md`
+## Devlog — `devlog/step_NN_<topic>.md`
 
-Um arquivo por alteração ou etapa executada, numeração sequencial (`passo_01_transcricao_whisper.md`). Registra o que **foi feito**, não o que se pretende fazer.
+One file per change or executed stage, sequential numbering (`step_03_engine_cli.md`). It records what **was done**, not what is intended.
 
 ```markdown
-# Passo NN — <tema>
+# Step NN — <topic>
 
-**Data:** AAAA-MM-DD
-**Agente/autor:** <quem fez>
-**Plano relacionado:** planejamento/plano_NN_<tema>.md (se houver)
+**Date:** YYYY-MM-DD
+**Agent/author:** <who>
+**Related plan:** planning/plan_NN_<topic>.md (if any)
 **Commit(s):** <hash>
 
-## O que foi feito
-## Por quê
-## Arquivos tocados
-## Como foi testado
-## Pendências / próximos passos
+## What was done
+## Why
+## Files touched
+## How it was tested
+## Pending / next steps
 ```
 
-## Decisões técnicas — `decisoes/ADR-NNN-<tema>.md`
+## Technical decisions — `decisions/ADR-NNN-<topic>.md`
 
-Para escolhas que alguém pode questionar depois: biblioteca, arquitetura, formato de arquivo, troca de abordagem.
+For choices someone may question later: library, architecture, file format, change of approach.
 
 ```markdown
-# ADR NNN — <título>
+# ADR NNN — <title>
 
-**Status:** proposto | aceito | substituído por ADR-XXX
-**Data:** AAAA-MM-DD
+**Status:** proposed | accepted | superseded by ADR-XXX
+**Date:** YYYY-MM-DD
 
-## Contexto
-## Decisão
-## Alternativas consideradas
-## Consequências
+## Context
+## Decision
+## Alternatives considered
+## Consequences
 ```
 
-Ao criar um ADR, adicione uma linha na seção "Decisões técnicas" do `PROJETO.md`.
+When you create an ADR, add a row to the "Technical decisions" table in `PROJECT.md`.
 
-## Fluxo de uma mudança
+## Flow of a change
 
-1. Planejar → `planejamento/plano_NN_*.md`
-2. Se houver decisão técnica → `decisoes/ADR-NNN-*.md`
-3. Implementar
-4. Registrar → `devlog/passo_NN_*.md`
-5. Atualizar `PROJETO.md`
-6. Commit com código e documentação juntos
+1. Plan → `planning/plan_NN_*.md`
+2. If there is a technical decision → `decisions/ADR-NNN-*.md`
+3. Implement
+4. Log → `devlog/step_NN_*.md`
+5. Update `PROJECT.md`
+6. Commit code and docs together

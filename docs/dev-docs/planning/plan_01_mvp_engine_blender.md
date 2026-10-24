@@ -1,0 +1,227 @@
+# Plan 01 — MVP: transcription engine + Blender add-on, and the product roadmap
+
+**Status:** approved (open questions in the last section still pending)
+**Date:** 2026-10-23 (revised 2026-10-24)
+**Origin:** `references/origin_brainstorm.md`
+**Related decisions:** ADR-001 to ADR-007
+
+## 1. Vision
+
+Open Subtitler is a free, open-source automatic subtitle creator, in the spirit of CapCut's auto captions:
+
+- **For end users:** install with a "next → next → finish" installer, open Blender, drop a video in, click one button, and get editable, stylable subtitles. No terminal, no Python, no CUDA setup.
+- **For contributors:** clear docs, small modules, tests, and behavior driven by JSON config files, so most tweaks never touch code.
+- **Everywhere:** Linux, macOS, and Windows 10+.
+- **In your language:** English as the source language, Brazilian Portuguese always maintained, and other languages open to contributors. This covers the UI, the README, and the user docs.
+
+## 2. Product principles (they apply to every phase)
+
+| Principle | What it means in practice |
+|---|---|
+| Easy to access | One installer per OS, models downloaded from inside the UI, sensible defaults (`small` model, auto language), errors that say how to fix the problem |
+| Cross-platform from day one | `pathlib` everywhere; `subprocess` with argument lists, never shell strings; per-OS user dirs via `platformdirs`; venv layout differences (`bin/` vs `Scripts/`) isolated in one helper; CI on all three OSes |
+| Hackable | Defaults, models, subtitle splitting rules, style presets and translations live in JSON files. The user can override them in a per-user config dir without editing the installed files. A JSON Schema is published for each file, so editors autocomplete it (ADR-006) |
+| Bilingual | Dev content in English. User content in English plus `pt_BR`, with a structure that accepts more languages (ADR-005) |
+| Offline and private | After a model is downloaded, everything runs locally. No telemetry |
+| Clear licensing | Engine MIT, Blender add-on GPL-3.0-or-later (ADR-004) |
+
+## 3. Roadmap
+
+| Phase | Content | Platforms | Distance |
+|---|---|---|---|
+| **1. MVP** | Engine CLI + Blender add-on: transcribe, text strips, SRT/VTT export, model download, pt_BR/en UI | Linux (NVIDIA + CPU), code already portable | **now** |
+| 2. CapCut styles | Short word-timed chunks, current-word highlight, style presets (JSON), burn-in render | Linux | next |
+| 3. Cross-platform | Windows (CUDA + CPU) and macOS (CPU; Apple Silicon acceleration under evaluation), CI matrix | all | later |
+| 4. Easy install | Per-OS installer that installs the add-on and sets up the engine automatically | all | later |
+| 5. User docs and outreach | GitHub Pages site (en + pt-BR), YouTube tutorial, contribution guide | — | later |
+| Out of scope for now | Mobile app (whisper.cpp / React Native), cloud API | — | future plan |
+
+Phases 3–5 are far from the MVP, but the MVP must not block them. The constraints they impose are listed in section 5.
+
+## 4. Phase 1 — MVP in detail
+
+### 4.1 Context validated in the brainstorm
+
+- **Ollama cannot run Whisper.** Community models fail with `unknown model architecture` (ADR-001).
+- **faster-whisper on the GPU works:** 49 min of audio in about 38 s with the `base` model in fp16.
+- **cuDNN:** CTranslate2 needs `libcudnn_ops.so.9`. The pip wheels install it under `site-packages/nvidia/cudnn/lib`, but the dynamic linker does not see it there, so the process aborts with a core dump.
+- **`.ass` is not an editor:** it cannot be edited interactively. Blender's VSE gives visual editing plus Python scripting (ADR-002).
+- **Blender's bundled Python lacks faster-whisper and CUDA.** The add-on runs the engine as an external process and exchanges JSON with it (ADR-003).
+
+Environment checked on 2026-10-23: Blender 4.2.0, Python 3.10.12, faster-whisper 1.2.1, ctranslate2 4.6.1, nvidia-cudnn-cu12 9.1, nvidia-cublas-cu12 12.1, ffmpeg 4.4.2, NVIDIA driver 595, RTX 2070 Super 8 GB.
+
+### 4.2 Fixes over the brainstorm's sample code
+
+| Problem in the sample code | How it is handled here |
+|---|---|
+| JSON keeps segments only and drops word timings | JSON keeps `words` with per-word timings, the base for CapCut-style captions |
+| `subprocess.run` freezes Blender | Modal operator with a timer reads progress without blocking the UI; `Esc` cancels |
+| Hardcoded paths (`/home/flou/...`, `python3.10`) | Engine location is resolved by the add-on (managed venv) or set in preferences |
+| `LD_LIBRARY_PATH` in `.bashrc` | The engine finds the NVIDIA libs in its own venv and preloads them (Linux) or registers DLL dirs (Windows) |
+| PyTorch installed only to get cuDNN | Not needed: faster-whisper does not use torch. `nvidia-cublas-cu12` and `nvidia-cudnn-cu12` are enough |
+| Export uses `frame_start` / `frame_end` | Uses `frame_final_start` / `frame_final_end`, which respect strip trims |
+| `int()` when converting to frames | `round()`, so offsets do not accumulate |
+| Timestamps formatted with `str(timedelta)` | A dedicated, tested function (hours > 24, correct milliseconds) |
+| UI strings hardcoded in Portuguese | Every string goes through Blender's translation system, with locale JSON files |
+
+### 4.3 Target layout
+
+```
+engine/                              # MIT — transcription engine, own venv
+├── LICENSE                          # MIT (same as root)
+├── pyproject.toml                   # package "opensub-engine", command `opensub`
+├── opensub_engine/
+│   ├── __init__.py
+│   ├── cli.py                       # argparse: transcribe / export / models / config
+│   ├── config.py                    # loads defaults + user overrides + CLI flags
+│   ├── paths.py                     # per-OS user dirs (config, models, cache)
+│   ├── cuda_libs.py                 # locate and preload cuDNN/cuBLAS (Linux/Windows)
+│   ├── models.py                    # list / download / verify Whisper models
+│   ├── transcriber.py               # faster-whisper, GPU→CPU fallback, progress events
+│   ├── events.py                    # JSON-lines progress protocol on stdout
+│   ├── schema.py                    # transcript JSON v1
+│   ├── formats.py                   # transcript → SRT / VTT
+│   └── defaults/
+│       ├── config.json              # default engine settings
+│       └── models.json              # catalog: name, repo, size, VRAM, notes
+├── schemas/                         # JSON Schemas published for editors
+│   ├── config.schema.json
+│   ├── models.schema.json
+│   └── transcript.schema.json
+└── tests/
+
+blender_addon/open_subtitler/        # GPL-3.0-or-later — Blender 4.2+ extension
+├── LICENSE                          # GPL-3.0-or-later
+├── blender_manifest.toml
+├── __init__.py                      # register / unregister
+├── compat.py                        # VSE API differences across Blender versions
+├── engine_bridge.py                 # find/launch engine, read progress events
+├── i18n.py                          # loads locales/*.json into bpy.app.translations
+├── preferences.py                   # engine path, model (with download), language, device
+├── properties.py                    # scene props: channel, style preset
+├── operators.py                     # transcribe (modal), export SRT/VTT, download model
+├── strips.py                        # transcript → text strips; strips → cues
+├── panel.py                         # "Subtitles" tab in the sequencer sidebar
+├── locales/
+│   ├── pt_BR.json                   # English msgid → Portuguese
+│   └── README.md                    # how to add a language
+└── presets/
+    └── default.json                 # strip style (font size, position, shadow...)
+
+README.md / README.pt-BR.md          # user-facing, bilingual
+```
+
+### 4.4 Stage 1 — Engine (`engine/`)
+
+- **Environment:** a dedicated venv (`engine/.venv` in development; in production, a managed venv in the user data dir, created by the installer or by the add-on, see phase 4). Dependencies: `faster-whisper`, `platformdirs`, `nvidia-cublas-cu12` and `nvidia-cudnn-cu12==9.*` (Linux/Windows only, through environment markers).
+- **`cuda_libs.py`:** finds `nvidia/*/lib` (Linux) or `nvidia/*/bin` (Windows) inside the venv.
+  - Linux: preloads the `.so` files with `ctypes` before importing `ctranslate2`; if that is not enough, it re-execs itself with `LD_LIBRARY_PATH` set.
+  - Windows: uses `os.add_dll_directory`.
+  - macOS: no-op.
+- **`config.py`:** three layers, each one overriding the previous:
+  1. `defaults/config.json` (shipped).
+  2. User file in the per-OS config dir: `~/.config/open-subtitler/config.json`, `%APPDATA%\open-subtitler\config.json`, or `~/Library/Application Support/open-subtitler/config.json`.
+  3. CLI flags.
+
+  `opensub config show` prints the merged result and `opensub config path` prints where the user file goes.
+- **`models.py` + `models.json`:** catalog of the Whisper models (`tiny` … `large-v3`, `large-v3-turbo`), each with size, approximate VRAM, and a recommendation. The default is `small`.
+  - `opensub models list` shows the catalog and what is installed.
+  - `opensub models download <name>` downloads a model with progress events.
+  - Models are stored in the per-OS data dir, not in the HF cache, so the add-on can show and manage them.
+  - Adding a model means adding an entry to `models.json`.
+- **`transcriber.py`:**
+  - `device="auto"` tries `cuda`/`float16`, then falls back to `cpu`/`int8` with a clear warning.
+  - `word_timestamps=True`, plus `vad_filter=True` (configurable), which skips silences and reduces hallucinations.
+  - Language: `auto` or a fixed code.
+  - Video input works directly (faster-whisper decodes through PyAV), so no ffmpeg install is needed; to be confirmed during implementation.
+- **`events.py`:** progress as one JSON object per line on stdout, for example `{"event":"progress","t":123.4,"total":2968.0}`. Other events: `log`, `warning`, `model_download`, `done`, `error`. The add-on parses these lines. With `--human`, the engine shows a tqdm bar instead.
+- **`schema.py`**, transcript JSON v1:
+  ```json
+  {
+    "version": 1,
+    "source": "video.mp4",
+    "language": "pt", "language_probability": 0.99,
+    "duration": 2968.4, "model": "small", "device": "cuda",
+    "segments": [
+      {"start": 0.0, "end": 2.5, "text": "Hello, this is a test.",
+       "words": [{"start": 0.0, "end": 0.4, "word": "Hello,", "probability": 0.98}]}
+    ]
+  }
+  ```
+- **`cli.py`:**
+  - `opensub transcribe <file> [--model] [--language] [--device auto|cuda|cpu] [--output-dir] [--format json,srt,vtt] [--human]`
+  - `opensub export <file.json> --format srt|vtt`
+  - `opensub models list|download`
+  - `opensub config show|path`
+- **CLI language:** English only in the MVP, since the CLI is a power-user tool. The add-on translates whatever it shows to the user.
+- **Tests (pytest):** timestamp formatting (0 s, 59.999 s, > 1 h, > 24 h), valid SRT/VTT output, schema round-trip, config layering, catalog validation against the JSON Schema. Real transcription is tested manually with a short clip.
+
+### 4.5 Stage 2 — Blender add-on (`blender_addon/open_subtitler/`)
+
+- **Compatibility:** Blender **4.2 and newer** (the extensions format starts at 4.2). `compat.py` isolates the VSE API changes, for example `sequence_editor.sequences` → `strips` in 4.4+ (the old API is removed in 5.0) and any renames to `new_effect` or the text strip properties. Manual testing covers 4.2 LTS and the latest stable release.
+- **`engine_bridge.py`:** locates the engine, in this order:
+  1. Path set in preferences.
+  2. Managed venv in the user data dir.
+  3. `opensub` on PATH.
+
+  It runs the engine with `subprocess.Popen` (argument list, no shell, Windows-safe flags) and parses the progress events. If no engine is found, the panel shows a friendly "Engine not installed" box with instructions.
+- **Preferences:** engine path; model dropdown fed by `opensub models list`, with a **Download** button and a progress bar; language (auto / pt / en / ...); device.
+- **"Generate subtitles" operator** (modal):
+  1. Takes the active `MOVIE` or `SOUND` strip and resolves its path with `bpy.path.abspath`.
+  2. Starts `opensub transcribe ... --format json`.
+  3. A timer updates the progress bar and the status line. `Esc` cancels and kills the process.
+  4. When the engine finishes, the add-on creates one text strip per segment on the chosen channel, using the style from `presets/default.json`. Positions account for the media strip start and any trim at its head (`frame_offset_start`).
+- **"Export SRT/VTT" operator:**
+  - Reads the text strips on the channel, sorted by `frame_final_start`, converts frames to seconds with the real fps (`fps / fps_base`), and writes the file next to the `.blend`, or to a path picked in a file dialog.
+  - Uses the same timestamp formatting as the engine. The code is copied into `strips.py`, because the add-on cannot import the engine.
+- **i18n:** every label, tooltip and message is written in English and translated through `bpy.app.translations`, with the dictionaries loaded from `locales/*.json`. Blender switches language from its own setting (Preferences → Interface → Language). `locales/README.md` explains how to add a language.
+- **Panel:** a "Subtitles" tab in the sequencer sidebar with three blocks: setup, generate, export.
+
+### 4.6 Definition of done (MVP)
+
+- [ ] `opensub transcribe video.mp4` produces JSON, SRT and VTT on the GPU, with no manual `export`.
+- [ ] Without a GPU, or with `--device cpu`, it runs on CPU.
+- [ ] `opensub models download medium` works and the model shows as installed.
+- [ ] The user config file overrides a default (for example the model) with no code change.
+- [ ] Engine tests pass (`pytest engine/tests`).
+- [ ] Blender 4.2 and the latest stable: select a video → Generate → strips appear on the right channel, aligned with the audio; the progress bar moves; the UI does not freeze.
+- [ ] Editing a strip's text and timing, then exporting SRT, gives a file that reflects the edits.
+- [ ] With Blender set to Portuguese, the add-on UI is in Portuguese.
+- [ ] `PROJECT.md` lists every file with line counts and functions; there is one devlog step per stage.
+
+## 5. Constraints that the later phases impose on the MVP
+
+- **Cross-platform (phase 3):**
+  - No POSIX-only code in the engine or the add-on.
+  - The venv path helper handles `bin/` vs `Scripts/`, and `cuda_libs.py` already has a Windows branch.
+  - On macOS, CTranslate2 has no GPU backend, so it runs on CPU. A second backend (for example `mlx-whisper` or whisper.cpp with Metal) could be added later behind a `backend` key in the config. The transcriber therefore has a small backend interface from the start.
+- **Installer (phase 4):** the add-on must work with an engine installed outside the repository (the managed venv in the user data dir). Nothing may assume a dev checkout.
+- **Docs site (phase 5):** user-facing docs are organized by language from the start (`docs/user/en/`, `docs/user/pt-BR/`), so a static site generator can publish them directly.
+- **i18n:** no user-visible string outside the translation layer, ever.
+
+## 6. Decided (2026-10-24)
+
+1. Engine environment: **dedicated venv**.
+2. Default model: **`small`**, with in-app download of the others.
+3. Licenses: **engine MIT, add-on GPL-3.0-or-later** (ADR-004).
+4. Blender: **4.2 and newer**.
+5. The real brainstorm stays local (gitignored). A generic version lives in `references/origin_brainstorm.md`.
+6. Dev docs, code and comments in English. User-facing content in English plus pt-BR, open to other languages (ADR-005).
+7. Hackable through layered JSON configs (ADR-006).
+8. Cross-platform target: Linux, macOS, Windows 10+ (ADR-007).
+
+## 7. Open questions
+
+1. **Installer strategy (phase 4).** Options:
+   - (a) The user installs Blender, installs our add-on zip, and clicks **"Install engine"** in the preferences. The add-on downloads `uv`, creates the venv and fetches the `small` model.
+   - (b) A native installer per OS (Inno Setup on Windows, `.pkg` on macOS, AppImage or script on Linux) that installs the engine and drops the add-on into Blender's extensions folder.
+   - (c) The same as (b), but also ships a portable Blender with the add-on preinstalled.
+
+   Recommendation: (a) first, since it is a single cross-platform codebase, then (b) as a wrapper around it.
+2. **macOS acceleration:** is CPU-only acceptable on Mac at first, or should Apple Silicon acceleration (`mlx-whisper`) be part of phase 3?
+3. **Docs site tool:** MkDocs Material (Python, built-in i18n, simple) or Docusaurus (React, also has i18n)? Recommendation: MkDocs Material.
+4. **Transcription languages:** besides auto-detection, should we ship tuned defaults for pt and en only? Do we want Whisper's "translate to English" mode in the MVP?
+5. **Burn-in (phase 2):** render only through Blender, or also a fast FFmpeg path (generate `.ass` and burn with NVENC) for users who do not want to open the editor?
+6. **Name and identity:** is "Open Subtitler" final (add-on id `open_subtitler`, command `opensub`)? Do we want a logo for the README and the site?
+7. **Contribution workflow:** branch + PR into `main`, Conventional Commits, `ruff` for lint/format, GitHub Actions with pytest on Linux/macOS/Windows from the MVP on?
+8. **Python for the managed venv:** pin a version (for example 3.11, installed by `uv`, independent of the system Python) or use whatever Python the system has?
