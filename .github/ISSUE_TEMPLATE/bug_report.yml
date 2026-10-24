@@ -1,0 +1,52 @@
+name: Bug report
+description: Something does not work as expected.
+labels: [bug, triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! You can write in English or Portuguese.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open Blender and import a video
+        2. Click "Generate subtitles"
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Legendária version
+      placeholder: "0.1.0, or a commit hash"
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [Linux, macOS, Windows]
+    validations:
+      required: true
+  - type: input
+    id: blender
+    attributes:
+      label: Blender version
+      placeholder: "4.2.0"
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU (if any)
+      placeholder: "NVIDIA RTX 2070 Super / none"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or error messages
+      render: text

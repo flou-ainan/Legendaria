@@ -3,7 +3,7 @@
 > A condensed map of the project, so agents and people can find what they need without rereading the code.
 > **Update this file with every change to the project** (files, functions, stack, structure). Conventions: `docs/dev-docs/README.md`.
 
-**Last updated:** 2026-10-24 — step 05 (brand kit / logo). No code yet.
+**Last updated:** 2026-10-24 — step 06 (stage 0: community files, CI, repo settings). No code yet.
 
 ---
 
@@ -75,12 +75,23 @@ engine/ (`flosub`) ── faster-whisper (GPU → CPU fallback) ──► transc
 
 ```
 Legendaria/
-├── AGENTS.md                # instructions for any AI agent
+├── AGENTS.md                # instructions for any AI agent (and humans)
 ├── CLAUDE.md                # points to AGENTS.md
 ├── README.md                # user-facing, English
 ├── README.pt-BR.md          # user-facing, Brazilian Portuguese
+├── CONTRIBUTING.md          # setup, workflow, style, adding a language, licensing
+├── CODE_OF_CONDUCT.md       # Contributor Covenant 2.0
+├── SECURITY.md              # private vulnerability reporting
+├── CHANGELOG.md             # Keep a Changelog, SemVer
 ├── LICENSE                  # MIT
+├── ruff.toml                # lint/format config for all Python
+├── .pre-commit-config.yaml  # ruff + basic file checks (run in CI too)
+├── .editorconfig / .gitattributes   # LF endings, indentation
 ├── .gitignore
+├── .github/
+│   ├── workflows/ci.yml     # pre-commit + engine tests on Linux/macOS/Windows; aggregate `ci` check
+│   ├── ISSUE_TEMPLATE/      # bug, feature, translation forms + links to Discussions / security
+│   └── pull_request_template.md
 ├── assets/
 │   └── brand/           # brand kit: glowing key art (banner/hero per language), flat symbol/icons/lockups, PNGs, favicon
 └── docs/
@@ -131,4 +142,5 @@ Short description of the file's role.
 
 - Plan 01 approved, with no open questions left. `main` is protected: every change goes through a PR (ADR-008).
 - Brand kit in `assets/brand/` (Montserrat; glowing banner at the top of both READMEs).
-- Next: the rest of stage 0 (project foundation), then stage 1 (engine).
+- Stage 0 (project foundation) done.
+- Next: stage 1 (engine).

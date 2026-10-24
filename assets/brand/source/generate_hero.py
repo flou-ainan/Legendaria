@@ -65,9 +65,11 @@ def symbol(x, y, width):
         px, py = rnd.uniform(230, 860), rnd.uniform(470, 1210)
         r = rnd.choice([2, 3, 3, 4, 5, 7])
         color = rnd.choice(["#FFB36B", "#FF9A45", "#F08AB0", "#B98BFF"])
-        dots.append(f'<circle cx="{px:.0f}" cy="{py:.0f}" r="{r}" fill="{color}" opacity="{rnd.uniform(0.25, 0.9):.2f}"/>')
+        dots.append(
+            f'<circle cx="{px:.0f}" cy="{py:.0f}" r="{r}" fill="{color}" opacity="{rnd.uniform(0.25, 0.9):.2f}"/>'
+        )
     return f"""<g transform="translate({x:.1f} {y:.1f}) scale({s:.4f}) translate({-x0} {-y0})">
-    <g filter="url(#soft)">{''.join(dots)}</g>
+    <g filter="url(#soft)">{"".join(dots)}</g>
     <g fill="none" stroke-linecap="round" stroke-linejoin="round">
       <g stroke="#7F78A0" stroke-opacity="0.34" stroke-width="40" transform="translate(16 18)">{lines}</g>
       <g stroke="url(#lg)" stroke-width="37" filter="url(#glow)"><path d="{BARS}"/>{lines}</g>
@@ -96,14 +98,22 @@ def text(x, y, size, anchor, tagline, tag_size, tag_dy):
 
 
 def svg(w, h, body):
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}" '
-            f'role="img" aria-label="Legendária">\n  <title>Legendária</title>\n  {DEFS}\n  {body}\n</svg>\n')
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}" '
+        f'role="img" aria-label="Legendária">\n  <title>Legendária</title>\n  {DEFS}\n  {body}\n</svg>\n'
+    )
 
 
 for lang, tagline in TAGLINES.items():
     # Square key art, same layout as the reference.
-    hero = background(1024, 1024) + symbol(195, 300, 640) + text(512, 835, 104, "middle", tagline, 29, 72)
+    hero = (
+        background(1024, 1024)
+        + symbol(195, 300, 640)
+        + text(512, 835, 104, "middle", tagline, 29, 72)
+    )
     (OUT / f"hero-{lang}.svg").write_text(svg(1024, 1024, hero), encoding="utf-8")
     # Wide banner for the README and the social preview (1280x640).
-    banner = background(1280, 640) + symbol(80, 205, 410) + text(555, 352, 110, "start", tagline, 26, 66)
+    banner = (
+        background(1280, 640) + symbol(80, 205, 410) + text(555, 352, 110, "start", tagline, 26, 66)
+    )
     (OUT / f"banner-{lang}.svg").write_text(svg(1280, 640, banner), encoding="utf-8")

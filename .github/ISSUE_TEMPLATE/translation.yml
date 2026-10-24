@@ -1,0 +1,26 @@
+name: Translation
+description: Add a new language or fix a translation.
+labels: [translation]
+body:
+  - type: input
+    id: language
+    attributes:
+      label: Language
+      placeholder: "es (Spanish), fr (French), pt_BR fix, ..."
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: What do you want to translate?
+      multiple: true
+      options:
+        - Blender add-on interface
+        - README
+        - User documentation (website)
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Contribution
+      options:
+        - label: I will open a pull request myself (see CONTRIBUTING.md, "Adding a language")

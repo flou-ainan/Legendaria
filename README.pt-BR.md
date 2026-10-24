@@ -32,7 +32,7 @@ O [plano](docs/dev-docs/planning/plan_01_mvp_engine_blender.md) tem o roadmap (a
 
 ## Como contribuir
 
-Contribuições são bem-vindas, inclusive traduções. Comece pelo [AGENTS.md](AGENTS.md) e pelo [docs/PROJECT.md](docs/PROJECT.md): juntos, eles explicam a estrutura, as convenções e o trabalho em andamento.
+Contribuições são bem-vindas, inclusive traduções. Leia o [CONTRIBUTING.md](CONTRIBUTING.md) (em inglês) e depois o [AGENTS.md](AGENTS.md) e o [docs/PROJECT.md](docs/PROJECT.md): juntos, eles explicam a estrutura, as convenções e o trabalho em andamento.
 
 ## Licença
 
