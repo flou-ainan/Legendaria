@@ -112,7 +112,14 @@ blender_addon/legendaria/        # GPL-3.0-or-later — Blender 4.2+ extension
 README.md / README.pt-BR.md          # user-facing, bilingual
 ```
 
-### 4.4 Stage 1 — Engine (`engine/`)
+### 4.4 Stage 1 — Engine (`engine/`) — done (step 07)
+
+As-built differences from the text below (see step 07):
+- The NVIDIA libraries are an optional `cuda` extra, so CI and CPU/Mac installs stay small; the installer adds it when it finds an NVIDIA GPU.
+- On Linux, `cuda_libs.py` re-executes the process once with `LD_LIBRARY_PATH` set; this is more reliable than preloading with `ctypes`.
+- `--progress auto|json|human` is a global flag: human output when stdout is a terminal, JSON lines otherwise (so the add-on gets JSON without asking).
+- In `auto` mode, a GPU failure during model loading *or* decoding retries the whole run on the CPU (`warning` event, then a new `start`).
+- Users can add models through a user `models.json`; the test dirs are isolated with `LEGENDARIA_CONFIG_DIR` / `LEGENDARIA_DATA_DIR`.
 
 - **Environment:** a dedicated venv (`engine/.venv` in development; in production, a managed venv in the user data dir, created by the installer or by the add-on, see phase 4). Dependencies: `faster-whisper`, `platformdirs`, `nvidia-cublas-cu12` and `nvidia-cudnn-cu12==9.*` (Linux/Windows only, through environment markers).
 - **`cuda_libs.py`:** finds `nvidia/*/lib` (Linux) or `nvidia/*/bin` (Windows) inside the venv.
@@ -181,13 +188,13 @@ README.md / README.pt-BR.md          # user-facing, bilingual
 
 ### 4.6 Definition of done (MVP)
 
-- [ ] `flosub transcribe video.mp4` produces JSON, SRT and VTT on the GPU, with no manual `export`.
-- [ ] Without a GPU, or with `--device cpu`, it runs on CPU.
+- [x] `flosub transcribe video.mp4` produces JSON, SRT and VTT on the GPU, with no manual `export`.
+- [x] Without a GPU, or with `--device cpu`, it runs on CPU.
 - [ ] On a machine with no engine, "Install engine" in Blender leaves a working engine with the `small` model, with no terminal use.
 - [ ] Portuguese and English clips both transcribe correctly with auto-detection and with a fixed language.
-- [ ] `flosub models download medium` works and the model shows as installed.
-- [ ] The user config file overrides a default (for example the model) with no code change.
-- [ ] Engine tests pass (`pytest engine/tests`).
+- [x] `flosub models download <name>` works and the model shows as installed (tested with `tiny`).
+- [x] The user config file overrides a default (for example the model) with no code change.
+- [x] Engine tests pass (`pytest engine/tests`): 32 tests, in CI on all three OSes.
 - [ ] Blender 4.2 and the latest stable: select a video → Generate → strips appear on the right channel, aligned with the audio; the progress bar moves; the UI does not freeze.
 - [ ] Editing a strip's text and timing, then exporting SRT, gives a file that reflects the edits.
 - [ ] With Blender set to Portuguese, the add-on UI is in Portuguese.

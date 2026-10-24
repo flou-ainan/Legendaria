@@ -80,6 +80,7 @@ def symbol(x, y, width):
 
 
 def background(w, h):
+    """Dark radial background with faint diagonal shapes and bands."""
     return f"""<rect width="{w}" height="{h}" fill="url(#bg)"/>
   <path d="M{w * 0.55:.0f} 0L{w} 0L{w} {h * 0.45:.0f}Z" fill="#FFFFFF" opacity="0.025"/>
   <path d="M0 {h * 0.78:.0f}L{w * 0.4:.0f} {h}L0 {h}Z" fill="#FFFFFF" opacity="0.02"/>
@@ -91,6 +92,7 @@ def background(w, h):
 
 
 def text(x, y, size, anchor, tagline, tag_size, tag_dy):
+    """Montserrat wordmark with glow plus the spaced tagline."""
     return f"""<text x="{x}" y="{y}" text-anchor="{anchor}" font-family="Montserrat" font-weight="400"
         font-size="{size}" fill="url(#word)" filter="url(#textglow)">Legendária</text>
   <text x="{x}" y="{y + tag_dy}" text-anchor="{anchor}" font-family="Montserrat" font-weight="500"
@@ -98,6 +100,7 @@ def text(x, y, size, anchor, tagline, tag_size, tag_dy):
 
 
 def svg(w, h, body):
+    """Wrap a body in <svg> with defs, title and label."""
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}" '
         f'role="img" aria-label="Legendária">\n  <title>Legendária</title>\n  {DEFS}\n  {body}\n</svg>\n'

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/flou-ainan/Legendaria/main/engine/schemas/models.schema.json",
+  "version": 1,
+  "models": {
+    "tiny": {"repo": "Systran/faster-whisper-tiny", "size_mb": 75, "vram_mb": 1000, "notes": "Fastest, lowest accuracy. Good for quick drafts."},
+    "base": {"repo": "Systran/faster-whisper-base", "size_mb": 145, "vram_mb": 1000, "notes": "Fast, fair accuracy."},
+    "small": {"repo": "Systran/faster-whisper-small", "size_mb": 485, "vram_mb": 2000, "notes": "Default: good balance of speed and accuracy."},
+    "medium": {"repo": "Systran/faster-whisper-medium", "size_mb": 1530, "vram_mb": 5000, "notes": "More accurate, especially for technical terms. Needs a GPU for comfortable speed."},
+    "large-v3": {"repo": "Systran/faster-whisper-large-v3", "size_mb": 3100, "vram_mb": 10000, "notes": "Most accurate. Slow on CPU; in fp16 needs about 4.5 GB of VRAM."},
+    "large-v3-turbo": {"repo": "mobiuslabsgmbh/faster-whisper-large-v3-turbo", "size_mb": 1620, "vram_mb": 6000, "notes": "Near large-v3 accuracy, much faster. Great on 8 GB GPUs."}
+  }
+}

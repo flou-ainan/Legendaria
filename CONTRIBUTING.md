@@ -19,7 +19,25 @@ cd Legendaria
 uvx pre-commit install        # runs ruff and other checks on every commit
 ```
 
-The engine (`engine/`) and the add-on (`blender_addon/`) do not exist yet. This section will cover running the engine tests (`uv run --extra test pytest`) and installing the add-on in Blender once they do.
+### Engine (`engine/`)
+
+```bash
+cd engine
+uv sync --extra test          # add --extra cuda on Linux/Windows with an NVIDIA GPU
+uv run pytest                 # no GPU or network needed
+uv run flosub --help
+uv run flosub transcribe some-clip.mp3 --format srt
+```
+
+`uv` creates `engine/.venv` with Python 3.11, whatever Python your system has. Models download to your per-user data folder (`flosub models list` shows where).
+
+### Blender add-on
+
+Coming in stage 2 (see plan 01).
+
+### Keeping `docs/PROJECT.md` in sync
+
+`python3 tools/project_map.py <files...>` prints the file map entries (line counts, functions, docstrings). Paste them into `docs/PROJECT.md`, section 6.
 
 ## Workflow
 

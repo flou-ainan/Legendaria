@@ -8,3 +8,6 @@ ignore = ["E501"]  # long lines are handled by the formatter
 
 [format]
 quote-style = "double"
+
+[lint.isort]
+known-first-party = ["legendaria_engine"]
