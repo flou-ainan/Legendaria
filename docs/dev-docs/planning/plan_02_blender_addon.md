@@ -1,6 +1,6 @@
 # Plan 02 — Blender add-on (MVP stage 2) and caption-style cues
 
-**Status:** approved (owner, 2026-10-24). Stages 2a (steps 09–10) and 2b (step 11) done; 2c next
+**Status:** done (steps 09–12). Plan 03 (CapCut-style animations and presets) is next.
 **Date:** 2026-10-24
 **Builds on:** plan 01 (section 4.5), ADR-002, ADR-003, ADR-005, ADR-006
 
@@ -129,7 +129,7 @@ Packaged as a zip for "Install from Disk".
   - Progress ("Step n of 4") with Cancel; Uninstall in preferences.
   - The add-on warns when the engine is older than `MIN_ENGINE` and offers "Update engine".
   - `LEGENDARIA_INSTALL_CUDA=0|1` overrides GPU detection.
-- **2c:** regenerate a time range (R4):
+- **2c (done, step 12):** regenerate a time range (R4):
   - Engine `--clip START,END` (faster-whisper `clip_timestamps`).
   - The add-on uses the scene's preview range (or the selected caption strips' span), replaces only the tagged strips in that range, and asks for confirmation as in R3.
 - **Later (plan 03, "CapCut styles"):** animations (pop-in, current-word highlight, karaoke colors), style presets gallery, emphasis words.

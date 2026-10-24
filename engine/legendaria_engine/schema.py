@@ -69,6 +69,42 @@ class Transcript:
             **fields, segments=segments, language_probability=data.get("language_probability")
         )
 
+    def merged_with(self, update: Transcript, start: float, end: float) -> Transcript:
+        """A copy of this transcript where [start, end] comes from `update`.
+
+        Works word by word, so a segment that crosses a boundary keeps only its words on
+        its own side: no word is lost or duplicated. A word (or a segment without word
+        timings) belongs to the range when its midpoint is inside. Used to regenerate
+        part of a video (plan 02, stage 2c).
+        """
+
+        def inside(a: float, b: float) -> bool:
+            return start <= (a + b) / 2 <= end
+
+        def part(segments: list[Segment], want_inside: bool) -> list[Segment]:
+            out = []
+            for seg in segments:
+                if not seg.words:
+                    if inside(seg.start, seg.end) == want_inside:
+                        out.append(seg)
+                    continue
+                words = [w for w in seg.words if inside(w.start, w.end) == want_inside]
+                if words:
+                    text = " ".join("".join(w.word for w in words).split())
+                    out.append(Segment(words[0].start, words[-1].end, text, words))
+            return out
+
+        merged = part(self.segments, False) + part(update.segments, True)
+        return Transcript(
+            source=self.source,
+            language=self.language,
+            duration=self.duration,
+            model=update.model,
+            device=update.device,
+            segments=sorted(merged, key=lambda s: s.start),
+            language_probability=self.language_probability,
+        )
+
     def save(self, path: Path) -> None:
         """Write as pretty UTF-8 JSON."""
         path.write_text(json.dumps(self.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")

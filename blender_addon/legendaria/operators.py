@@ -33,7 +33,13 @@ def redraw_sequencer(context) -> None:
 class Plan:
     """What a generate / re-apply run will do; built and validated before anything starts."""
 
-    def __init__(self, context, require_media_file: bool = True, media_name: str = ""):
+    def __init__(
+        self,
+        context,
+        require_media_file: bool = True,
+        media_name: str = "",
+        range_only: bool = False,
+    ):
         scene = context.scene
         self.settings = scene.legendaria
         self.editor = scene.sequence_editor
@@ -57,12 +63,52 @@ class Plan:
                     channel=self.channel
                 )
             )
-        self.replaced = len(
-            strips.tagged_in_range(self.editor, self.channel, self.frame_start, self.frame_end)
-        )
+        self.range = self.pick_range(scene) if range_only else None
+        if self.range:
+            low, high = self.range
+            self.replaced = len(
+                strips.tagged_in_range(self.editor, self.channel, low, high, by_midpoint=True)
+            )
+            fps = strips.scene_fps(scene)
+            content_start = int(media.frame_start)
+            self.clip = (
+                max(0.0, timecode.frame_to_seconds(low, fps, content_start)),
+                timecode.frame_to_seconds(high, fps, content_start),
+            )
+        else:
+            self.replaced = len(
+                strips.tagged_in_range(self.editor, self.channel, self.frame_start, self.frame_end)
+            )
+            self.clip = None
+
+    def pick_range(self, scene) -> tuple[int, int]:
+        """Range to regenerate: the scene's preview range, else the selected captions."""
+        if scene.use_preview_range:
+            low, high = scene.frame_preview_start, scene.frame_preview_end + 1
+        else:
+            span = strips.selected_caption_range(self.editor)
+            if span is None:
+                raise ValueError(tr("Set a preview range or select the captions to regenerate."))
+            low, high = span
+        low, high = max(low, self.frame_start), min(high, self.frame_end)
+        if high <= low:
+            raise ValueError(tr("The range does not overlap the video."))
+        return low, high
 
     def confirm_message(self) -> str:
         """Warning shown before replacing captions (owner requirement R3)."""
+        if self.range:
+            scene_start = bpy.context.scene.frame_start
+            fps = strips.scene_fps(bpy.context.scene)
+
+            def stamp(frame):
+                return timecode.format_timestamp(
+                    timecode.frame_to_seconds(frame, fps, scene_start)
+                )[:8]
+
+            return tr(
+                "{count} captions between {start} and {end} will be replaced. Your edits to them will be lost."
+            ).format(count=self.replaced, start=stamp(self.range[0]), end=stamp(self.range[1]))
         return tr(
             "{count} captions on channel {channel} will be replaced. Your edits to them will be lost."
         ).format(count=self.replaced, channel=self.channel)
@@ -82,7 +128,7 @@ def finish_strips(context, plan: Plan, cues_path: Path, style: str) -> int:
     """Create the caption strips from a cues file and remember where they came from."""
     data = strips.load_cues(cues_path)
     created = strips.create_strips(
-        context.scene, plan.editor, data["cues"], plan.media, plan.channel, style
+        context.scene, plan.editor, data["cues"], plan.media, plan.channel, style, plan.range
     )
     plan.settings.media_strip = plan.media.name
     plan.settings.last_channel = plan.channel
@@ -95,6 +141,18 @@ class LEGENDARIA_OT_generate(bpy.types.Operator):
     bl_idname = "legendaria.generate"
     bl_label = "Generate subtitles"
     bl_options = {"REGISTER"}
+
+    range_only: bpy.props.BoolProperty(
+        name="Only a range",
+        description="Regenerate only the preview range (or the selected captions)",
+        default=False,
+        options={"SKIP_SAVE"},
+    )
+
+    def make_plan(self, context) -> Plan:
+        """Plan for the whole media, or for a range of the last generated media."""
+        media = context.scene.legendaria.media_strip if self.range_only else ""
+        return Plan(context, True, media, self.range_only)
 
     _timer = None
     _job = None
@@ -110,7 +168,7 @@ class LEGENDARIA_OT_generate(bpy.types.Operator):
     def invoke(self, context, event):
         """Validate, then ask before replacing existing captions."""
         try:
-            plan = Plan(context)
+            plan = self.make_plan(context)
             engine_or_error()
         except ValueError as exc:
             self.report({"ERROR"}, str(exc))
@@ -129,7 +187,7 @@ class LEGENDARIA_OT_generate(bpy.types.Operator):
     def execute(self, context):
         """Start the engine and the modal timer."""
         try:
-            self._plan = Plan(context)
+            self._plan = self.make_plan(context)
             engine = engine_or_error()
         except ValueError as exc:
             self.report({"ERROR"}, str(exc))
@@ -140,6 +198,11 @@ class LEGENDARIA_OT_generate(bpy.types.Operator):
         args = ["transcribe", self._plan.media_file, "--model", settings.model]
         args += ["--language", settings.language, "--style", settings.style]
         args += ["--format", "json,cues", "--output-dir", str(out_dir)]
+        if self._plan.clip:
+            args += ["--clip", "{:.3f},{:.3f}".format(*self._plan.clip)]
+            saved = Path(settings.transcript_path) if settings.transcript_path else None
+            if saved and saved.is_file() and settings.media_strip == self._plan.media.name:
+                args += ["--update", str(saved)]
         try:
             self._job = engine_bridge.EngineJob(engine, args)
         except OSError as exc:
