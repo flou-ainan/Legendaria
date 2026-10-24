@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/flou-ainan/Legendaria/main/engine/schemas/transcript.schema.json",
+  "title": "Legendária transcript (v1)",
+  "description": "Output of `flosub transcribe --format json`, read by the Blender add-on. Times are in seconds.",
+  "type": "object",
+  "required": ["version", "source", "language", "duration", "model", "device", "segments"],
+  "properties": {
+    "version": {"const": 1},
+    "source": {"type": "string", "description": "File name of the transcribed media."},
+    "language": {"type": ["string", "null"]},
+    "language_probability": {"type": ["number", "null"]},
+    "duration": {"type": "number", "minimum": 0},
+    "model": {"type": "string"},
+    "device": {"type": "string"},
+    "segments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["start", "end", "text"],
+        "properties": {
+          "start": {"type": "number", "minimum": 0},
+          "end": {"type": "number", "minimum": 0},
+          "text": {"type": "string"},
+          "words": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["start", "end", "word"],
+              "properties": {
+                "start": {"type": "number", "minimum": 0},
+                "end": {"type": "number", "minimum": 0},
+                "word": {"type": "string"},
+                "probability": {"type": "number", "minimum": 0, "maximum": 1}
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

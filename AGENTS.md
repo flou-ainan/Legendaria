@@ -15,7 +15,7 @@ Full conventions: `docs/dev-docs/README.md`. Summary:
 - **Every plan becomes a file** in `docs/dev-docs/planning/` before implementation starts.
 - **Every change is logged** as a step in `docs/dev-docs/devlog/`: what changed, why, files touched, how it was tested.
 - **Every relevant technical decision** (library, architecture, format) becomes an ADR in `docs/dev-docs/decisions/`.
-- **`docs/PROJECT.md` always reflects the current code.** Any change to files, functions, stack, or folder layout updates `PROJECT.md` in the same commit, including line counts.
+- **`docs/PROJECT.md` always reflects the current code.** Any change to files, functions, stack, or folder layout updates `PROJECT.md` in the same commit, including line counts. Generate the file map entries with `python3 tools/project_map.py <files>`; give every public function a one-line docstring so the map stays useful.
 
 Goal: someone who clones the repository, with no access to any agent memory, can understand the project and what is going on just by reading `docs/`.
 
@@ -34,6 +34,10 @@ Goal: someone who clones the repository, with no access to any agent memory, can
 ## Cross-agent memory
 
 This machine uses [ai-memory](https://github.com/akitaonrails/ai-memory) to carry context between agents. It is a complement: the source of truth for project state is always `docs/`.
+
+## Branches and commits
+
+`main` is protected: work on a branch, commit with Conventional Commits, open a PR, and wait for the `ci` check (ADR-008).
 
 ## General
 

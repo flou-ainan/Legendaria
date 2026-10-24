@@ -3,7 +3,7 @@
 > A condensed map of the project, so agents and people can find what they need without rereading the code.
 > **Update this file with every change to the project** (files, functions, stack, structure). Conventions: `docs/dev-docs/README.md`.
 
-**Last updated:** 2026-10-24 — step 06 (stage 0: community files, CI, repo settings). No code yet.
+**Last updated:** 2026-10-24 — step 07 (stage 1: engine `flosub` working on GPU and CPU).
 
 ---
 
@@ -19,7 +19,7 @@ What it does:
 
 Goals: a "next → next → finish" install for end users; a hackable setup driven by JSON configs; friendly to contributors; Linux, macOS and Windows 10+; UI and user docs in English and pt-BR (open to more languages).
 
-**Current state:** planning. The MVP and the roadmap are in `dev-docs/planning/plan_01_mvp_engine_blender.md`.
+**Current state:** the engine (`engine/`, CLI `flosub`) works: GPU/CPU transcription with word timings, JSON/SRT/VTT output, model download, layered JSON config, 32 tests. The Blender add-on (stage 2) is next. Plan: `dev-docs/planning/plan_01_mvp_engine_blender.md`.
 
 ## 2. Architecture
 
@@ -47,13 +47,13 @@ engine/ (`flosub`) ── faster-whisper (GPU → CPU fallback) ──► transc
 | Layer | Technology |
 |---|---|
 | Transcription | faster-whisper 1.2 (CTranslate2 4.6), fp16 on GPU / int8 on CPU, default model `small` |
-| GPU acceleration | CUDA 12 via `nvidia-cublas-cu12` + `nvidia-cudnn-cu12` 9 (pip), no PyTorch; Linux and Windows |
+| GPU acceleration | CUDA 12 via the optional `cuda` extra (`nvidia-cublas-cu12` + `nvidia-cudnn-cu12` 9), no PyTorch; Linux and Windows. `cuda_libs.py` makes them loadable |
 | Media decoding | PyAV (bundled with faster-whisper) / FFmpeg |
 | Editor | Blender 4.2+ Video Sequence Editor (`bpy`), extension format |
-| Language | Python 3.10+ (engine) / Blender's bundled Python (add-on) |
+| Language | Python 3.10+ (engine; dev venv pinned to 3.11 via `uv` and `engine/.python-version`) / Blender's bundled Python (add-on) |
 | Config | JSON + JSON Schema, `platformdirs` for per-OS paths |
 | i18n | `bpy.app.translations` + `locales/<lang>.json` (en source, pt_BR maintained) |
-| Tests | pytest |
+| Tests / quality | pytest + jsonschema (engine), ruff + pre-commit, GitHub Actions on Linux/macOS/Windows |
 | Reference hardware | RTX 2070 Super 8 GB, Linux Mint 22 |
 | Targets | Linux, macOS, Windows 10+ |
 
@@ -88,6 +88,16 @@ Legendaria/
 ├── .pre-commit-config.yaml  # ruff + basic file checks (run in CI too)
 ├── .editorconfig / .gitattributes   # LF endings, indentation
 ├── .gitignore
+├── engine/                  # MIT — transcription engine, Python package "legendaria", CLI `flosub`
+│   ├── pyproject.toml       # deps; extras: cuda (NVIDIA libs), test (pytest, jsonschema); script flosub
+│   ├── uv.lock / .python-version (3.11)
+│   ├── README.md, LICENSE
+│   ├── legendaria_engine/   # the package (see file map)
+│   │   └── defaults/        # config.json (engine defaults), models.json (model catalog)
+│   ├── schemas/             # JSON Schemas: config, models, transcript (editor autocomplete)
+│   └── tests/               # pytest suite (no GPU or network needed)
+├── tools/
+│   └── project_map.py       # prints the "File map" entries below from the source
 ├── .github/
 │   ├── workflows/ci.yml     # pre-commit + engine tests on Linux/macOS/Windows; aggregate `ci` check
 │   ├── ISSUE_TEMPLATE/      # bug, feature, translation forms + links to Discussions / security
@@ -104,43 +114,184 @@ Legendaria/
         └── references/      # origin_brainstorm.md
 ```
 
-The target layout for `engine/` and `blender_addon/` is in plan 01, section 4.3. It moves here once those folders exist.
+The target layout for `blender_addon/` is in plan 01, section 4.3.
+
+User files at runtime (per OS, via `platformdirs`; overridable with `LEGENDARIA_CONFIG_DIR` / `LEGENDARIA_DATA_DIR`):
+- config dir (`~/.config/legendaria` on Linux): `config.json`, `models.json` (user overrides)
+- data dir (`~/.local/share/legendaria` on Linux): `models/<name>/` (downloaded CTranslate2 models)
 
 ## 6. File map
 
-### assets/brand/source/generate_brand_svgs.py — 58 lines
-Dev tool that writes the flat brand SVGs into `assets/brand/`. Constants: `GRAD` (symbol gradient), `PATHS` (symbol strokes), `SYMBOL_VB`, `SMALL` / `SMALL_GRAD` (small icon).
+Generated with `python3 tools/project_map.py <files>` and then reviewed. Regenerate it whenever code changes.
+
+**Data files:**
+- `engine/legendaria_engine/defaults/config.json`: engine defaults (model `small`, language `auto`, device `auto`, compute types, beam size, VAD, word timestamps, output formats, UI language list).
+- `engine/legendaria_engine/defaults/models.json`: model catalog (tiny, base, small, medium, large-v3, large-v3-turbo) with HF repo, size, VRAM, notes.
+- `engine/schemas/*.schema.json`: JSON Schemas for config, models and transcript v1.
+- `engine/tests/`: `conftest.py` (isolated dirs, sample transcript), `test_formats.py`, `test_schema.py`, `test_config.py`, `test_cli.py`, `test_transcriber.py` (GPU→CPU fallback with a fake run).
+
+**Progress event protocol** (stdout, one JSON object per line, `--progress json`):
+- `start`: model, device, compute_type, language, duration.
+- `progress`: `t`, `total` (in seconds).
+- `model_download`: downloaded / total bytes, or `finished`.
+- `log`, `warning`, `error`: carry `message`.
+- `done`: `outputs` plus counts.
+
+A `warning` followed by a new `start` means the run restarted on the CPU.
+
+### engine/legendaria_engine/cli.py — 194 lines
+`flosub` command line: transcribe, export, models, config.
 
 | Function / class | Line | What it does |
 |---|---|---|
-| `group(stroke, width=37)` | 21 | Wraps the symbol strokes in a `<g>` with the given stroke paint and width |
-| `write(name, body, vb, w, h, title)` | 24 | Writes one SVG file with a viewBox, title and accessible label |
-| `lockup(name, font, weight, fill, bg)` | 51 | Writes a symbol + "Legendária" wordmark SVG (text; convert to paths afterwards) |
+| `write_outputs(transcript, stem, formats)` | 17 | Write the requested formats next to `stem` (no extension); returns the paths. |
+| `parse_formats(value)` | 31 | argparse type: comma-separated format list, validated against FORMATS. |
+| `cmd_transcribe(args, reporter)` | 42 | `flosub transcribe`: resolve config and model, transcribe, write the outputs. |
+| `cmd_export(args, reporter)` | 85 | `flosub export`: convert a transcript JSON to SRT/VTT. |
+| `cmd_models(args, reporter)` | 95 | `flosub models list|download`. |
+| `cmd_config(args, reporter)` | 122 | `flosub config show|path`. |
+| `build_parser()` | 131 | The argparse tree for all subcommands. |
+| `main(argv)` | 174 | Entry point: run a subcommand and turn every failure into an `error` event. |
 
-### assets/brand/source/generate_hero.py — 109 lines
-Dev tool that writes the glowing key art (`hero-<lang>.svg` 1024×1024, `banner-<lang>.svg` 1280×640) for each language in `TAGLINES`. Constants: `BARS` / `LINES` / `SYMBOL_BOX` (the same geometry as the flat symbol), `DEFS` (gradients and the glow / soft / text-glow filters).
-
-| Function / class | Line | What it does |
-|---|---|---|
-| `symbol(x, y, width)` | 57 | Glowing symbol: seeded particles, glass shadow copy, gradient strokes with glow, light core, horizontal streak |
-| `background(w, h)` | 80 | Dark radial background with faint diagonal shapes and bands |
-| `text(x, y, size, anchor, tagline, tag_size, tag_dy)` | 91 | Montserrat wordmark (with glow) and the spaced tagline |
-| `svg(w, h, body)` | 98 | Wraps the body in an `<svg>` with defs, title and label |
-
-There is no engine or add-on code yet. Each source file will get an entry like this:
-
-```markdown
-### path/file.py — N lines
-Short description of the file's role.
+### engine/legendaria_engine/config.py — 88 lines
+Layered JSON configuration: shipped defaults → user file → command-line values.
 
 | Function / class | Line | What it does |
 |---|---|---|
-| `function_name(args)` | 12 | ... |
-```
+| `class ConfigError` | 14 | A config file is malformed or holds an invalid value. |
+| `read_json(path)` | 18 | Read a JSON object from a file, dropping `$schema`; raise ConfigError on bad JSON. |
+| `deep_merge(base, override)` | 30 | Return `base` updated with `override`; nested objects are merged key by key. |
+| `validate(config, source)` | 41 | Check the values the engine relies on, with errors that name the bad key. |
+| `load_config(overrides)` | 67 | Defaults, then the user's `config.json` if present, then non-None `overrides`. |
+| `load_models()` | 79 | The model catalog: shipped `models.json` plus the user's additions or changes. |
+
+### engine/legendaria_engine/cuda_libs.py — 56 lines
+Make the NVIDIA libraries installed by pip (cuBLAS, cuDNN) visible to CTranslate2.
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `nvidia_lib_dirs()` | 18 | Library folders of the installed `nvidia.*` packages (empty when not installed). |
+| `ensure_cuda_libs()` | 33 | Expose the NVIDIA libraries to the current process. Call before importing ctranslate2. |
+
+### engine/legendaria_engine/events.py — 111 lines
+Progress reporting: JSON lines for programs (the Blender add-on), a progress bar for humans.
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `class Reporter` | 14 | Base reporter. Subclasses decide how events are shown. |
+| `Reporter.emit(event, **data)` | 17 | Send one event. |
+| `Reporter.progress(current, total)` | 21 | Transcription progress in seconds of media. |
+| `Reporter.log(message)` | 25 | Informational message. |
+| `Reporter.warning(message)` | 29 | Non-fatal problem (e.g. GPU fallback). |
+| `Reporter.error(message)` | 33 | Fatal problem; the command exits with a non-zero code. |
+| `Reporter.close()` | 37 | Release any resource (e.g. a progress bar). |
+| `class JsonReporter` | 41 | Machine-readable events, one JSON object per line. |
+| `JsonReporter.emit(event, **data)` | 47 | Write the event as one JSON line and flush, so readers see it at once. |
+| `class HumanReporter` | 53 | Readable output on stderr, with a tqdm bar for transcription progress. |
+| `HumanReporter.emit(event, **data)` | 61 | Render the event as text: progress bar, messages, saved files. |
+| `HumanReporter.close()` | 102 | Close the progress bar, if any. |
+| `make_reporter(mode)` | 107 | `json`, `human`, or `auto` (human when stdout is a terminal, JSON otherwise). |
+
+### engine/legendaria_engine/formats.py — 37 lines
+Subtitle writers: transcript → SRT / VTT text.
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `format_timestamp(seconds, separator)` | 10 | `HH:MM:SS,mmm` (SRT) or `HH:MM:SS.mmm` (VTT). Hours keep counting past 24. |
+| `to_srt(transcript)` | 19 | Numbered SRT cues, one per segment. |
+| `to_vtt(transcript)` | 28 | WebVTT cues, one per segment. |
+
+### engine/legendaria_engine/__init__.py — 3 lines
+Legendária transcription engine.
+
+### engine/legendaria_engine/__main__.py — 5 lines
+Allow `python -m legendaria_engine`.
+
+### engine/legendaria_engine/models.py — 105 lines
+List, download and locate Whisper models (stored in the per-OS data dir).
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `model_path(name)` | 23 | Folder where a catalog model is (or will be) stored. |
+| `is_installed(name)` | 28 | True when the model folder has all the files CTranslate2 needs. |
+| `list_models()` | 34 | Catalog entries with an `installed` flag, in catalog order. |
+| `_progress_class(reporter, name, expected_bytes)` | 42 | A tqdm-compatible class that turns Hugging Face download progress into events. |
+| `download(name, reporter)` | 70 | Download a catalog model into the data dir; returns its folder. |
+| `resolve(name, reporter)` | 96 | Folder of an installed model, downloading it first when needed. |
+
+### engine/legendaria_engine/paths.py — 42 lines
+Per-OS locations for user config, data and models.
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `config_dir()` | 13 | Directory of the user config file; `LEGENDARIA_CONFIG_DIR` overrides it. |
+| `data_dir()` | 19 | Directory for downloaded models and other data; `LEGENDARIA_DATA_DIR` overrides it. |
+| `user_config_file()` | 25 | The user config overrides: `<config dir>/config.json`. |
+| `user_models_file()` | 30 | User additions to the model catalog: `<config dir>/models.json`. |
+| `models_dir()` | 35 | Where downloaded models live: `<data dir>/models`. |
+| `defaults_dir()` | 40 | Shipped default JSON files inside the package. |
+
+### engine/legendaria_engine/schema.py — 79 lines
+Transcript format (JSON v1): the contract between the engine and the Blender add-on.
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `class Word` | 14 | One recognized word with its timing (seconds) and confidence. |
+| `class Segment` | 24 | A sentence-like chunk of speech; becomes one subtitle cue. |
+| `class Transcript` | 34 | The whole transcription of one media file (JSON v1). |
+| `Transcript.to_dict()` | 46 | Plain dict ready for JSON. |
+| `Transcript.from_dict(data)` | 51 | Build from a dict, rejecting other schema versions. |
+| `Transcript.save(path)` | 72 | Write as pretty UTF-8 JSON. |
+| `Transcript.load(path)` | 77 | Read a transcript JSON file. |
+
+### engine/legendaria_engine/transcriber.py — 133 lines
+Speech-to-text. A small backend interface keeps room for other engines (e.g. Apple Silicon).
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `class Options` | 14 | Everything a backend needs to run one transcription. |
+| `class Backend` | 27 | Interface for speech-to-text engines (faster-whisper today; Apple Silicon later). |
+| `Backend.transcribe(media, options, reporter)` | 32 | Transcribe `media`, reporting progress, and return the transcript. |
+| `cuda_available()` | 37 | True when CTranslate2 sees at least one CUDA device. |
+| `class FasterWhisperBackend` | 47 | faster-whisper (CTranslate2): CUDA on NVIDIA GPUs, int8 on CPU. |
+| `FasterWhisperBackend.transcribe(media, options, reporter)` | 57 | Try each device in turn; in `auto` mode a GPU failure falls back to the CPU. |
+| `get_backend(name)` | 129 | Instantiate a backend by name. |
+
+### tools/project_map.py — 80 lines
+Print the "File map" entries of docs/PROJECT.md for Python files.
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `first_line(node)` | 17 | First line of a node's docstring, or "". |
+| `signature(fn)` | 27 | Compact `name(arg, ...)` without self/cls. |
+| `rows(tree)` | 38 | (name, line, summary) for top-level functions, classes and public methods. |
+| `describe(path)` | 54 | Markdown section for one file. |
+| `main(argv)` | 70 | Print the sections for the given paths. |
+
+### assets/brand/source/generate_brand_svgs.py — 73 lines
+Generate the Legendária brand SVGs.
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `group(stroke, width)` | 23 | Wrap the symbol strokes in a <g> with the given stroke paint and width. |
+| `write(name, body, vb, w, h, title)` | 28 | Write one SVG with viewBox, title and accessible label. |
+| `lockup(name, font, weight, fill, bg)` | 62 | Symbol + "Legendária" wordmark (text; convert to paths afterwards). |
+
+### assets/brand/source/generate_hero.py — 122 lines
+Generate the glowing Legendária key art (hero and banner) as SVG.
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `symbol(x, y, width)` | 57 | Glowing symbol placed so its stroke box starts at (x, y) with the given width. |
+| `background(w, h)` | 82 | Dark radial background with faint diagonal shapes and bands. |
+| `text(x, y, size, anchor, tagline, tag_size, tag_dy)` | 94 | Montserrat wordmark with glow plus the spaced tagline. |
+| `svg(w, h, body)` | 102 | Wrap a body in <svg> with defs, title and label. |
+
 
 ## 7. In progress
 
 - Plan 01 approved, with no open questions left. `main` is protected: every change goes through a PR (ADR-008).
 - Brand kit in `assets/brand/` (Montserrat; glowing banner at the top of both READMEs).
 - Stage 0 (project foundation) done.
-- Next: stage 1 (engine).
+- Stage 1 (engine) done.
+- Next: stage 2 (Blender add-on).

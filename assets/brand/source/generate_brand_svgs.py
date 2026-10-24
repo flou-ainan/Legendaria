@@ -21,10 +21,12 @@ SYMBOL_VB = "262 480 1152 716"
 
 
 def group(stroke, width=37):
+    """Wrap the symbol strokes in a <g> with the given stroke paint and width."""
     return f'<g fill="none" stroke="{stroke}" stroke-width="{width}" stroke-linecap="round" stroke-linejoin="round">\n    {PATHS}\n  </g>'
 
 
 def write(name, body, vb, w=None, h=None, title="Legendária"):
+    """Write one SVG with viewBox, title and accessible label."""
     size = f' width="{w}" height="{h}"' if w else ""
     svg = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{vb}"{size} role="img" aria-label="{title}">\n  <title>{title}</title>\n  {body}\n</svg>\n'
     (OUT / name).write_text(svg, encoding="utf-8")
@@ -58,6 +60,7 @@ write(
 
 # 5. Lockups (symbol + wordmark); text converted to paths later by Inkscape.
 def lockup(name, font, weight, fill, bg=None):
+    """Symbol + "Legendária" wordmark (text; convert to paths afterwards)."""
     rect = f'<rect x="200" y="420" width="4400" height="840" fill="{bg}"/>\n  ' if bg else ""
     body = (
         f"<defs>{GRAD}</defs>\n  {rect}{group('url(#lg)')}\n"

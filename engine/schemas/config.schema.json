@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/flou-ainan/Legendaria/main/engine/schemas/config.schema.json",
+  "title": "Legendária engine config",
+  "description": "Engine settings. Put only the keys you want to change in your user config.json (see `flosub config path`).",
+  "type": "object",
+  "properties": {
+    "$schema": {"type": "string"},
+    "version": {"const": 1, "description": "Config format version."},
+    "model": {"type": "string", "description": "Model name from models.json (e.g. small, medium, large-v3-turbo) or a path to a CTranslate2 model folder."},
+    "language": {"type": "string", "description": "Speech language code (pt, en, es, ...) or 'auto' to detect it."},
+    "device": {"enum": ["auto", "cuda", "cpu"], "description": "'auto' uses an NVIDIA GPU when available, otherwise the CPU."},
+    "compute_type": {
+      "type": "object",
+      "description": "CTranslate2 compute type per device.",
+      "properties": {
+        "cuda": {"enum": ["float16", "int8_float16", "int8", "float32", "bfloat16"]},
+        "cpu": {"enum": ["int8", "int8_float32", "float32"]}
+      },
+      "additionalProperties": false
+    },
+    "beam_size": {"type": "integer", "minimum": 1, "maximum": 10, "description": "Beam search width: higher is slightly more accurate and slower."},
+    "vad_filter": {"type": "boolean", "description": "Skip silent parts with voice activity detection (reduces made-up text)."},
+    "word_timestamps": {"type": "boolean", "description": "Record the timing of every word (needed for CapCut-style captions)."},
+    "formats": {"type": "array", "items": {"enum": ["json", "srt", "vtt"]}, "uniqueItems": true, "description": "Files written by `flosub transcribe`."},
+    "ui_languages": {"type": "array", "items": {"type": "string"}, "description": "Languages offered in the Blender add-on's language menu."},
+    "backend": {"enum": ["faster-whisper"], "description": "Transcription backend."}
+  },
+  "additionalProperties": false
+}
