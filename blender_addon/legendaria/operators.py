@@ -8,10 +8,11 @@ from pathlib import Path
 
 import bpy
 
-from . import compat, engine_bridge, properties, strips, timecode
+from . import compat, engine_bridge, installer, properties, strips, timecode
 from .i18n import tr
 
 TIMER_INTERVAL = 0.2
+INSTALL = {"job": None}  # the running Installer, shared with the UI
 
 
 def cache_dir() -> Path:
@@ -391,7 +392,128 @@ class LEGENDARIA_OT_refresh_engine(bpy.types.Operator):
         if properties.refresh_engine_info(context):
             self.report({"INFO"}, properties.ENGINE["version"])
         else:
-            self.report({"WARNING"}, properties.ENGINE["error"])
+            self.report({"WARNING"}, tr(properties.ENGINE["error"]))
+        return {"FINISHED"}
+
+
+def install_status() -> tuple[str, float]:
+    """Translated status line and progress of the running install (for panel and preferences)."""
+    job = INSTALL["job"]
+    if job is None:
+        return "", 0.0
+    state = job.state
+    step = tr("Step {index} of {total}").format(index=state["index"], total=len(job.STEPS))
+    return f"{step}: {tr(state['message']).format(**state.get('params', {}))}", state["progress"]
+
+
+class LEGENDARIA_OT_install_engine(bpy.types.Operator):
+    """Download and set up the transcription engine (uv, Python, flosub and the default model)"""
+
+    bl_idname = "legendaria.install_engine"
+    bl_label = "Install engine"
+
+    _timer = None
+
+    @classmethod
+    def poll(cls, context):
+        """Not while an install is already running."""
+        return INSTALL["job"] is None or not INSTALL["job"].running
+
+    def invoke(self, context, event):
+        """Explain what will be downloaded and ask first."""
+        gpu = installer.wants_cuda()
+        size = tr("about 3.5 GB, with NVIDIA GPU support") if gpu else tr("about 1.3 GB")
+        return context.window_manager.invoke_confirm(
+            self,
+            event,
+            title=tr("Install the transcription engine?"),
+            message=tr(
+                "Downloads uv, Python {python}, the engine and the {model} model ({size}). Everything stays in {folder}."
+            ).format(
+                python=installer.PYTHON_VERSION,
+                model=installer.DEFAULT_MODEL,
+                size=size,
+                folder=installer.engine_root(),
+            ),
+            confirm_text=tr("Install"),
+            icon="QUESTION",
+        )
+
+    def execute(self, context):
+        """Start the installer thread and poll it from a timer."""
+        job = installer.Installer()
+        INSTALL["job"] = job
+        job.start()
+        wm = context.window_manager
+        self._timer = wm.event_timer_add(0.5, window=context.window)
+        wm.modal_handler_add(self)
+        return {"RUNNING_MODAL"}
+
+    def modal(self, context, event):
+        """Redraw while installing; report the result at the end."""
+        if event.type != "TIMER":
+            return {"PASS_THROUGH"}
+        for window in context.window_manager.windows:
+            for area in window.screen.areas:
+                area.tag_redraw()
+        job = INSTALL["job"]
+        if job.running:
+            return {"PASS_THROUGH"}
+        context.window_manager.event_timer_remove(self._timer)
+        if job.state["error"]:
+            self.report(
+                {"ERROR"},
+                tr("Engine installation failed: {error}").format(error=tr(job.state["error"])),
+            )
+            return {"CANCELLED"}
+        properties.refresh_engine_info(context)
+        INSTALL["job"] = None
+        self.report({"INFO"}, tr("Engine installed."))
+        return {"FINISHED"}
+
+
+class LEGENDARIA_OT_cancel_install(bpy.types.Operator):
+    """Stop installing the engine"""
+
+    bl_idname = "legendaria.cancel_install"
+    bl_label = "Cancel"
+
+    def execute(self, context):
+        """Ask the installer to stop."""
+        if INSTALL["job"]:
+            INSTALL["job"].cancel()
+        return {"FINISHED"}
+
+
+class LEGENDARIA_OT_uninstall_engine(bpy.types.Operator):
+    """Delete the engine installed by this add-on (downloaded models are kept)"""
+
+    bl_idname = "legendaria.uninstall_engine"
+    bl_label = "Uninstall engine"
+
+    @classmethod
+    def poll(cls, context):
+        """Only when the add-on's own engine is installed and idle."""
+        return installer.is_installed() and (INSTALL["job"] is None or not INSTALL["job"].running)
+
+    def invoke(self, context, event):
+        """Ask first."""
+        return context.window_manager.invoke_confirm(
+            self,
+            event,
+            title=tr("Uninstall the engine?"),
+            message=tr("Deletes {folder}. Downloaded models are kept.").format(
+                folder=installer.engine_root()
+            ),
+            confirm_text=tr("Uninstall"),
+            icon="WARNING",
+        )
+
+    def execute(self, context):
+        """Remove the engine folder and look for another engine."""
+        installer.uninstall()
+        properties.refresh_engine_info(context)
+        self.report({"INFO"}, tr("Engine uninstalled."))
         return {"FINISHED"}
 
 
@@ -401,6 +523,9 @@ CLASSES = (
     LEGENDARIA_OT_reapply_style,
     LEGENDARIA_OT_export,
     LEGENDARIA_OT_refresh_engine,
+    LEGENDARIA_OT_install_engine,
+    LEGENDARIA_OT_cancel_install,
+    LEGENDARIA_OT_uninstall_engine,
 )
 
 

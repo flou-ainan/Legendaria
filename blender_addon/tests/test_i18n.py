@@ -38,7 +38,7 @@ def ui_strings() -> set[str]:
         for node in ast.walk(tree):
             if isinstance(node, ast.Call):
                 func = node.func
-                if isinstance(func, ast.Name) and func.id == "tr" and node.args:
+                if isinstance(func, ast.Name) and func.id in {"tr", "N_"} and node.args:
                     arg = node.args[0]
                     if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
                         found.add(arg.value)
@@ -99,6 +99,14 @@ def test_placeholders_match(path):
         assert set(re.findall(r"\{\w+\}", source)) == set(re.findall(r"\{\w+\}", translated)), (
             source
         )
+
+
+@pytest.mark.parametrize("path", locale_files(), ids=lambda p: p.stem)
+def test_no_unused_translations(path):
+    table = json.loads(path.read_text(encoding="utf-8"))
+    table.pop("$comment", None)
+    unused = sorted(set(table) - ui_strings())
+    assert not unused, f"{path.name} has {len(unused)} unused strings: {unused}"
 
 
 def test_pt_br_exists():

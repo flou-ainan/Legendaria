@@ -22,15 +22,18 @@ class LegendariaPreferences(bpy.types.AddonPreferences):
 
     def draw(self, context):
         """Engine path, detection result and a refresh button."""
+        from .panel import draw_engine_box
+
         layout = self.layout
         layout.prop(self, "engine_path")
         engine = properties.ENGINE
-        row = layout.row()
-        if engine["path"]:
+        if draw_engine_box(layout):
+            row = layout.row()
             row.label(text=f"{engine['version']} — {engine['path']}", icon="CHECKMARK")
-        else:
-            row.label(text="Engine not found", icon="ERROR")
-        row.operator("legendaria.refresh_engine", text="", icon="FILE_REFRESH")
+            row.operator("legendaria.refresh_engine", text="", icon="FILE_REFRESH")
+        row = layout.row()
+        row.operator("legendaria.install_engine", text="Reinstall / update engine", icon="IMPORT")
+        row.operator("legendaria.uninstall_engine", icon="TRASH")
 
 
 CLASSES = (LegendariaPreferences,)

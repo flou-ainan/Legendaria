@@ -72,6 +72,14 @@ def find_engine(custom: str = "") -> Path | None:
     return next((p for p in candidate_paths() if p.is_file()), None)
 
 
+def version_key(text: str) -> tuple:
+    """Sortable key for versions like "0.1.0", "0.1.0.dev1" or "flosub 0.2.0" (dev < final)."""
+    number = text.split()[-1] if text.split() else "0"
+    main, _, dev = number.partition(".dev")
+    parts = tuple(int(p) if p.isdigit() else 0 for p in main.split("."))
+    return (*parts, int(dev) if dev.isdigit() else -1) if dev else (*parts, 10**9)
+
+
 def _popen_kwargs() -> dict:
     kwargs = {
         "stdin": subprocess.DEVNULL,

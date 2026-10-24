@@ -26,6 +26,11 @@ def load_translations() -> dict[str, dict[tuple[str, str], str]]:
     return table
 
 
+def N_(text: str) -> str:
+    """Mark a string for translation without translating it yet (translate when shown)."""
+    return text
+
+
 def tr(text: str) -> str:
     """Translate a dynamic UI string (reports, formatted messages) for the current locale."""
     return bpy.app.translations.pgettext_iface(text)

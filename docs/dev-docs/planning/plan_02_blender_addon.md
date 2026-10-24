@@ -1,6 +1,6 @@
 # Plan 02 — Blender add-on (MVP stage 2) and caption-style cues
 
-**Status:** approved (owner, 2026-10-24). Stage 2a done (steps 09–10); 2b and 2c next
+**Status:** approved (owner, 2026-10-24). Stages 2a (steps 09–10) and 2b (step 11) done; 2c next
 **Date:** 2026-10-24
 **Builds on:** plan 01 (section 4.5), ADR-002, ADR-003, ADR-005, ADR-006
 
@@ -121,7 +121,14 @@ Packaged as a zip for "Install from Disk".
 ## 6. Stages
 
 - **2a (this plan, now):** engine cues + add-on core (§3, §4).
-- **2b:** "Install engine" button (uv bootstrap, `cuda` extra when an NVIDIA GPU is detected). See plan 01 decision 9.
+- **2b (done, step 11):** "Install engine" button (uv bootstrap, `cuda` extra when an NVIDIA GPU is detected). See plan 01 decision 9. As built:
+  - uv **0.13.0** pinned (SHA-256 checked) for Linux/macOS/Windows on x86_64/arm64.
+  - Python 3.11 and the uv cache are kept inside `<data dir>/legendaria/engine/`; the cache is deleted after install, since the venv is self-contained.
+  - Installs `legendaria>=0.1.0.dev1,<0.2` (pre-releases allowed), then downloads `small`.
+  - Confirmation dialog shows the download size: ~1.3 GB, or ~3.5 GB with GPU.
+  - Progress ("Step n of 4") with Cancel; Uninstall in preferences.
+  - The add-on warns when the engine is older than `MIN_ENGINE` and offers "Update engine".
+  - `LEGENDARIA_INSTALL_CUDA=0|1` overrides GPU detection.
 - **2c:** regenerate a time range (R4):
   - Engine `--clip START,END` (faster-whisper `clip_timestamps`).
   - The add-on uses the scene's preview range (or the selected caption strips' span), replaces only the tagged strips in that range, and asks for confirmation as in R3.
