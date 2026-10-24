@@ -260,6 +260,7 @@ Following ADR-008:
 - Subtitle translation (Whisper translate mode, or an LLM pass).
 - WhisperX-style forced alignment, if word timings are not precise enough.
 - Mobile app and cloud API (from the origin brainstorm).
+- Refine the glowing key art (more sparkle/flare, closer to the Gemini reference). The owner considers the current version good for now.
 
 ## 9. Open questions
 
