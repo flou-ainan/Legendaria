@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="262 480 1152 716" role="img" aria-label="Legendária">
+  <title>Legendária</title>
+  <defs><linearGradient id="lg" gradientUnits="userSpaceOnUse" x1="328" y1="819" x2="510" y2="1276">
+      <stop offset="0" stop-color="#FF8A3D"/><stop offset="0.4" stop-color="#D96771"/>
+      <stop offset="0.55" stop-color="#B5509F"/><stop offset="0.8" stop-color="#7E27CC"/>
+      <stop offset="1" stop-color="#6418CB"/></linearGradient></defs>
+  <g fill="none" stroke="url(#lg)" stroke-width="37" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M300 795V880M362 751V925M425 703V972M488 624V1051M551 517V1157M614 624V1051M677 708V947M739 768V882M801 810V840"/>
+    <path d="M738 600L805 715Q860 812 990 836H1375"/>
+    <path d="M700 1125L805 955Q860 860 990 836"/>
+    <path d="M808 590L862 683Q905 757 1000 757H1315"/>
+    <path d="M800 1095L860 995Q905 915 1000 915H1315"/>
+    <path d="M918 645Q945 678 990 678H1212"/>
+    <path d="M918 1030Q945 995 990 995H1212"/>
+  </g>
+</svg>

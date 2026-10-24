@@ -251,7 +251,7 @@ Following ADR-008:
 - [x] Protect `main` (PR required, squash only). Still to do: make the CI check required once CI exists.
 - [ ] GitHub repository settings: labels `good first issue`, `help wanted`, `translation`; enable Discussions.
 - [x] Final project name applied everywhere (Legendária / `flosub`).
-- [ ] Logo.
+- [x] Logo: brand kit in `assets/brand/` (step 05).
 
 ## 8. Backlog (not scheduled)
 
@@ -260,6 +260,7 @@ Following ADR-008:
 - Subtitle translation (Whisper translate mode, or an LLM pass).
 - WhisperX-style forced alignment, if word timings are not precise enough.
 - Mobile app and cloud API (from the origin brainstorm).
+- Refine the glowing key art (more sparkle/flare, closer to the Gemini reference). The owner considers the current version good for now.
 
 ## 9. Open questions
 

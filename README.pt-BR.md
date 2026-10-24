@@ -1,3 +1,7 @@
+<p align="center">
+  <img alt="Legendária — legendas livres, estilo CapCut" src="assets/brand/banner-pt-BR.svg" width="760">
+</p>
+
 # Legendária
 
 [English](README.md) | **Português (Brasil)**

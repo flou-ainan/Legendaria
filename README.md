@@ -1,3 +1,7 @@
+<p align="center">
+  <img alt="Legendária — free subtitles, CapCut style" src="assets/brand/banner-en.svg" width="760">
+</p>
+
 # Legendária
 
 **English** | [Português (Brasil)](README.pt-BR.md)
