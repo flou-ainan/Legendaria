@@ -54,7 +54,5 @@ def lockup(name, font, weight, fill, bg=None):
             f'  <text x="1500" y="1010" font-family="{font}" font-weight="{weight}" font-size="440" fill="{fill}" letter-spacing="-6">Legendária</text>')
     write(name, body, "200 420 4400 840")
 
-for tag, font, weight in [("montserrat", "Montserrat", 600), ("nunito", "Nunito", 800)]:
-    lockup(f"lockup-{tag}-light.svg", font, weight, "#151A23", "#FFFFFF")
-    lockup(f"lockup-{tag}-dark.svg", font, weight, "#F4F1FA", "#111822")
-print(sorted(p.name for p in OUT.iterdir()))
+lockup("legendaria-lockup-light.svg", "Montserrat", 500, "#151A23", "#FFFFFF")
+lockup("legendaria-lockup-dark.svg", "Montserrat", 500, "#F4F1FA", "#111822")

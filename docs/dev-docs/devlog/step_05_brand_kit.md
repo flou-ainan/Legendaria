@@ -1,4 +1,4 @@
-# Step 05 — Brand kit (logo)
+# Step 05 — Brand kit (logo and key art)
 
 **Date:** 2026-10-24
 **Agent/author:** Claude Code (Opus 5.5), with flou-ainan
@@ -6,30 +6,39 @@
 
 ## What was done
 
-- **Concept:** a sound wave flowing into subtitle lines. The owner explored it with Google Gemini; the raster references are in `assets/brand/source/`.
-- **Vectorization:**
-  - Redrew the symbol by hand as SVG strokes: 9 bars, the "Y" fusion of the two outer arms into the center line, and 4 more text lines.
+- **Concept:** a sound wave flowing into subtitle lines. The owner iterated on it with Google Gemini; the references are in `assets/brand/source/`.
+- **Flat symbol:**
+  - Redrew it by hand as SVG strokes: 9 bars, the "Y" fusion of the outer arms into the center line, and 4 more text lines.
   - Fitted the geometry by overlaying the render on the reference.
   - Fitted the gradient (orange `#FF8A3D` → purple `#6418CB`) by sampling colors from the reference.
-- **Kit in `assets/brand/`:**
-  - Symbol: full color and mono.
-  - App icon, plus a simplified small icon (4 bars, Y, 2 straight lines) that stays readable at 16–32 px.
-  - Lockups for light and dark backgrounds, in two candidate fonts (Montserrat SemiBold, Nunito ExtraBold), with the text converted to paths.
-  - 1280×640 social preview, `favicon.ico`, PNG renders.
-  - `README.md` with usage rules, color tokens and how to regenerate everything.
-- **READMEs:** the logo is now at the top of both, and switches automatically between the light and dark GitHub themes (`<picture>`). Nunito is used until the font is chosen.
+- **Main key art (the owner's choice):** the glowing version, recreated in SVG with the same geometry.
+  - Glow made with filters, seeded particles, a "glass" shadow copy of the text lines, a light core, a horizontal streak, and a dark background.
+  - Montserrat wordmark plus a tagline per language: "FREE SUBTITLES · CAPCUT STYLE" (en) and "LEGENDAS LIVRES · ESTILO CAPCUT" (pt-BR).
+  - The Gemini image's tagline "Open Subtitler" was dropped (ADR-009).
+  - Square hero (1024²) and wide banner (1280×640, also used as the social preview).
+- **Flat kit:**
+  - Symbol (color and mono), app icon.
+  - Simplified small icon (4 bars, Y, 2 straight lines), readable at 16–32 px.
+  - Montserrat lockups for light and dark backgrounds, `favicon.ico`, PNG renders.
+- **Wordmark font:** Montserrat, matching the key art. The Nunito candidates were removed.
+- **READMEs:** the glowing banner in the reader's language sits at the top of each.
+- `assets/brand/README.md`: files, taglines, colors, typography, rules, how to regenerate.
 
 ## Files touched
 
 - `assets/brand/**` (new)
-- `README.md`, `README.pt-BR.md`, `docs/PROJECT.md`, plan 01 (stage 0 checklist), this file
+- `README.md`, `README.pt-BR.md`, `docs/PROJECT.md` (tree and file map), plan 01 (stage 0 checklist), this file
 
 ## How it was tested
 
-- Rendered every SVG with Inkscape and checked the results visually: the symbol against the reference (overlay), the lockups on light and dark backgrounds, the small icon at 16/32/64 px.
-- Checked that the lockup and social SVGs contain no `<text>` elements (everything converted to paths).
+- Rendered every SVG with Inkscape and checked the results visually:
+  - the flat symbol against the reference (overlay);
+  - the key art side by side with the Gemini image;
+  - the converted (text-to-path) banner, with filters intact;
+  - the small icon at 16/32/64 px.
+- No SVG contains a `<text>` element.
+- Banner text has a right margin (its right edge is at x = 1164 of 1280).
 
 ## Pending / next steps
 
-- The owner picks the wordmark font. The unused lockup and social files are then removed.
-- Upload `png/social-preview-*.png` as the repository's social preview (GitHub → Settings → General → Social preview; this cannot be done through the API).
+- The owner uploads `assets/brand/png/social-preview-en.png` under GitHub → Settings → General → Social preview (this cannot be done through the API).
