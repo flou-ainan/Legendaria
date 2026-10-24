@@ -1,10 +1,10 @@
-"""Subtitle writers: transcript → SRT / VTT text."""
+"""Subtitle writers: cues → SRT / VTT text."""
 
 from __future__ import annotations
 
-from legendaria_engine.schema import Transcript
+from legendaria_engine.cues import CueList, wrap_lines
 
-FORMATS = ("json", "srt", "vtt")
+FORMATS = ("json", "cues", "srt", "vtt")
 
 
 def format_timestamp(seconds: float, separator: str = ",") -> str:
@@ -16,21 +16,21 @@ def format_timestamp(seconds: float, separator: str = ",") -> str:
     return f"{hours:02d}:{minutes:02d}:{secs:02d}{separator}{ms:03d}"
 
 
-def to_srt(transcript: Transcript) -> str:
-    """Numbered SRT cues, one per segment."""
+def to_srt(cues: CueList, line_length: int | None = None) -> str:
+    """Numbered SRT blocks, one per cue; long cues wrap into two lines."""
     blocks = []
-    for index, seg in enumerate(transcript.segments, start=1):
-        start, end = format_timestamp(seg.start), format_timestamp(seg.end)
-        blocks.append(f"{index}\n{start} --> {end}\n{seg.text.strip()}\n")
+    for index, cue in enumerate(cues.cues, start=1):
+        start, end = format_timestamp(cue.start), format_timestamp(cue.end)
+        blocks.append(f"{index}\n{start} --> {end}\n{wrap_lines(cue.text, line_length)}\n")
     return "\n".join(blocks)
 
 
-def to_vtt(transcript: Transcript) -> str:
-    """WebVTT cues, one per segment."""
+def to_vtt(cues: CueList, line_length: int | None = None) -> str:
+    """WebVTT blocks, one per cue; long cues wrap into two lines."""
     blocks = ["WEBVTT\n"]
-    for seg in transcript.segments:
-        start, end = format_timestamp(seg.start, "."), format_timestamp(seg.end, ".")
-        blocks.append(f"{start} --> {end}\n{seg.text.strip()}\n")
+    for cue in cues.cues:
+        start, end = format_timestamp(cue.start, "."), format_timestamp(cue.end, ".")
+        blocks.append(f"{start} --> {end}\n{wrap_lines(cue.text, line_length)}\n")
     return "\n".join(blocks)
 
 

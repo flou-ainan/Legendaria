@@ -11,7 +11,7 @@
 - Wrote plan 01: the `opensub` engine (faster-whisper → JSON with words) plus a Blender add-on (editable text strips, SRT/VTT export).
 - Recorded ADR-001 (faster-whisper), ADR-002 (Blender VSE) and ADR-003 (engine as an external process).
 - Updated the project map with the architecture, the stack and the decisions.
-- Checked the environment: Blender 4.2.0, Python 3.10.12, faster-whisper 1.2.1, ctranslate2 4.6.1, cuDNN 9.1 and cuBLAS 12.1 (pip), ffmpeg 4.4.2, RTX 2070 Super 8 GB.
+- Checked the environment: Blender 4.2.0 (wrong: only a dangling symlink, see step 09), Python 3.10.12, faster-whisper 1.2.1, ctranslate2 4.6.1, cuDNN 9.1 and cuBLAS 12.1 (pip), ffmpeg 4.4.2, RTX 2070 Super 8 GB.
 
 ## Why
 

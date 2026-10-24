@@ -13,11 +13,28 @@ def run(args, capsys):
 def test_export_writes_srt_and_vtt(transcript, tmp_path, capsys):
     source = tmp_path / "clip.json"
     transcript.save(source)
-    code, events, _ = run(["export", str(source), "--format", "srt,vtt"], capsys)
+    code, events, _ = run(["export", str(source), "--format", "srt,vtt,cues"], capsys)
     assert code == 0
     assert events[-1]["event"] == "done"
     assert (tmp_path / "clip.srt").read_text(encoding="utf-8").startswith("1\n00:00:00,000")
     assert (tmp_path / "clip.vtt").read_text(encoding="utf-8").startswith("WEBVTT")
+    cues = json.loads((tmp_path / "clip.cues.json").read_text(encoding="utf-8"))
+    assert cues["style"] == "subtitles" and cues["version"] == 1
+
+
+def test_export_captions_style_and_dotted_names(transcript, tmp_path, capsys):
+    source = tmp_path / "aula.parte1.json"
+    transcript.save(source)
+    code, events, _ = run(["export", str(source), "--format", "srt", "--style", "captions"], capsys)
+    assert code == 0 and events[-1]["style"] == "captions"
+    assert (tmp_path / "aula.parte1.srt").is_file()  # the ".parte1" part is kept
+
+
+def test_unknown_style_is_an_error(transcript, tmp_path, capsys):
+    source = tmp_path / "clip.json"
+    transcript.save(source)
+    code, events, _ = run(["export", str(source), "--style", "nope"], capsys)
+    assert code == 1 and "Unknown style" in events[-1]["message"]
 
 
 def test_transcribe_missing_file_is_an_error(tmp_path, capsys):

@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/flou-ainan/Legendaria/main/engine/schemas/cues.schema.json",
+  "title": "Legendária cues (v1)",
+  "description": "Output of `flosub ... --format cues` (<name>.cues.json): on-screen text blocks in one style, read by the Blender add-on. Times in seconds.",
+  "type": "object",
+  "required": [
+    "version",
+    "style",
+    "source",
+    "language",
+    "cues"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "style": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "language": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "cues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "start",
+          "end",
+          "text"
+        ],
+        "properties": {
+          "start": {
+            "type": "number",
+            "minimum": 0
+          },
+          "end": {
+            "type": "number",
+            "minimum": 0
+          },
+          "text": {
+            "type": "string"
+          },
+          "words": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "start",
+                "end",
+                "word"
+              ],
+              "properties": {
+                "start": {
+                  "type": "number"
+                },
+                "end": {
+                  "type": "number"
+                },
+                "word": {
+                  "type": "string"
+                },
+                "probability": {
+                  "type": "number"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -69,6 +69,28 @@ def test_user_models_extend_catalog():
     assert "small" in catalog
 
 
+def test_user_can_tune_and_add_styles():
+    write_user(
+        "config.json", {"styles": {"captions": {"max_words": 2}, "karaoke": {"max_words": 1}}}
+    )
+    config = load_config()
+    assert config["styles"]["captions"]["max_words"] == 2
+    assert config["styles"]["captions"]["max_chars"] == 22  # rest of the default kept
+    assert "karaoke" in config["styles"]
+
+
+def test_bad_style_values_are_rejected():
+    write_user("config.json", {"styles": {"captions": {"max_words": "four"}}})
+    with pytest.raises(ConfigError, match=r"styles\.captions\.max_words"):
+        load_config()
+
+
+def test_default_style_must_exist():
+    write_user("config.json", {"style": "nope"})
+    with pytest.raises(ConfigError, match="'style'"):
+        load_config()
+
+
 def test_deep_merge_does_not_mutate():
     base = {"a": {"b": 1}}
     deep_merge(base, {"a": {"c": 2}})

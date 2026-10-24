@@ -9,6 +9,14 @@ from typing import Any
 from legendaria_engine import paths
 
 DEVICES = ("auto", "cuda", "cpu")
+STYLE_NUMBERS = (
+    "max_words",
+    "max_chars",
+    "line_length",
+    "max_duration",
+    "min_duration",
+    "pause_break",
+)
 
 
 class ConfigError(ValueError):
@@ -62,6 +70,19 @@ def validate(config: dict[str, Any], source: str = "config") -> None:
     unknown = [f for f in config["formats"] if f not in FORMATS]
     if unknown:
         raise ConfigError(f"{source}: unknown format(s) {unknown}; use {', '.join(FORMATS)}")
+    styles = config.get("styles")
+    if not isinstance(styles, dict) or not styles:
+        raise ConfigError(f"{source}: 'styles' must be an object with at least one style")
+    for name, rules in styles.items():
+        if not isinstance(rules, dict):
+            raise ConfigError(f"{source}: style '{name}' must be an object")
+        for key, value in rules.items():
+            if key in STYLE_NUMBERS and value is not None and not isinstance(value, (int, float)):
+                raise ConfigError(f"{source}: styles.{name}.{key} must be a number or null")
+    if config.get("style") not in styles:
+        raise ConfigError(
+            f"{source}: 'style' must be one of the defined styles: {', '.join(styles)}"
+        )
 
 
 def load_config(overrides: dict[str, Any] | None = None) -> dict[str, Any]:

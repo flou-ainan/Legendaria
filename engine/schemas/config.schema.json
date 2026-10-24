@@ -5,26 +5,161 @@
   "description": "Engine settings. Put only the keys you want to change in your user config.json (see `flosub config path`).",
   "type": "object",
   "properties": {
-    "$schema": {"type": "string"},
-    "version": {"const": 1, "description": "Config format version."},
-    "model": {"type": "string", "description": "Model name from models.json (e.g. small, medium, large-v3-turbo) or a path to a CTranslate2 model folder."},
-    "language": {"type": "string", "description": "Speech language code (pt, en, es, ...) or 'auto' to detect it."},
-    "device": {"enum": ["auto", "cuda", "cpu"], "description": "'auto' uses an NVIDIA GPU when available, otherwise the CPU."},
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "const": 1,
+      "description": "Config format version."
+    },
+    "model": {
+      "type": "string",
+      "description": "Model name from models.json (e.g. small, medium, large-v3-turbo) or a path to a CTranslate2 model folder."
+    },
+    "language": {
+      "type": "string",
+      "description": "Speech language code (pt, en, es, ...) or 'auto' to detect it."
+    },
+    "device": {
+      "enum": [
+        "auto",
+        "cuda",
+        "cpu"
+      ],
+      "description": "'auto' uses an NVIDIA GPU when available, otherwise the CPU."
+    },
     "compute_type": {
       "type": "object",
       "description": "CTranslate2 compute type per device.",
       "properties": {
-        "cuda": {"enum": ["float16", "int8_float16", "int8", "float32", "bfloat16"]},
-        "cpu": {"enum": ["int8", "int8_float32", "float32"]}
+        "cuda": {
+          "enum": [
+            "float16",
+            "int8_float16",
+            "int8",
+            "float32",
+            "bfloat16"
+          ]
+        },
+        "cpu": {
+          "enum": [
+            "int8",
+            "int8_float32",
+            "float32"
+          ]
+        }
       },
       "additionalProperties": false
     },
-    "beam_size": {"type": "integer", "minimum": 1, "maximum": 10, "description": "Beam search width: higher is slightly more accurate and slower."},
-    "vad_filter": {"type": "boolean", "description": "Skip silent parts with voice activity detection (reduces made-up text)."},
-    "word_timestamps": {"type": "boolean", "description": "Record the timing of every word (needed for CapCut-style captions)."},
-    "formats": {"type": "array", "items": {"enum": ["json", "srt", "vtt"]}, "uniqueItems": true, "description": "Files written by `flosub transcribe`."},
-    "ui_languages": {"type": "array", "items": {"type": "string"}, "description": "Languages offered in the Blender add-on's language menu."},
-    "backend": {"enum": ["faster-whisper"], "description": "Transcription backend."}
+    "beam_size": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "description": "Beam search width: higher is slightly more accurate and slower."
+    },
+    "vad_filter": {
+      "type": "boolean",
+      "description": "Skip silent parts with voice activity detection (reduces made-up text)."
+    },
+    "word_timestamps": {
+      "type": "boolean",
+      "description": "Record the timing of every word (needed for CapCut-style captions)."
+    },
+    "formats": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "json",
+          "srt",
+          "vtt"
+        ]
+      },
+      "uniqueItems": true,
+      "description": "Files written by `flosub transcribe`."
+    },
+    "ui_languages": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Languages offered in the Blender add-on's language menu."
+    },
+    "backend": {
+      "enum": [
+        "faster-whisper"
+      ],
+      "description": "Transcription backend."
+    },
+    "style": {
+      "type": "string",
+      "description": "Style used by `flosub transcribe`/`export` when --style is not given (a key of 'styles')."
+    },
+    "styles": {
+      "type": "object",
+      "description": "Cue styles: how words are grouped into on-screen text. 'captions' = short CapCut-style phrases (Blender default); 'subtitles' = film-style lines (SRT/VTT default). Add your own.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "max_words": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "description": "Most words per cue."
+          },
+          "max_chars": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "description": "Most characters per cue."
+          },
+          "line_length": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "description": "SRT/VTT: wrap cues longer than this into two lines."
+          },
+          "max_duration": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0,
+            "description": "Longest time (s) a cue may cover."
+          },
+          "min_duration": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "Shortest time (s) a cue stays on screen (stretched without overlapping the next)."
+          },
+          "pause_break": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "A silence longer than this (s) starts a new cue."
+          },
+          "break_after": {
+            "type": "string",
+            "description": "Punctuation characters that end a cue."
+          },
+          "break_on_segment": {
+            "type": "boolean",
+            "description": "Start a new cue at each Whisper segment."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
   },
   "additionalProperties": false
 }
