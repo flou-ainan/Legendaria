@@ -278,4 +278,3 @@ There are three kinds of data, and each has its own answer:
 - Option D also removes the duplicated look (§11.3, item 5): Blender and the web editor both translate from the same style.
 - None of this is needed for the MVP; option A is in place. Option D would be stage 4a.
 - **Decision:** pending (owner). It will become an ADR.
-
