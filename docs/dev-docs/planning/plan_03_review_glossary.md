@@ -64,7 +64,7 @@ The owner used `flosub` on a real video (a crochet class, Portuguese, `small` mo
 - **Project glossary:** `legendaria-glossary.txt` next to the media, or any file passed with `--glossary FILE` (repeatable). Files are merged, project over global.
 - `flosub glossary show|path|add "Term"` for quick edits. The Blender UI and the GUI read and write the same files.
 
-### 3.1b Glossary library and the active glossary (owner, 2026-10-26)
+### 3.1b Glossary library and the active glossary (owner, 2026-10-26) — engine done (step 20)
 
 Today the glossary is the sum of three sources (global file, project file next to the media, `--glossary` files). The owner wants to **choose which glossary is in use**:
 
@@ -145,7 +145,7 @@ Accepted corrections are **not** added to the glossary automatically. Every clie
 
 - **3a. Glossary (L1 + L2) in the engine and CLI — done (step 18).** Glossary files, hotwords/initial_prompt, deterministic fixes, the review document, `review apply`, re-alignment. Works offline on CPU.
 - **3b. LLM reviewer (L3) in the engine and CLI — done (step 19).** Findings below (§7). OpenAI-compatible client, provider presets, guard, batching, `llm check`, profiles. Tested with the owner's Ollama (`llama3.1:8b`, `qwen2.5-coder:7b`; try a general instruct model such as `qwen2.5:7b-instruct` too) and with a fake server in CI.
-- **3b+. Glossary library** (§3.1b) in the engine, before the UI, so that 3c can build on it.
+- **3b+. Glossary library** (§3.1b) in the engine, before the UI, so that 3c can build on it — **done (step 20)**.
 - **3c. Blender UI** for the glossary and the review (suggestions list, apply in place), with pt_BR, tests and a GUI walkthrough.
 
 ## 5. Open questions (to settle during the stages)

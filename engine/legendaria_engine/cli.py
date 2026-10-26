@@ -359,27 +359,82 @@ def cmd_llm(args: argparse.Namespace, reporter: Reporter) -> int:
 
 
 def cmd_glossary(args: argparse.Namespace, reporter: Reporter) -> int:
-    """`flosub glossary path|show|add` (global by default, or the project of --media)."""
+    """`flosub glossary list|new|use|import|export|delete|show|path|add` (the glossary library)."""
+    from legendaria_engine.config import update_user_config
     from legendaria_engine.review import glossary
 
-    if args.file:
-        target = Path(args.file).expanduser()
-    elif args.media:
-        target = glossary.project_file(Path(args.media).expanduser())
-    else:
-        target = glossary.global_file()
-    if args.action == "path":
-        print(target)
-    elif args.action == "add":
-        if not args.entry:
-            reporter.error('Usage: flosub glossary add "Term" or "wrong -> right"')
-            return 2
-        added = glossary.add_entry(target, args.entry)
-        reporter.emit("done", outputs=[str(target)], added=added, entry=args.entry)
-    else:
-        merged = glossary.load(
-            [args.file] if args.file else [], media=Path(args.media) if args.media else None
+    action, values = args.action, args.values
+    if action == "list":
+        active = glossary.active_name()
+        items = []
+        for name in glossary.list_names():
+            merged = glossary.Glossary()
+            merged.merge_text(glossary.library_file(name).read_text(encoding="utf-8"))
+            items.append(
+                {
+                    "name": name,
+                    "active": name == active,
+                    "terms": len(merged.terms),
+                    "fixes": len(merged.fixes),
+                    "path": str(glossary.library_file(name)),
+                }
+            )
+        print(
+            json.dumps(
+                {"active": active, "folder": str(glossary.library_dir()), "glossaries": items},
+                ensure_ascii=False,
+                indent=2,
+            )
         )
+        return 0
+    if action in ("new", "use", "delete", "export") and not values:
+        reporter.error(
+            f"Usage: flosub glossary {action} NAME" + (" --to FILE" if action == "export" else "")
+        )
+        return 2
+    if action == "new":
+        path = glossary.create(values[0])
+        if args.activate:
+            update_user_config({"review": {"glossary": values[0]}})
+        reporter.emit("done", outputs=[str(path)], name=values[0])
+    elif action == "use":
+        if values[0] not in glossary.list_names():
+            glossary.create(values[0])
+        update_user_config({"review": {"glossary": values[0]}})
+        reporter.emit("done", outputs=[str(glossary.library_file(values[0]))], active=values[0])
+    elif action == "delete":
+        glossary.delete(values[0])
+        reporter.emit("done", outputs=[], deleted=values[0])
+    elif action == "export":
+        if not args.to:
+            reporter.error("Usage: flosub glossary export NAME --to FILE")
+            return 2
+        path = glossary.export_file(values[0], Path(args.to))
+        reporter.emit("done", outputs=[str(path)], name=values[0])
+    elif action == "import":
+        if not values:
+            reporter.error("Usage: flosub glossary import FILE [--name NAME]")
+            return 2
+        path = glossary.import_file(Path(values[0]), args.name, overwrite=args.overwrite)
+        reporter.emit("done", outputs=[str(path)], name=path.stem)
+    elif action == "path":
+        print(glossary.library_file(values[0]) if values else glossary.global_file())
+    elif action == "add":
+        if not values:
+            reporter.error(
+                'Usage: flosub glossary add "Term" or "wrong -> right" [--name N | --media M | --file F]'
+            )
+            return 2
+        target = glossary_target(args)
+        added = glossary.add_entry(target, values[0])
+        reporter.emit("done", outputs=[str(target)], added=added, entry=values[0])
+    else:  # show
+        if values:
+            merged = glossary.load([values[0]], use_global=False)
+        else:
+            merged = glossary.load(
+                [args.file] if args.file else [], media=Path(args.media) if args.media else None
+            )
         print(
             json.dumps(
                 {
@@ -392,6 +447,19 @@ def cmd_glossary(args: argparse.Namespace, reporter: Reporter) -> int:
             )
         )
     return 0
+
+
+def glossary_target(args: argparse.Namespace) -> Path:
+    """Where `glossary add` writes: --file, the project of --media, --name, or the active one."""
+    from legendaria_engine.review import glossary
+
+    if args.file:
+        return Path(args.file).expanduser()
+    if args.media:
+        return glossary.project_file(Path(args.media).expanduser())
+    if args.name:
+        return glossary.library_file(args.name)
+    return glossary.global_file()
 
 
 def cmd_models(args: argparse.Namespace, reporter: Reporter) -> int:
@@ -465,7 +533,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--glossary",
         action="append",
         metavar="FILE",
-        help="glossary file (repeatable); the global one and legendaria-glossary.txt next to the media are used too",
+        help="glossary file or library name (repeatable); the active glossary and legendaria-glossary.txt next to the media are used too",
     )
     t.add_argument("--no-glossary", action="store_true", help="ignore every glossary")
     t.add_argument(
@@ -500,11 +568,18 @@ def build_parser() -> argparse.ArgumentParser:
     llm_parser.add_argument("--base-url")
     llm_parser.set_defaults(func=cmd_llm)
 
-    g = sub.add_parser("glossary", help="show, locate or add to a glossary")
-    g.add_argument("action", choices=["show", "path", "add"])
-    g.add_argument("entry", nargs="?", help='add: "Term" or "wrong -> right"')
-    g.add_argument("--media", help="use the project glossary next to this media file")
-    g.add_argument("--file", help="use this glossary file")
+    g = sub.add_parser("glossary", help="manage the glossary library and add terms")
+    g.add_argument(
+        "action",
+        choices=["list", "new", "use", "import", "export", "delete", "show", "path", "add"],
+    )
+    g.add_argument("values", nargs="*", help="NAME, FILE or ENTRY depending on the action")
+    g.add_argument("--name", help="import: name in the library; add: library glossary to add to")
+    g.add_argument("--media", help="add/show: the project glossary next to this media file")
+    g.add_argument("--file", help="add/show: a specific glossary file")
+    g.add_argument("--to", help="export: destination file")
+    g.add_argument("--activate", action="store_true", help="new: make it the active glossary")
+    g.add_argument("--overwrite", action="store_true", help="import: replace an existing one")
     g.set_defaults(func=cmd_glossary)
 
     e = sub.add_parser("export", help="turn a transcript JSON into cues/SRT/VTT")

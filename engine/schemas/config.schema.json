@@ -266,6 +266,10 @@
             }
           },
           "additionalProperties": false
+        },
+        "glossary": {
+          "type": "string",
+          "description": "Active glossary of the library (<config dir>/glossaries/<name>.txt). Change it with `flosub glossary use NAME`."
         }
       },
       "additionalProperties": false

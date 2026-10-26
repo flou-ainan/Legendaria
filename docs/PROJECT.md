@@ -3,7 +3,7 @@
 > A condensed map of the project, so agents and people can find what they need without rereading the code.
 > **Update this file with every change to the project** (files, functions, stack, structure). Conventions: `docs/dev-docs/README.md`.
 
-**Last updated:** 2026-10-26 — step 19 (plan 03 stage 3b: LLM reviewer with guard; glossary library planned).
+**Last updated:** 2026-10-26 — step 20 (glossary library with an active glossary).
 
 ---
 
@@ -126,7 +126,7 @@ Build the add-on package: `blender --command extension build --source-dir blende
 
 User files at runtime (per OS, via `platformdirs`; overridable with `LEGENDARIA_CONFIG_DIR` / `LEGENDARIA_DATA_DIR`):
 - data dir `engine/` (only when installed from Blender): `uv/`, `python/` (uv-managed 3.11), `venv/` (flosub). Deleting it uninstalls.
-- config dir (`~/.config/legendaria` on Linux): `config.json`, `models.json` (user overrides)
+- config dir (`~/.config/legendaria` on Linux): `config.json`, `models.json`, `providers.json`, `review_prompt.txt` (user overrides), `glossaries/<name>.txt` (glossary library), `presets/` (add-on style overrides)
 - data dir (`~/.local/share/legendaria` on Linux): `models/<name>/` (downloaded CTranslate2 models)
 
 ## 6. File map
@@ -138,9 +138,9 @@ Generated with `python3 tools/project_map.py <files>` and then reviewed. Regener
 - `engine/legendaria_engine/defaults/config.json`: engine defaults (`review`: mode suggest/auto, profile, glossary_bias, fuzzy_threshold 0.82, low_confidence 0.5, `llm` {enabled auto, provider ollama, model, batch/context lines, max_change_ratio, unload_after}; model `small`, language `auto`, device `auto`, compute types, beam size, VAD, word timestamps, default `style`, cue `styles` (`pop`: one word at a time, two when the first has ≤ 3 letters, glued pieces like "-vindas" kept, gaps ≤ 0.35 s filled — the MVP default in Blender; `captions`: up to 4 words / 22 chars / 2.2 s; `subtitles`: film-style, up to 84 chars / 6 s, 2 lines of 42), output formats, UI language list).
 - `engine/legendaria_engine/defaults/models.json`: model catalog (tiny, base, small, medium, large-v3, large-v3-turbo) with HF repo, size, VRAM, notes.
 - `engine/schemas/*.schema.json`: JSON Schemas for config (incl. styles), models, transcript v1 and cues v1.
-- `engine/tests/`: `conftest.py` (isolated dirs, sample transcript), `test_cues.py` (chunking rules), `test_formats.py`, `test_schema.py`, `test_config.py`, `test_cli.py`, `test_transcriber.py` (GPU→CPU fallback with a fake run), `test_glossary.py`, `test_fix_rules.py`, `test_llm_review.py` (fake OpenAI-compatible server). 85 tests, no network.
+- `engine/tests/`: `conftest.py` (isolated dirs, sample transcript), `test_cues.py` (chunking rules), `test_formats.py`, `test_schema.py`, `test_config.py`, `test_cli.py`, `test_transcriber.py` (GPU→CPU fallback with a fake run), `test_glossary.py`, `test_fix_rules.py`, `test_llm_review.py` (fake OpenAI-compatible server), `test_glossary_library.py`. 90 tests, no network.
 
-**Glossary and review (plan 03, stage 3a):** glossary files are plain text (`Term` or `wrong -> right`): global `<config dir>/glossary.txt`, project `legendaria-glossary.txt` next to the media or transcript, and `--glossary FILE`. `transcribe` passes the terms to Whisper as `hotwords` (layer 1). `flosub review FILE.json` (or `transcribe --review`) finds explicit fixes and fuzzy matches of uncertain words (layer 2) and writes `<name>.review.json` (mode `suggest`) or applies them (`auto`). `flosub review apply FILE.review.json --ids …|--all [--format srt]` applies the chosen ones, re-timing the words. `flosub glossary path|show|add` is the base of every UI's "Add to glossary". **Layer 3 (stage 3b):** `review --llm` sends batches (with context, uncertain words marked `[[…]]`) to any OpenAI-compatible server (`defaults/providers.json`: ollama, lmstudio, llamacpp, openai, gemini, anthropic, openrouter; keys from env vars) using the editable prompt `defaults/review_prompt.txt` (user copy in the config dir wins); the model returns only changed lines, which are diffed word by word and kept only if the guard allows (accent-only fixes, or similar-sounding changes of uncertain words / to glossary terms; never deletions). `flosub llm check|providers`. Config `review.profile` (light/standard = no LLM) and `review.llm.enabled: auto` degrade gracefully when no server answers.
+**Glossary and review (plan 03):** glossary files are plain text (`Term` or `wrong -> right`). Sources, merged in order: the **active glossary of the library** (`<config dir>/glossaries/<name>.txt`, config `review.glossary`, `flosub glossary list|new|use|import|export|delete`; an old `glossary.txt` migrates to "default"), the project file `legendaria-glossary.txt` next to the media or transcript, and `--glossary FILE|NAME`. `transcribe` passes the terms to Whisper as `hotwords` (layer 1). `flosub review FILE.json` (or `transcribe --review`) finds explicit fixes and fuzzy matches of uncertain words (layer 2) and writes `<name>.review.json` (mode `suggest`) or applies them (`auto`). `flosub review apply FILE.review.json --ids …|--all [--format srt]` applies the chosen ones, re-timing the words. `flosub glossary path|show|add` is the base of every UI's "Add to glossary". **Layer 3 (stage 3b):** `review --llm` sends batches (with context, uncertain words marked `[[…]]`) to any OpenAI-compatible server (`defaults/providers.json`: ollama, lmstudio, llamacpp, openai, gemini, anthropic, openrouter; keys from env vars) using the editable prompt `defaults/review_prompt.txt` (user copy in the config dir wins); the model returns only changed lines, which are diffed word by word and kept only if the guard allows (accent-only fixes, or similar-sounding changes of uncertain words / to glossary terms; never deletions). `flosub llm check|providers`. Config `review.profile` (light/standard = no LLM) and `review.llm.enabled: auto` degrade gracefully when no server answers.
 
 **Range regeneration:** `flosub transcribe media --clip START,END --update saved.json` transcribes only that range and merges it into the saved transcript word by word (`Transcript.merged_with`), so nothing is duplicated or lost at the boundaries.
 
@@ -161,7 +161,7 @@ Legendária transcription engine.
 ### engine/legendaria_engine/__main__.py — 5 lines
 Allow `python -m legendaria_engine`.
 
-### engine/legendaria_engine/cli.py — 553 lines
+### engine/legendaria_engine/cli.py — 628 lines
 `flosub` command line: transcribe, export, models, config.
 
 | Function / class | Line | What it does |
@@ -180,13 +180,14 @@ Allow `python -m legendaria_engine`.
 | `cmd_review(args, reporter)` | 271 | `flosub review FILE.json` (suggest or auto) and `flosub review apply FILE.review.json`. |
 | `review_apply(path, args, reporter)` | 300 | Apply accepted suggestions (`--ids`, or every pending one with `--all`) to the transcript. |
 | `cmd_llm(args, reporter)` | 334 | `flosub llm check|providers`: test the reviewer's server and list its models. |
-| `cmd_glossary(args, reporter)` | 361 | `flosub glossary path|show|add` (global by default, or the project of --media). |
-| `cmd_models(args, reporter)` | 397 | `flosub models list|download`. |
-| `cmd_config(args, reporter)` | 424 | `flosub config show|path`. |
-| `build_parser()` | 433 | The argparse tree for all subcommands. |
-| `main(argv)` | 533 | Entry point: run a subcommand and turn every failure into an `error` event. |
+| `cmd_glossary(args, reporter)` | 361 | `flosub glossary list|new|use|import|export|delete|show|path|add` (the glossary library). |
+| `glossary_target(args)` | 452 | Where `glossary add` writes: --file, the project of --media, --name, or the active one. |
+| `cmd_models(args, reporter)` | 465 | `flosub models list|download`. |
+| `cmd_config(args, reporter)` | 492 | `flosub config show|path`. |
+| `build_parser()` | 501 | The argparse tree for all subcommands. |
+| `main(argv)` | 608 | Entry point: run a subcommand and turn every failure into an `error` event. |
 
-### engine/legendaria_engine/config.py — 117 lines
+### engine/legendaria_engine/config.py — 129 lines
 Layered JSON configuration: shipped defaults → user file → command-line values.
 
 | Function / class | Line | What it does |
@@ -196,7 +197,8 @@ Layered JSON configuration: shipped defaults → user file → command-line valu
 | `deep_merge(base, override)` | 40 | Return `base` updated with `override`; nested objects are merged key by key. |
 | `validate(config, source)` | 51 | Check the values the engine relies on, with errors that name the bad key. |
 | `load_config(overrides)` | 96 | Defaults, then the user's `config.json` if present, then non-None `overrides`. |
-| `load_models()` | 108 | The model catalog: shipped `models.json` plus the user's additions or changes. |
+| `update_user_config(changes)` | 108 | Merge `changes` into the user's config.json (creating it) and validate the result. |
+| `load_models()` | 120 | The model catalog: shipped `models.json` plus the user's additions or changes. |
 
 ### engine/legendaria_engine/cuda_libs.py — 56 lines
 Make the NVIDIA libraries installed by pip (cuBLAS, cuDNN) visible to CTranslate2.
@@ -324,20 +326,31 @@ Layer 2: glossary-based corrections without AI.
 | `similarity(a, b)` | 36 | Ratio of two strings after folding case, accents and edge punctuation. |
 | `suggest(transcript, glossary, threshold, low_confidence, start_id)` | 41 | Suggestions for every segment; explicit fixes first, then fuzzy matches. |
 
-### engine/legendaria_engine/review/glossary.py — 127 lines
+### engine/legendaria_engine/review/glossary.py — 234 lines
 Glossary files: names and terms the transcription must get right.
 
 | Function / class | Line | What it does |
 |---|---|---|
-| `fold(text)` | 28 | Lowercase without accents or surrounding punctuation, for comparisons. |
-| `split_entry(line)` | 35 | A parsed line: (wrong, right), a term, or None for blanks and comments. |
-| `class Glossary` | 48 | Merged terms (in order, unique) and explicit fixes keyed by folded wrong text. |
-| `Glossary.add_term(term)` | 55 | Add a term unless an equal one (ignoring case and accents) is there. |
-| `Glossary.merge_text(text)` | 60 | Add every entry of a glossary file's text. |
-| `global_file()` | 75 | The user's glossary for every project: `<config dir>/glossary.txt`. |
-| `project_file(media)` | 80 | The glossary next to a media file: `legendaria-glossary.txt`. |
-| `load(extra, media, use_global)` | 85 | Global glossary, then the project one next to `media`, then `extra` files. |
-| `add_entry(path, entry)` | 105 | Append a term or a 'wrong -> right' line; returns False if it was already there. |
+| `fold(text)` | 31 | Lowercase without accents or surrounding punctuation, for comparisons. |
+| `split_entry(line)` | 38 | A parsed line: (wrong, right), a term, or None for blanks and comments. |
+| `class Glossary` | 51 | Merged terms (in order, unique) and explicit fixes keyed by folded wrong text. |
+| `Glossary.add_term(term)` | 58 | Add a term unless an equal one (ignoring case and accents) is there. |
+| `Glossary.merge_text(text)` | 63 | Add every entry of a glossary file's text. |
+| `library_dir()` | 82 | Named glossaries live here: `<config dir>/glossaries/<name>.txt`. |
+| `safe_name(name)` | 87 | A glossary name usable as a file name on every OS (raises ValueError otherwise). |
+| `library_file(name)` | 95 | File of a named glossary (it may not exist yet). |
+| `migrate_legacy()` | 100 | An old single `<config dir>/glossary.txt` becomes the glossary named "default". |
+| `list_names()` | 109 | Names of the glossaries in the library, sorted. |
+| `active_name()` | 116 | The active glossary (config `review.glossary`, default "default"). |
+| `global_file()` | 123 | The active library glossary, used for every project. |
+| `resolve(ref)` | 129 | A glossary given as a file path or as the name of a library glossary. |
+| `create(name)` | 143 | A new empty library glossary (with the explanatory header). |
+| `import_file(source, name, overwrite)` | 153 | Copy a glossary file into the library (named after the file unless `name`). |
+| `export_file(name, destination)` | 167 | Copy a library glossary to a file (to share it or back it up). |
+| `delete(name)` | 178 | Remove a library glossary. |
+| `project_file(media)` | 186 | The glossary next to a media file: `legendaria-glossary.txt`. |
+| `load(extra, media, use_global)` | 191 | Active library glossary, then the project one next to `media`, then `extra` |
+| `add_entry(path, entry)` | 212 | Append a term or a 'wrong -> right' line; returns False if it was already there. |
 
 ### engine/legendaria_engine/review/llm.py — 153 lines
 Layer 3: an LLM reviewer over any OpenAI-compatible chat server (Ollama, LM Studio,
@@ -611,7 +624,7 @@ Generate the glowing Legendária key art (hero and banner) as SVG.
 ## 7. In progress
 
 - Plan 02 (Blender add-on): done (steps 09–12).
-- **Plan 03, accuracy:** 3a glossary (step 18) and 3b LLM reviewer (step 19) done. Next: glossary library (§3.1b), then 3c (Blender UI).
+- **Plan 03, accuracy:** 3a glossary (step 18), 3b LLM reviewer (step 19), glossary library (step 20) done. Next: 3c (Blender UI: glossary drop-down, suggestions, Add to glossary).
 - Then plan 04 (CapCut animations — MVP look "one-word pop" decided, §8; style catalog §9 — `.ass` export / exact preview / burn-in / SRT alignment — §6), plan 05 (local API + `flosub gui` web interface).
 - Plan 06 (Blender UX, draft): the owner finds the VSE hard to reach; one-click setup and entry points.
 - **Known issues:** `dev-docs/known-issues.md` (KI-001, high: desktop freeze when loading `medium` from Blender).
