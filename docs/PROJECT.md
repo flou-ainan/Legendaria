@@ -3,7 +3,7 @@
 > A condensed map of the project, so agents and people can find what they need without rereading the code.
 > **Update this file with every change to the project** (files, functions, stack, structure). Conventions: `docs/dev-docs/README.md`.
 
-**Last updated:** 2026-10-26 — step 16 (caption colors: Standard view transform; owner's first Blender run).
+**Last updated:** 2026-10-26 — step 17 (known issue KI-001: freeze when loading the medium model).
 
 ---
 
@@ -118,6 +118,7 @@ Legendaria/
         ├── planning/        # plans (before implementing)
         ├── devlog/          # executed steps
         ├── decisions/       # ADRs
+        ├── known-issues.md  # problems seen in real use, with evidence and how to investigate
         └── references/      # origin_brainstorm.md, ass_brainstorm.md
 ```
 
@@ -516,4 +517,5 @@ Generate the glowing Legendária key art (hero and banner) as SVG.
 - **Next: plan 03, accuracy** (glossary + LLM reviewer): stages 3a glossary, 3b LLM, 3c Blender UI.
 - Then plan 04 (CapCut animations — MVP look "one-word pop" decided, §8; style catalog §9 — `.ass` export / exact preview / burn-in / SRT alignment — §6), plan 05 (local API + `flosub gui` web interface).
 - Plan 06 (Blender UX, draft): the owner finds the VSE hard to reach; one-click setup and entry points.
+- **Known issues:** `dev-docs/known-issues.md` (KI-001, high: desktop freeze when loading `medium` from Blender).
 - Backlog: plan 01, section 8.
