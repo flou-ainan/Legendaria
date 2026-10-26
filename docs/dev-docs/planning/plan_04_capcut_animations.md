@@ -258,4 +258,24 @@ The owner reopened the choice once 5.2 LTS became the minimum. More tests on 5.2
 
 **Recommendation:** `font_size` for the pop: sharp text, no origin math, and it follows the strip's anchor. Use `transform.scale` and `rotation` for effects that need them (spin, smooth slow zooms), with the origin computed per strip.
 
-**Owner's decision:** pending, to be taken with the native-pop implementation after the manual test.
+**Owner's decision (2026-10-26):** follow the recommendation: the native pop animates `font_size`. It is implemented after the manual test.
+
+### 11.5 Storage format: own JSON, `.ass`, or an extended `.ass`? (owner question, decision pending)
+
+There are three kinds of data, and each has its own answer:
+1. the **raw transcript** (words, timings, confidence: the source for review and range regeneration);
+2. the **style** (look, chunking rules, animation);
+3. the **edited subtitle document**.
+
+| Option | Description | Interoperable | Keeps what works | Complexity |
+|---|---|---|---|---|
+| A | Own JSON everywhere, `.ass` only as an export (today) | low | yes | low |
+| B | Plain `.ass` for everything | maximum | no: loses confidence and word timings (review, range regeneration) and the chunking rules; the animation becomes per-line tags | low |
+| C | Extended `.ass` for everything: valid `.ass` plus our own sections (`[Legendaria ...]`) and `[Script Info]` keys. Precedent: Aegisub's own `[Aegisub Project Garbage]` / `[Aegisub Extradata]`; libass ignores unknown sections | high | partly: other editors may drop or not update our sections, so changes must be detected and resynced; large files | medium |
+| **D (recommended)** | Layers: transcript stays JSON. A style is JSON whose look uses **exactly the `.ass` `Style:` fields** (names and units), plus our extensions (chunking, animation), and converts both ways to a `Style:` line. The edited document is an **extended `.ass`** (C) holding the final lines plus a light section of ours (style name, link to the transcript, line ids) | high | yes | medium |
+| E | A project package (e.g. `.legendaria`, a zip with transcript, styles and `.ass`) | low from outside | yes | medium-high |
+
+- Option D also removes the duplicated look (§11.3, item 5): Blender and the web editor both translate from the same style.
+- None of this is needed for the MVP; option A is in place. Option D would be stage 4a.
+- **Decision:** pending (owner). It will become an ADR.
+

@@ -29,7 +29,7 @@ Kept here for later; nothing is decided.
   - Frame-by-frame stepping and precise seeking still need care, because browsers seek to keyframes.
 - **Data model:**
   - the `.ass` structure: Script Info, Styles, Events, and the override tags of each event parsed into blocks;
-  - Aegisub's code (its file / style / dialogue classes and its override-tag parser) can inspire how to edit properties through a friendly UI. Check its license before reusing any code;
+  - Aegisub's code (its file / style / dialogue classes and its override-tag parser) can inspire how to edit properties through a friendly UI. Aegisub is mostly under the 3-clause BSD license, with some parts under other permissive licenses (owner's research, 2026-10-26). Studying its design and taking inspiration is free. If code is ever copied, check the license of that specific file and keep its notice;
   - in Python, `pysubs2` (MIT) already reads and writes `.ass` if the engine ever needs to.
 - **MVP of that editor:**
   - a video with an exact libass preview, a timeline of events, and a properties panel for every `.ass` style and tag;
