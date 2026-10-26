@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass, field
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
@@ -56,12 +57,30 @@ def _ends_with(word: Word, chars: str) -> bool:
     return bool(text) and bool(chars) and text[-1] in chars
 
 
+def _is_attached(word: Word) -> bool:
+    """A piece Whisper glued to the previous word (no leading space): "-vindas", "'s"."""
+    return bool(word.word) and not word.word[0].isspace()
+
+
+def _units(words: list[Word]) -> int:
+    """Readable words: attached pieces do not count ("bem" + "-vindas" is one)."""
+    return 1 + sum(1 for w in words[1:] if not _is_attached(w)) if words else 0
+
+
+def _letters(words: list[Word]) -> int:
+    return sum(ch.isalnum() for ch in _join(words))
+
+
 def make_cues(transcript: Transcript, style: dict[str, Any], style_name: str = "custom") -> CueList:
     """Chunk the transcript's words into cues that respect the style's limits.
 
-    Style keys (all optional): max_words, max_chars, max_duration, min_duration,
-    pause_break (seconds of silence that force a break), break_after (punctuation
-    characters that end a cue), break_on_segment (start a new cue at each segment).
+    Style keys (all optional): max_words (readable words; attached pieces like "-vindas"
+    never split from their word), max_chars, max_duration, min_duration, pause_break
+    (seconds of silence that force a break), break_after (punctuation characters that
+    end a cue), break_on_segment (start a new cue at each segment), join_short (a single
+    word with at most this many letters, like "a", "de", "no", may take the next word
+    even beyond max_words), fill_gaps (extend a cue to the next one when the silence
+    between them is at most this many seconds, so the screen does not blink).
     """
     max_words = style.get("max_words")
     max_chars = style.get("max_chars")
@@ -69,6 +88,7 @@ def make_cues(transcript: Transcript, style: dict[str, Any], style_name: str = "
     pause_break = style.get("pause_break")
     break_after = style.get("break_after", "")
     break_on_segment = style.get("break_on_segment", True)
+    join_short = style.get("join_short")
 
     cues: list[Cue] = []
     current: list[Word] = []
@@ -87,8 +107,22 @@ def make_cues(transcript: Transcript, style: dict[str, Any], style_name: str = "
         if break_on_segment:
             flush()
         for word in segment.words:
+            if current and _is_attached(word):
+                current.append(word)  # glued piece: never starts a new cue
+                if _ends_with(word, break_after):
+                    flush()
+                continue
             if current:
-                too_many = max_words is not None and len(current) + 1 > max_words
+                allowed = max_words
+                if (
+                    allowed is not None
+                    and join_short
+                    and _units(current) == 1
+                    and _letters(current) <= join_short
+                    and not _ends_with(current[-1], break_after)
+                ):
+                    allowed += 1  # short word ("de", "a") takes the next one
+                too_many = allowed is not None and _units(current) + 1 > allowed
                 too_long = max_chars is not None and len(_join([*current, word])) > max_chars
                 too_slow = max_duration is not None and word.end - current[0].start > max_duration
                 paused = pause_break is not None and word.start - current[-1].end > pause_break
@@ -98,10 +132,20 @@ def make_cues(transcript: Transcript, style: dict[str, Any], style_name: str = "
             if _ends_with(word, break_after):
                 flush()
     flush()
+    _fill_gaps(cues, style.get("fill_gaps"))
     _apply_min_duration(cues, style.get("min_duration"))
     return CueList(
         style=style_name, source=transcript.source, language=transcript.language, cues=cues
     )
+
+
+def _fill_gaps(cues: list[Cue], max_gap: float | None) -> None:
+    """Extend each cue to the next one's start when the silence between them is short."""
+    if not max_gap:
+        return
+    for cue, nxt in pairwise(cues):
+        if 0 < nxt.start - cue.end <= max_gap:
+            cue.end = nxt.start
 
 
 def _apply_min_duration(cues: list[Cue], min_duration: float | None) -> None:

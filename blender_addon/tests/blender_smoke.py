@@ -155,6 +155,11 @@ try:
     found = properties.refresh_engine_info()
     check("engine found", found, str(properties.ENGINE))
     check("models listed", any(item[0] == "small" for item in properties.MODEL_ITEMS))
+    check(
+        "default style is one-word pop",
+        properties.STYLE_ITEMS[0][0] == "pop",
+        str(properties.STYLE_ITEMS[:1]),
+    )
 
     if opts.real:
         # Real transcription through the same pieces the modal operator uses.
@@ -198,9 +203,12 @@ try:
         scene.use_preview_range = True
         scene.frame_preview_start, scene.frame_preview_end = low, high - 1
         before = {
-            (s.frame_final_start, s.text) for s in compat.top_strips(editor) if strips.is_ours(s)
+            (s.frame_final_start, s.frame_final_end, s.text)
+            for s in compat.top_strips(editor)
+            if strips.is_ours(s)
         }
-        outside_before = {b for b in before if not low <= b[0] < high}
+        # Same rule as the add-on: a caption belongs to the range when its middle is inside.
+        outside_before = {(a, t) for a, b, t in before if not low <= (a + b) / 2 < high}
         editor.active_strip = sound
         plan = operators.Plan(bpy.context, True, sound.name, range_only=True)
         check(
@@ -237,7 +245,7 @@ try:
             for s in compat.top_strips(editor)
             if strips.is_ours(s)
         ]
-        outside_after = {(a, t) for a, _, t in after if not low <= a < high}
+        outside_after = {(a, t) for a, b, t in after if not low <= (a + b) / 2 < high}
         check(
             "captions outside the range untouched",
             outside_before <= outside_after,

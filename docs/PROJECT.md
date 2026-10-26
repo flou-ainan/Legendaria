@@ -3,7 +3,7 @@
 > A condensed map of the project, so agents and people can find what they need without rereading the code.
 > **Update this file with every change to the project** (files, functions, stack, structure). Conventions: `docs/dev-docs/README.md`.
 
-**Last updated:** 2026-10-26 — step 14 (`.ass` research folded into plan 04; ADR-012 proposed).
+**Last updated:** 2026-10-26 — step 15 (one-word "pop" style, the MVP look; engine 0.1.0.dev3).
 
 ---
 
@@ -133,7 +133,7 @@ User files at runtime (per OS, via `platformdirs`; overridable with `LEGENDARIA_
 Generated with `python3 tools/project_map.py <files>` and then reviewed. Regenerate it whenever code changes.
 
 **Data files:**
-- `engine/legendaria_engine/defaults/config.json`: engine defaults (model `small`, language `auto`, device `auto`, compute types, beam size, VAD, word timestamps, default `style`, cue `styles` (`subtitles`: film-style, up to 84 chars / 6 s, 2 lines of 42; `captions`: CapCut-style, up to 4 words / 22 chars / 2.2 s), output formats, UI language list).
+- `engine/legendaria_engine/defaults/config.json`: engine defaults (model `small`, language `auto`, device `auto`, compute types, beam size, VAD, word timestamps, default `style`, cue `styles` (`pop`: one word at a time, two when the first has ≤ 3 letters, glued pieces like "-vindas" kept, gaps ≤ 0.35 s filled — the MVP default in Blender; `captions`: up to 4 words / 22 chars / 2.2 s; `subtitles`: film-style, up to 84 chars / 6 s, 2 lines of 42), output formats, UI language list).
 - `engine/legendaria_engine/defaults/models.json`: model catalog (tiny, base, small, medium, large-v3, large-v3-turbo) with HF repo, size, VRAM, notes.
 - `engine/schemas/*.schema.json`: JSON Schemas for config (incl. styles), models, transcript v1 and cues v1.
 - `engine/tests/`: `conftest.py` (isolated dirs, sample transcript), `test_cues.py` (chunking rules), `test_formats.py`, `test_schema.py`, `test_config.py`, `test_cli.py`, `test_transcriber.py` (GPU→CPU fallback with a fake run). 51 tests.
@@ -174,17 +174,17 @@ Allow `python -m legendaria_engine`.
 | `build_parser()` | 178 | The argparse tree for all subcommands. |
 | `main(argv)` | 232 | Entry point: run a subcommand and turn every failure into an `error` event. |
 
-### engine/legendaria_engine/config.py — 109 lines
+### engine/legendaria_engine/config.py — 111 lines
 Layered JSON configuration: shipped defaults → user file → command-line values.
 
 | Function / class | Line | What it does |
 |---|---|---|
-| `class ConfigError` | 22 | A config file is malformed or holds an invalid value. |
-| `read_json(path)` | 26 | Read a JSON object from a file, dropping `$schema`; raise ConfigError on bad JSON. |
-| `deep_merge(base, override)` | 38 | Return `base` updated with `override`; nested objects are merged key by key. |
-| `validate(config, source)` | 49 | Check the values the engine relies on, with errors that name the bad key. |
-| `load_config(overrides)` | 88 | Defaults, then the user's `config.json` if present, then non-None `overrides`. |
-| `load_models()` | 100 | The model catalog: shipped `models.json` plus the user's additions or changes. |
+| `class ConfigError` | 24 | A config file is malformed or holds an invalid value. |
+| `read_json(path)` | 28 | Read a JSON object from a file, dropping `$schema`; raise ConfigError on bad JSON. |
+| `deep_merge(base, override)` | 40 | Return `base` updated with `override`; nested objects are merged key by key. |
+| `validate(config, source)` | 51 | Check the values the engine relies on, with errors that name the bad key. |
+| `load_config(overrides)` | 90 | Defaults, then the user's `config.json` if present, then non-None `overrides`. |
+| `load_models()` | 102 | The model catalog: shipped `models.json` plus the user's additions or changes. |
 
 ### engine/legendaria_engine/cuda_libs.py — 56 lines
 Make the NVIDIA libraries installed by pip (cuBLAS, cuDNN) visible to CTranslate2.
@@ -194,17 +194,17 @@ Make the NVIDIA libraries installed by pip (cuBLAS, cuDNN) visible to CTranslate
 | `nvidia_lib_dirs()` | 18 | Library folders of the installed `nvidia.*` packages (empty when not installed). |
 | `ensure_cuda_libs()` | 33 | Expose the NVIDIA libraries to the current process. Call before importing ctranslate2. |
 
-### engine/legendaria_engine/cues.py — 124 lines
+### engine/legendaria_engine/cues.py — 168 lines
 Cues: the timed text blocks shown on screen, built from word timings by a style.
 
 | Function / class | Line | What it does |
 |---|---|---|
-| `class Cue` | 20 | One block of text on screen, with the words it contains. |
-| `class CueList` | 30 | Cues for one media file in one style (cues JSON v1). |
-| `CueList.to_dict()` | 39 | Plain dict ready for JSON. |
-| `CueList.save(path)` | 43 | Write as pretty UTF-8 JSON. |
-| `make_cues(transcript, style, style_name)` | 59 | Chunk the transcript's words into cues that respect the style's limits. |
-| `wrap_lines(text, line_length)` | 117 | Split text into two balanced lines when it is longer than `line_length`. |
+| `class Cue` | 21 | One block of text on screen, with the words it contains. |
+| `class CueList` | 31 | Cues for one media file in one style (cues JSON v1). |
+| `CueList.to_dict()` | 40 | Plain dict ready for JSON. |
+| `CueList.save(path)` | 44 | Write as pretty UTF-8 JSON. |
+| `make_cues(transcript, style, style_name)` | 74 | Chunk the transcript's words into cues that respect the style's limits. |
+| `wrap_lines(text, line_length)` | 161 | Split text into two balanced lines when it is longer than `line_length`. |
 
 ### engine/legendaria_engine/events.py — 111 lines
 Progress reporting: JSON lines for programs (the Blender add-on), a progress bar for humans.
@@ -287,7 +287,7 @@ Speech-to-text. A small backend interface keeps room for other engines (e.g. App
 
 **Blender add-on data files:**
 - `blender_addon/legendaria/blender_manifest.toml`: extension id `legendaria`, Blender ≥ 4.2, GPL-3.0-or-later, permissions (files, network via the engine).
-- `blender_addon/legendaria/presets/captions.json`, `subtitles.json`: text-strip styles (font size for 1080 px, scaled to the scene; position, alignment, outline, shadow, box). A user copy in `<config dir>/presets/` overrides them.
+- `blender_addon/legendaria/presets/pop.json` (yellow, bold, outline — MVP default), `captions.json`, `subtitles.json`: text-strip styles (font size for 1080 px, scaled to the scene; position, alignment, outline, shadow, box). A user copy in `<config dir>/presets/` overrides them.
 - `blender_addon/legendaria/locales/pt_BR.json` (+ README): UI translations, English source strings as keys.
 - `blender_addon/tests/`: `test_i18n.py` (every UI string translated, no unused or mismatched entries), `test_installer.py` (uv asset names, checksum, extraction, versions), `test_source_rules.py` (Blender API pitfalls, e.g. confirm-dialog icons), `test_timecode.py`, `test_engine_bridge.py` (fake flosub), `conftest.py` (imports the add-on package without bpy), `blender_smoke.py` (headless, inside Blender; `--real` runs flosub), `ui_walkthrough.py` (GUI session with screenshots under xvfb; `--install confirm|run` tests the Install engine flow).
 
@@ -432,16 +432,16 @@ Add-on preferences: where the engine is, and its detected status.
 | `register()` | 42 | Register the preferences class. |
 | `unregister()` | 48 | Remove the preferences class. |
 
-### blender_addon/legendaria/properties.py — 135 lines
+### blender_addon/legendaria/properties.py — 145 lines
 Scene settings and the engine info cache (models, languages, styles from `flosub`).
 
 | Function / class | Line | What it does |
 |---|---|---|
-| `addon_prefs(context)` | 27 | The add-on preferences, or None when the add-on is not enabled through Preferences. |
-| `refresh_engine_info(context)` | 34 | Locate flosub and reload models, languages and styles. Returns True when found. |
-| `class LegendariaSettings` | 89 | Per-scene options and the state of the running job. |
-| `register()` | 124 | Register the settings and attach them to scenes. |
-| `unregister()` | 131 | Remove the settings. |
+| `addon_prefs(context)` | 36 | The add-on preferences, or None when the add-on is not enabled through Preferences. |
+| `refresh_engine_info(context)` | 43 | Locate flosub and reload models, languages and styles. Returns True when found. |
+| `class LegendariaSettings` | 99 | Per-scene options and the state of the running job. |
+| `register()` | 134 | Register the settings and attach them to scenes. |
+| `unregister()` | 141 | Remove the settings. |
 
 ### blender_addon/legendaria/strips.py — 194 lines
 Cues ↔ text strips: create caption strips, find the ones we made, read them back.
@@ -510,5 +510,6 @@ Generate the glowing Legendária key art (hero and banner) as SVG.
 
 - Plan 02 (Blender add-on): done (steps 09–12).
 - **Next: plan 03, accuracy** (glossary + LLM reviewer): stages 3a glossary, 3b LLM, 3c Blender UI.
-- Then plan 04 (CapCut animations, `.ass` export / exact preview / burn-in / SRT alignment — §6), plan 05 (local API + `flosub gui` web interface).
+- Then plan 04 (CapCut animations — MVP look "one-word pop" decided, §8; style catalog §9 — `.ass` export / exact preview / burn-in / SRT alignment — §6), plan 05 (local API + `flosub gui` web interface).
+- Plan 06 (Blender UX, draft): the owner finds the VSE hard to reach; one-click setup and entry points.
 - Backlog: plan 01, section 8.

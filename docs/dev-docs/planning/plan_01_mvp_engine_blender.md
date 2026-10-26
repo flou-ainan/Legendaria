@@ -33,6 +33,7 @@
 | **1. MVP** | Engine CLI + Blender add-on: transcribe pt/en, text strips, SRT/VTT export, model download, "Install engine" button, pt_BR/en UI | Linux (NVIDIA + CPU), code already portable | next |
 | 2a. Accuracy (plan 03) | Glossary (Whisper bias + deterministic fixes) and LLM reviewer (local OpenAI-compatible, cloud optional) as suggestions; device profiles | all | **next** |
 | 2b. CapCut styles (plan 04) | Animations (pop-in, current-word highlight), style presets (JSON), burn-in through Blender render | Linux | after plan 03 |
+| 2d. Blender UX (plan 06, draft) | One-click workspace setup, entry points without the N key, guided flow | all | after first owner tests |
 | 2c. Local API + web GUI (plan 05) | `flosub gui` in the browser, HTTP API for all clients; native window (pywebview) optional after MVP | all | after plan 04 |
 | 3. Cross-platform | Windows (CUDA + CPU) and macOS (CPU; Apple Silicon backend open to contributors) | all | later |
 | 4. Easy install | Native per-OS installers wrapping the "Install engine" flow, optionally bundling a portable Blender | all | later |

@@ -131,3 +131,37 @@ Proposed CapCut defaults (to confirm):
 - `font_size`: 76 (1080p base), `color`: white, `outline`: black, `position`: bottom-center slightly raised, `current_word_color`: yellow (`[1, 1, 0, 1]`), `dim_color`: half-opacity white.
 
 Once you confirm the look, I'll implement plan 03 step by step, logging each step in `docs/dev-docs/devlog/` and updating `docs/PROJECT.md`.
+
+## 8. Owner feedback on the samples (2026-10-26): the MVP look
+
+After the first `.ass` sample (4-word blocks, karaoke fill, a pop on each word), the owner asked for:
+
+1. **Smaller blocks:** **one word at a time**; two only when it makes sense or for compound words (guarda-chuva, micro-ondas).
+2. **No style mixing:** the zoom must apply to the spoken word only. In the sample the whole line pulsed. Lesson: in `.ass`, an override tag such as `\fscx`/`\t` inside a line affects the layout of the whole line, so per-word animation inside a multi-word line needs one event (or one positioned layer) per word.
+3. **No karaoke color sliding** for the MVP. Only the popped word, in the highlight color, and only one word on screen at a time.
+4. Repeat the test with these changes.
+
+**Done (step 15):**
+- Engine style **`pop`**, the new default in Blender:
+  - `max_words: 1`, measured in readable words: pieces Whisper glues on, such as "-vindas", never split off ("BEM-VINDAS").
+  - `join_short: 3`: a word of up to 3 letters ("a", "de", "no", "que") takes the next one ("A BOLSA", "DE CROCHÊ").
+  - `fill_gaps: 0.35`: no blank flashes between words.
+  - Breaks at punctuation and pauses.
+  - On the owner's video: 469 cues, at most 2 words each.
+- `.ass` sample: one event per cue, the whole text in the highlight color (yellow), centered at `\pos(960,860)`, and a pop `\fscx70 → 112 → 100` over 170 ms at the start only. FFmpeg burn-in and the Blender alpha overlay give identical frames.
+- Blender add-on: preset `presets/pop.json` (yellow, bold, outline, 96 px at 1080p), listed first as "One word (pop)". The pop animation inside Blender is still to do (§3.3).
+
+## 9. Style catalog for later (owner, 2026-10-26)
+
+Each is a preset (JSON) with an animation type, rendered by the engine to `.ass` (§6) and approximated in Blender:
+
+| Style | Behavior |
+|---|---|
+| One-word pop | One word at a time with a pop (the MVP default, above) |
+| Phrase + active-word pop | The whole short phrase visible; only the word being spoken pops and takes the highlight color, which reads comfortably |
+| Karaoke | The phrase visible, color fills word by word (`\kf`) |
+| Typewriter | Letters appear one by one |
+| Slide | Captions enter from the left and leave to the right (`\move`) |
+| More | Fade, bounce, emphasis words in another color, uppercase/lowercase variants, box/no box |
+
+Adding a style must mean adding a preset plus, at most, one animation generator in the engine. The UI lists presets automatically.
