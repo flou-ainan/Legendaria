@@ -106,7 +106,7 @@ The preset JSON (§3.1) gains the fields `.ass` needs: font name, the four color
 - **Native animations** (§3.3) remain for those who want to keyframe inside Blender.
 - **Import `.ass` / `.srt`:** a light parser in the add-on (styles and dialogue; basic tags mapped to strip properties; override tags kept in a custom property, so a round trip does not lose them).
 - **Export `.ass`** next to SRT/VTT.
-- **Color management:** if the scene's view transform is not "Standard", the panel warns and offers a one-click switch. The default Filmic (4.2) and AgX (5.x) tone-map caption colors (yellow turned khaki in the check). This also affects the current add-on.
+- **Color management (done early, step 16):** generating captions switches the scene to "Standard" and says so; the panel warns and offers "Fix caption colors" when a scene is not on Standard. The default Filmic (4.2) and AgX (5.x) tone-map caption colors (yellow turned khaki in the check). This also affects the current add-on.
 
 ### 6.4 Bring your own subtitles: align an existing `.srt`
 

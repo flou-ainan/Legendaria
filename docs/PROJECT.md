@@ -3,7 +3,7 @@
 > A condensed map of the project, so agents and people can find what they need without rereading the code.
 > **Update this file with every change to the project** (files, functions, stack, structure). Conventions: `docs/dev-docs/README.md`.
 
-**Last updated:** 2026-10-26 — step 15 (one-word "pop" style, the MVP look; engine 0.1.0.dev3).
+**Last updated:** 2026-10-26 — step 16 (caption colors: Standard view transform; owner's first Blender run).
 
 ---
 
@@ -364,7 +364,7 @@ The "Install engine" step: set up flosub for users who never open a terminal (pl
 | `is_installed()` | 270 | True when the managed engine exists. |
 | `uninstall()` | 275 | Delete everything the installer created (models live elsewhere and are kept). |
 
-### blender_addon/legendaria/operators.py — 604 lines
+### blender_addon/legendaria/operators.py — 644 lines
 Operators: generate (runs the engine without blocking), cancel, re-apply style, export, refresh.
 
 | Function / class | Line | What it does |
@@ -375,52 +375,56 @@ Operators: generate (runs the engine without blocking), cancel, re-apply style, 
 | `Plan.pick_range(scene)` | 84 | Range to regenerate: the scene's preview range, else the selected captions. |
 | `Plan.confirm_message()` | 98 | Warning shown before replacing captions (owner requirement R3). |
 | `engine_or_error()` | 117 | The detected engine, refreshing the cache once if needed. |
-| `finish_strips(context, plan, cues_path, style)` | 127 | Create the caption strips from a cues file and remember where they came from. |
-| `class LEGENDARIA_OT_generate` | 138 | Transcribe the selected strip and create caption strips |
-| `LEGENDARIA_OT_generate.make_plan(context)` | 152 | Plan for the whole media, or for a range of the last generated media. |
-| `LEGENDARIA_OT_generate.poll(context)` | 164 | Needs a scene with settings and no job already running. |
-| `LEGENDARIA_OT_generate.invoke(context, event)` | 168 | Validate, then ask before replacing existing captions. |
-| `LEGENDARIA_OT_generate.execute(context)` | 187 | Start the engine and the modal timer. |
-| `LEGENDARIA_OT_generate.handle_event(event)` | 219 | Update progress and status from one engine event. |
-| `LEGENDARIA_OT_generate.modal(context, event)` | 257 | Poll the engine on each timer tick; Esc or the Cancel button stops it. |
-| `LEGENDARIA_OT_generate.cleanup(context)` | 294 | Remove the timer and mark the job as stopped. |
-| `class LEGENDARIA_OT_cancel` | 304 | Stop the running transcription |
-| `LEGENDARIA_OT_cancel.execute(context)` | 310 | Ask the running generate operator to stop. |
-| `class LEGENDARIA_OT_reapply_style` | 316 | Rebuild the captions from the saved transcript with the chosen style, without transcribing again |
-| `LEGENDARIA_OT_reapply_style.poll(context)` | 324 | Needs a saved transcript and no running job. |
-| `LEGENDARIA_OT_reapply_style.invoke(context, event)` | 329 | Ask before replacing captions. |
-| `LEGENDARIA_OT_reapply_style.execute(context)` | 347 | Run `flosub export --style` on the saved transcript and rebuild the strips. |
-| `class LEGENDARIA_OT_export` | 390 | Save the captions on the channel as an SRT or VTT file (with your edits) |
-| `LEGENDARIA_OT_export.export_channel(context)` | 406 | Channel to export: the one used last, else the setting, else the active strip's. |
-| `LEGENDARIA_OT_export.invoke(context, event)` | 412 | Open the file browser with a sensible default name. |
-| `LEGENDARIA_OT_export.execute(context)` | 423 | Write the file from the text strips. |
-| `class LEGENDARIA_OT_refresh_engine` | 447 | Look for the transcription engine again and reload its models |
-| `LEGENDARIA_OT_refresh_engine.execute(context)` | 453 | Re-run engine detection. |
-| `install_status()` | 462 | Translated status line and progress of the running install (for panel and preferences). |
-| `class LEGENDARIA_OT_install_engine` | 472 | Download and set up the transcription engine (uv, Python, flosub and the default model) |
-| `LEGENDARIA_OT_install_engine.poll(context)` | 481 | Not while an install is already running. |
-| `LEGENDARIA_OT_install_engine.invoke(context, event)` | 485 | Explain what will be downloaded and ask first. |
-| `LEGENDARIA_OT_install_engine.execute(context)` | 505 | Start the installer thread and poll it from a timer. |
-| `LEGENDARIA_OT_install_engine.modal(context, event)` | 515 | Redraw while installing; report the result at the end. |
-| `class LEGENDARIA_OT_cancel_install` | 538 | Stop installing the engine |
-| `LEGENDARIA_OT_cancel_install.execute(context)` | 544 | Ask the installer to stop. |
-| `class LEGENDARIA_OT_uninstall_engine` | 551 | Delete the engine installed by this add-on (downloaded models are kept) |
-| `LEGENDARIA_OT_uninstall_engine.poll(context)` | 558 | Only when the add-on's own engine is installed and idle. |
-| `LEGENDARIA_OT_uninstall_engine.invoke(context, event)` | 562 | Ask first. |
-| `LEGENDARIA_OT_uninstall_engine.execute(context)` | 575 | Remove the engine folder and look for another engine. |
-| `register()` | 595 | Register the operators. |
-| `unregister()` | 601 | Remove the operators. |
+| `colors_are_exact(scene)` | 130 | True when the scene shows colors as they are (no Filmic/AgX tone mapping). |
+| `use_exact_colors(scene)` | 135 | Switch the scene to the Standard view transform; returns True if it changed. |
+| `finish_strips(context, plan, cues_path, style)` | 147 | Create the caption strips from a cues file and remember where they came from. |
+| `class LEGENDARIA_OT_generate` | 159 | Transcribe the selected strip and create caption strips |
+| `LEGENDARIA_OT_generate.make_plan(context)` | 173 | Plan for the whole media, or for a range of the last generated media. |
+| `LEGENDARIA_OT_generate.poll(context)` | 185 | Needs a scene with settings and no job already running. |
+| `LEGENDARIA_OT_generate.invoke(context, event)` | 189 | Validate, then ask before replacing existing captions. |
+| `LEGENDARIA_OT_generate.execute(context)` | 208 | Start the engine and the modal timer. |
+| `LEGENDARIA_OT_generate.handle_event(event)` | 240 | Update progress and status from one engine event. |
+| `LEGENDARIA_OT_generate.modal(context, event)` | 278 | Poll the engine on each timer tick; Esc or the Cancel button stops it. |
+| `LEGENDARIA_OT_generate.cleanup(context)` | 319 | Remove the timer and mark the job as stopped. |
+| `class LEGENDARIA_OT_cancel` | 329 | Stop the running transcription |
+| `LEGENDARIA_OT_cancel.execute(context)` | 335 | Ask the running generate operator to stop. |
+| `class LEGENDARIA_OT_reapply_style` | 341 | Rebuild the captions from the saved transcript with the chosen style, without transcribing again |
+| `LEGENDARIA_OT_reapply_style.poll(context)` | 349 | Needs a saved transcript and no running job. |
+| `LEGENDARIA_OT_reapply_style.invoke(context, event)` | 354 | Ask before replacing captions. |
+| `LEGENDARIA_OT_reapply_style.execute(context)` | 372 | Run `flosub export --style` on the saved transcript and rebuild the strips. |
+| `class LEGENDARIA_OT_export` | 415 | Save the captions on the channel as an SRT or VTT file (with your edits) |
+| `LEGENDARIA_OT_export.export_channel(context)` | 431 | Channel to export: the one used last, else the setting, else the active strip's. |
+| `LEGENDARIA_OT_export.invoke(context, event)` | 437 | Open the file browser with a sensible default name. |
+| `LEGENDARIA_OT_export.execute(context)` | 448 | Write the file from the text strips. |
+| `class LEGENDARIA_OT_exact_colors` | 472 | Use the Standard view transform so captions keep their real colors |
+| `LEGENDARIA_OT_exact_colors.execute(context)` | 479 | Switch the scene's view transform to Standard. |
+| `class LEGENDARIA_OT_refresh_engine` | 486 | Look for the transcription engine again and reload its models |
+| `LEGENDARIA_OT_refresh_engine.execute(context)` | 492 | Re-run engine detection. |
+| `install_status()` | 501 | Translated status line and progress of the running install (for panel and preferences). |
+| `class LEGENDARIA_OT_install_engine` | 511 | Download and set up the transcription engine (uv, Python, flosub and the default model) |
+| `LEGENDARIA_OT_install_engine.poll(context)` | 520 | Not while an install is already running. |
+| `LEGENDARIA_OT_install_engine.invoke(context, event)` | 524 | Explain what will be downloaded and ask first. |
+| `LEGENDARIA_OT_install_engine.execute(context)` | 544 | Start the installer thread and poll it from a timer. |
+| `LEGENDARIA_OT_install_engine.modal(context, event)` | 554 | Redraw while installing; report the result at the end. |
+| `class LEGENDARIA_OT_cancel_install` | 577 | Stop installing the engine |
+| `LEGENDARIA_OT_cancel_install.execute(context)` | 583 | Ask the installer to stop. |
+| `class LEGENDARIA_OT_uninstall_engine` | 590 | Delete the engine installed by this add-on (downloaded models are kept) |
+| `LEGENDARIA_OT_uninstall_engine.poll(context)` | 597 | Only when the add-on's own engine is installed and idle. |
+| `LEGENDARIA_OT_uninstall_engine.invoke(context, event)` | 601 | Ask first. |
+| `LEGENDARIA_OT_uninstall_engine.execute(context)` | 614 | Remove the engine folder and look for another engine. |
+| `register()` | 635 | Register the operators. |
+| `unregister()` | 641 | Remove the operators. |
 
-### blender_addon/legendaria/panel.py — 116 lines
+### blender_addon/legendaria/panel.py — 127 lines
 Sidebar panel in the Video Sequencer ("Legendária" tab).
 
 | Function / class | Line | What it does |
 |---|---|---|
-| `draw_engine_box(layout)` | 11 | Engine install / update / progress UI. Returns True when the engine is ready to use. |
-| `class LEGENDARIA_PT_main` | 43 | Generate, re-style and export captions |
-| `LEGENDARIA_PT_main.draw(context)` | 52 | Engine status, source, options, generate/progress, re-style and export. |
-| `register()` | 107 | Register the panel. |
-| `unregister()` | 113 | Remove the panel. |
+| `draw_engine_box(layout)` | 12 | Engine install / update / progress UI. Returns True when the engine is ready to use. |
+| `class LEGENDARIA_PT_main` | 44 | Generate, re-style and export captions |
+| `LEGENDARIA_PT_main.draw(context)` | 53 | Engine status, source, options, generate/progress, re-style and export. |
+| `register()` | 118 | Register the panel. |
+| `unregister()` | 124 | Remove the panel. |
 
 ### blender_addon/legendaria/preferences.py — 51 lines
 Add-on preferences: where the engine is, and its detected status.

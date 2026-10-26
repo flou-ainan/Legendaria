@@ -192,8 +192,22 @@ try:
         check("real engine run", code == 0 and done, job.stderr_tail())
         cues_path = next(Path(p) for p in done["outputs"] if p.endswith(".cues.json"))
         settings.transcript_path = next(p for p in done["outputs"] if not p.endswith(".cues.json"))
+        scene.view_settings.view_transform = (
+            "AgX"
+            if "AgX"
+            in [
+                i.identifier
+                for i in scene.view_settings.bl_rna.properties["view_transform"].enum_items
+            ]
+            else "Filmic"
+        )
         count = operators.finish_strips(bpy.context, plan, cues_path, "captions")
         check("real captions created", count > 5, str(count))
+        check(
+            "generating switches colors to Standard",
+            scene.view_settings.view_transform == "Standard" and plan.colors_switched,
+            scene.view_settings.view_transform,
+        )
         texts = [s.text for s in compat.top_strips(editor) if strips.is_ours(s)]
         check("captions are short", max(len(t) for t in texts) <= 22, max(texts, key=len))
         # Regenerate a range (stage 2c): only captions whose middle is inside change.

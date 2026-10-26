@@ -6,6 +6,7 @@ from __future__ import annotations
 import bpy
 
 from . import operators, properties
+from .i18n import tr
 
 
 def draw_engine_box(layout) -> bool:
@@ -57,6 +58,16 @@ class LEGENDARIA_PT_main(bpy.types.Panel):
 
         if not draw_engine_box(layout):
             return
+
+        if not operators.colors_are_exact(context.scene):
+            box = layout.box()
+            box.label(
+                text=tr("Colors look washed out ({transform}).").format(
+                    transform=context.scene.view_settings.view_transform
+                ),
+                icon="ERROR",
+            )
+            box.operator("legendaria.exact_colors", icon="COLOR")
 
         editor = context.scene.sequence_editor
         active = editor.active_strip if editor else None

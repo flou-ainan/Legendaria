@@ -9,6 +9,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Added
 - **Blender add-on** (extension `legendaria` 0.1.0, Blender 4.2+, not yet released): "Legendária" tab in the Video Sequencer; pick model (auto-download), language and style; generate CapCut-style caption strips in the background with progress and cancel; confirmation before replacing captions; re-apply a style without transcribing again; export SRT/VTT from the edited strips; English and Brazilian Portuguese UI; style presets in JSON.
 - Add-on **"Install engine"** button: downloads uv, Python 3.11, the engine (with GPU support when an NVIDIA card is present) and the default model into one folder, with progress and cancel; uninstall and "engine too old" warning with update.
+- Add-on: caption colors are exact. Generating switches the scene to the Standard view transform (Blender's default AgX/Filmic turned yellow into a pale white), and the panel offers "Fix caption colors".
 - Add-on: "One word (pop)" style (yellow, bold) is the default.
 - Add-on **"Regenerate range"**: redo only the preview range or the selected captions, with confirmation; captions outside are untouched.
 - Project documentation, brand kit, contribution setup (CONTRIBUTING, Code of Conduct, security policy, templates, ruff, pre-commit, CI on Linux / macOS / Windows and inside Blender 4.2 / 5.2), `tools/project_map.py`.
