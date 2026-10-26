@@ -3,7 +3,7 @@
 > A condensed map of the project, so agents and people can find what they need without rereading the code.
 > **Update this file with every change to the project** (files, functions, stack, structure). Conventions: `docs/dev-docs/README.md`.
 
-**Last updated:** 2026-10-26 — step 18 (plan 03 stage 3a: glossary, Whisper hotwords, deterministic fixes, review suggestions; engine 0.1.0.dev4).
+**Last updated:** 2026-10-26 — step 19 (plan 03 stage 3b: LLM reviewer with guard; glossary library planned).
 
 ---
 
@@ -134,12 +134,13 @@ User files at runtime (per OS, via `platformdirs`; overridable with `LEGENDARIA_
 Generated with `python3 tools/project_map.py <files>` and then reviewed. Regenerate it whenever code changes.
 
 **Data files:**
-- `engine/legendaria_engine/defaults/config.json`: engine defaults (`review`: mode suggest/auto, glossary_bias, fuzzy_threshold 0.82, low_confidence 0.5; model `small`, language `auto`, device `auto`, compute types, beam size, VAD, word timestamps, default `style`, cue `styles` (`pop`: one word at a time, two when the first has ≤ 3 letters, glued pieces like "-vindas" kept, gaps ≤ 0.35 s filled — the MVP default in Blender; `captions`: up to 4 words / 22 chars / 2.2 s; `subtitles`: film-style, up to 84 chars / 6 s, 2 lines of 42), output formats, UI language list).
+- `engine/legendaria_engine/defaults/providers.json` (LLM provider presets) and `review_prompt.txt` (reviewer prompt template).
+- `engine/legendaria_engine/defaults/config.json`: engine defaults (`review`: mode suggest/auto, profile, glossary_bias, fuzzy_threshold 0.82, low_confidence 0.5, `llm` {enabled auto, provider ollama, model, batch/context lines, max_change_ratio, unload_after}; model `small`, language `auto`, device `auto`, compute types, beam size, VAD, word timestamps, default `style`, cue `styles` (`pop`: one word at a time, two when the first has ≤ 3 letters, glued pieces like "-vindas" kept, gaps ≤ 0.35 s filled — the MVP default in Blender; `captions`: up to 4 words / 22 chars / 2.2 s; `subtitles`: film-style, up to 84 chars / 6 s, 2 lines of 42), output formats, UI language list).
 - `engine/legendaria_engine/defaults/models.json`: model catalog (tiny, base, small, medium, large-v3, large-v3-turbo) with HF repo, size, VRAM, notes.
 - `engine/schemas/*.schema.json`: JSON Schemas for config (incl. styles), models, transcript v1 and cues v1.
-- `engine/tests/`: `conftest.py` (isolated dirs, sample transcript), `test_cues.py` (chunking rules), `test_formats.py`, `test_schema.py`, `test_config.py`, `test_cli.py`, `test_transcriber.py` (GPU→CPU fallback with a fake run), `test_glossary.py`, `test_fix_rules.py`. 76 tests.
+- `engine/tests/`: `conftest.py` (isolated dirs, sample transcript), `test_cues.py` (chunking rules), `test_formats.py`, `test_schema.py`, `test_config.py`, `test_cli.py`, `test_transcriber.py` (GPU→CPU fallback with a fake run), `test_glossary.py`, `test_fix_rules.py`, `test_llm_review.py` (fake OpenAI-compatible server). 85 tests, no network.
 
-**Glossary and review (plan 03, stage 3a):** glossary files are plain text (`Term` or `wrong -> right`): global `<config dir>/glossary.txt`, project `legendaria-glossary.txt` next to the media or transcript, and `--glossary FILE`. `transcribe` passes the terms to Whisper as `hotwords` (layer 1). `flosub review FILE.json` (or `transcribe --review`) finds explicit fixes and fuzzy matches of uncertain words (layer 2) and writes `<name>.review.json` (mode `suggest`) or applies them (`auto`). `flosub review apply FILE.review.json --ids …|--all [--format srt]` applies the chosen ones, re-timing the words. `flosub glossary path|show|add` is the base of every UI's "Add to glossary".
+**Glossary and review (plan 03, stage 3a):** glossary files are plain text (`Term` or `wrong -> right`): global `<config dir>/glossary.txt`, project `legendaria-glossary.txt` next to the media or transcript, and `--glossary FILE`. `transcribe` passes the terms to Whisper as `hotwords` (layer 1). `flosub review FILE.json` (or `transcribe --review`) finds explicit fixes and fuzzy matches of uncertain words (layer 2) and writes `<name>.review.json` (mode `suggest`) or applies them (`auto`). `flosub review apply FILE.review.json --ids …|--all [--format srt]` applies the chosen ones, re-timing the words. `flosub glossary path|show|add` is the base of every UI's "Add to glossary". **Layer 3 (stage 3b):** `review --llm` sends batches (with context, uncertain words marked `[[…]]`) to any OpenAI-compatible server (`defaults/providers.json`: ollama, lmstudio, llamacpp, openai, gemini, anthropic, openrouter; keys from env vars) using the editable prompt `defaults/review_prompt.txt` (user copy in the config dir wins); the model returns only changed lines, which are diffed word by word and kept only if the guard allows (accent-only fixes, or similar-sounding changes of uncertain words / to glossary terms; never deletions). `flosub llm check|providers`. Config `review.profile` (light/standard = no LLM) and `review.llm.enabled: auto` degrade gracefully when no server answers.
 
 **Range regeneration:** `flosub transcribe media --clip START,END --update saved.json` transcribes only that range and merges it into the saved transcript word by word (`Transcript.merged_with`), so nothing is duplicated or lost at the boundaries.
 
@@ -160,7 +161,7 @@ Legendária transcription engine.
 ### engine/legendaria_engine/__main__.py — 5 lines
 Allow `python -m legendaria_engine`.
 
-### engine/legendaria_engine/cli.py — 433 lines
+### engine/legendaria_engine/cli.py — 553 lines
 `flosub` command line: transcribe, export, models, config.
 
 | Function / class | Line | What it does |
@@ -171,16 +172,19 @@ Allow `python -m legendaria_engine`.
 | `check_style(config, style)` | 58 | The style to use: `--style` if given, else the config default; must exist. |
 | `parse_formats(value)` | 66 | argparse type: comma-separated format list, validated against FORMATS. |
 | `cmd_transcribe(args, reporter)` | 77 | `flosub transcribe`: resolve config and model, transcribe, write the outputs. |
-| `load_glossary(args, media, reporter)` | 144 | Global + project (next to `media`) + `--glossary` files, unless `--no-glossary`. |
-| `run_review(transcript, glossary, config, stem, reporter)` | 157 | Layer 2 fixes: write `<stem>.review.json` (suggest) or apply them (auto). |
-| `cmd_export(args, reporter)` | 182 | `flosub export`: turn a transcript JSON into cues / SRT / VTT in a given style. |
-| `cmd_review(args, reporter)` | 195 | `flosub review FILE.json` (suggest or auto) and `flosub review apply FILE.review.json`. |
-| `review_apply(path, args, reporter)` | 221 | Apply accepted suggestions (`--ids`, or every pending one with `--all`) to the transcript. |
-| `cmd_glossary(args, reporter)` | 255 | `flosub glossary path|show|add` (global by default, or the project of --media). |
-| `cmd_models(args, reporter)` | 291 | `flosub models list|download`. |
-| `cmd_config(args, reporter)` | 318 | `flosub config show|path`. |
-| `build_parser()` | 327 | The argparse tree for all subcommands. |
-| `main(argv)` | 413 | Entry point: run a subcommand and turn every failure into an `error` event. |
+| `load_glossary(args, media, reporter)` | 146 | Global + project (next to `media`) + `--glossary` files, unless `--no-glossary`. |
+| `wants_llm(config, flag)` | 159 | True/False when decided by the flag or config; None means "auto" (use it if reachable). |
+| `run_review(transcript, glossary, config, stem, reporter, use_llm, llm_overrides)` | 172 | Glossary fixes (layer 2) and, when wanted, the LLM reviewer (layer 3). |
+| `run_llm(transcript, glossary, review_cfg, reporter, use_llm, overrides)` | 224 | Layer 3 with graceful degradation: in auto mode an unreachable server just skips it. |
+| `cmd_export(args, reporter)` | 258 | `flosub export`: turn a transcript JSON into cues / SRT / VTT in a given style. |
+| `cmd_review(args, reporter)` | 271 | `flosub review FILE.json` (suggest or auto) and `flosub review apply FILE.review.json`. |
+| `review_apply(path, args, reporter)` | 300 | Apply accepted suggestions (`--ids`, or every pending one with `--all`) to the transcript. |
+| `cmd_llm(args, reporter)` | 334 | `flosub llm check|providers`: test the reviewer's server and list its models. |
+| `cmd_glossary(args, reporter)` | 361 | `flosub glossary path|show|add` (global by default, or the project of --media). |
+| `cmd_models(args, reporter)` | 397 | `flosub models list|download`. |
+| `cmd_config(args, reporter)` | 424 | `flosub config show|path`. |
+| `build_parser()` | 433 | The argparse tree for all subcommands. |
+| `main(argv)` | 533 | Entry point: run a subcommand and turn every failure into an `error` event. |
 
 ### engine/legendaria_engine/config.py — 117 lines
 Layered JSON configuration: shipped defaults → user file → command-line values.
@@ -334,6 +338,37 @@ Glossary files: names and terms the transcription must get right.
 | `project_file(media)` | 80 | The glossary next to a media file: `legendaria-glossary.txt`. |
 | `load(extra, media, use_global)` | 85 | Global glossary, then the project one next to `media`, then `extra` files. |
 | `add_entry(path, entry)` | 105 | Append a term or a 'wrong -> right' line; returns False if it was already there. |
+
+### engine/legendaria_engine/review/llm.py — 153 lines
+Layer 3: an LLM reviewer over any OpenAI-compatible chat server (Ollama, LM Studio,
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `class LLMError` | 19 | The LLM server is unreachable, refused the request, or answered nonsense. |
+| `class LLMSettings` | 24 | Where and how to call the reviewer model. |
+| `load_providers()` | 35 | Shipped provider presets plus the user's `<config dir>/providers.json`. |
+| `resolve(llm_config, **overrides)` | 44 | Settings from config `review.llm` plus overrides (provider, base_url, model). |
+| `class LLMClient` | 63 | Minimal chat-completions client. |
+| `LLMClient.list_models()` | 93 | Model ids the server offers (`GET /models`). |
+| `LLMClient.pick_model()` | 98 | The configured model, or the first chat model the server lists. |
+| `LLMClient.chat_json(prompt)` | 108 | Send one user message and parse the JSON object in the answer. |
+| `LLMClient.unload()` | 129 | Ollama only: free the model from GPU memory now (it would stay for 5 minutes). |
+| `parse_json_object(text)` | 142 | The JSON object in a model answer, tolerating code fences or text around it. |
+
+### engine/legendaria_engine/review/reviewer.py — 232 lines
+Layer 3: turn an LLM's corrected lines into guarded, word-level suggestions.
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `class Unit` | 27 | A readable word: one or more Whisper words glued together ("bem" + "-vindas"). |
+| `units_of(words)` | 36 | Group a segment's words into readable units. |
+| `guard(old, new, glossary, low_confidence)` | 65 | Why a changed block is acceptable, or None to reject it. |
+| `line_for_prompt(units, low_confidence)` | 88 | Line text with uncertain words marked [[like this]]. |
+| `diff_suggestions(seg_index, segment, corrected, glossary, low_confidence, max_change_ratio)` | 93 | (suggestions, rejected count) for one segment and the model's version of it. |
+| `build_prompt(lines, targets, language, glossary)` | 144 | Fill the editable prompt template (`defaults/review_prompt.txt`, user copy wins). |
+| `fixes_by_line(answer, count)` | 161 | {0-based line offset: corrected text} from {"fixes": {"<1-based n>": text}}. |
+| `review(transcript, client, glossary, reporter, low_confidence, batch_lines, context_lines, max_change_ratio)` | 180 | LLM suggestions for the whole transcript; returns (suggestions, rejected count). |
+| `describe(settings)` | 228 | Short provider/model label for logs. |
 
 ### engine/legendaria_engine/review/suggestions.py — 89 lines
 Review document (`<name>.review.json`, v1): suggested corrections to accept or reject.
@@ -576,7 +611,7 @@ Generate the glowing Legendária key art (hero and banner) as SVG.
 ## 7. In progress
 
 - Plan 02 (Blender add-on): done (steps 09–12).
-- **Plan 03, accuracy:** stage 3a (glossary, hotwords, deterministic fixes, suggestions) done (step 18). Next: 3b (LLM reviewer), 3c (Blender UI).
+- **Plan 03, accuracy:** 3a glossary (step 18) and 3b LLM reviewer (step 19) done. Next: glossary library (§3.1b), then 3c (Blender UI).
 - Then plan 04 (CapCut animations — MVP look "one-word pop" decided, §8; style catalog §9 — `.ass` export / exact preview / burn-in / SRT alignment — §6), plan 05 (local API + `flosub gui` web interface).
 - Plan 06 (Blender UX, draft): the owner finds the VSE hard to reach; one-click setup and entry points.
 - **Known issues:** `dev-docs/known-issues.md` (KI-001, high: desktop freeze when loading `medium` from Blender).

@@ -144,7 +144,7 @@ Accepted corrections are **not** added to the glossary automatically. Every clie
 ## 4. Stages
 
 - **3a. Glossary (L1 + L2) in the engine and CLI — done (step 18).** Glossary files, hotwords/initial_prompt, deterministic fixes, the review document, `review apply`, re-alignment. Works offline on CPU.
-- **3b. LLM reviewer (L3) in the engine and CLI.** OpenAI-compatible client, provider presets, guard, batching, `llm check`, profiles. Tested with the owner's Ollama (`llama3.1:8b`, `qwen2.5-coder:7b`; try a general instruct model such as `qwen2.5:7b-instruct` too) and with a fake server in CI.
+- **3b. LLM reviewer (L3) in the engine and CLI — done (step 19).** Findings below (§7). OpenAI-compatible client, provider presets, guard, batching, `llm check`, profiles. Tested with the owner's Ollama (`llama3.1:8b`, `qwen2.5-coder:7b`; try a general instruct model such as `qwen2.5:7b-instruct` too) and with a fake server in CI.
 - **3b+. Glossary library** (§3.1b) in the engine, before the UI, so that 3c can build on it.
 - **3c. Blender UI** for the glossary and the review (suggestions list, apply in place), with pt_BR, tests and a GUI walkthrough.
 
@@ -158,7 +158,15 @@ Accepted corrections are **not** added to the glossary automatically. Every clie
 ## 6. Definition of done
 
 - [x] On the owner's crochet video: with the glossary, `transcribe` gets "Enacles", "Beth" and "Poliéster" right without an LLM (L1 + L2) — step 18.
-- [ ] `flosub review` with Ollama proposes the remaining fixes, does not apply "perfeito → perfeita"-style rewrites in suggest mode unless accepted, and keeps word timings aligned.
-- [ ] A weak profile (CPU, no LLM server) still runs L1 + L2 and reports that the LLM is unavailable, without failing.
+- [x] `flosub review` with Ollama runs, rewrites like "perfeito → perfeita", translations and invented words are rejected by the guard, word timings stay aligned (step 19). On the test video the glossary already fixed everything; the LLM added nothing useful (§7).
+- [x] A weak profile (CPU, no LLM server) still runs L1 + L2 and reports that the LLM is unavailable, without failing (step 19, tested with an unreachable server).
 - [ ] Blender: glossary editing, review with suggestions, accept/reject, apply in place, "Add to glossary" from a suggestion and from a selected caption (§3.6), pt_BR UI.
 - [ ] Tests in CI (fake LLM server), docs (`PROJECT.md`, devlog, CHANGELOG), engine release.
+
+## 7. Findings from stage 3b (2026-10-26, owner's crochet video, 88 segments, `llama3.1:8b` on the RTX 2070 Super)
+
+- **Asking for all lines back failed:** the 8B model merged lines (21 of 24 returned) and whole batches were dropped. Now the model returns **only the changed lines, by number** (`{"fixes": {"7": "…"}}`); omitted lines are unchanged. No more count errors, and the answers are shorter.
+- **The model rewrites a lot:** 20 changes were rejected without the glossary and 47 with it. They included grammar changes, deleted filler words ("Mas", "Aí", "para"), a translation ("fake" → "falso") and an invention pulled from the glossary ("o cenoura" → "a bolsa Beth").
+- **Guard v2:** never accept deletions. The new text must resemble the old (similarity ≥ 0.5 after folding) unless only accents, case or punctuation change. The old words must be uncertain, or the new text a glossary term. With it, the final suggestions were exactly the 4 correct glossary ones.
+- **Conclusion:** on this video the **glossary (L1 + L2) did all the useful work**; the 8B LLM added nothing that survived the guard. L3 stays optional (profile `full`). Open question 1 (§5) remains: try general instruct models (`qwen2.5:7b-instruct`, `gemma`), larger models, or cloud models, on more videos, before recommending L3.
+- **Speed:** about 60 s for the first run (model load), about 20 s afterwards, for 88 segments. Ollama models are unloaded from VRAM after the review (`keep_alive: 0`).
