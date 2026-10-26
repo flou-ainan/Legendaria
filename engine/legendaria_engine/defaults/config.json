@@ -54,6 +54,7 @@
     "en"
   ],
   "review": {
+    "glossary": "default",
     "mode": "suggest",
     "glossary_bias": true,
     "fuzzy_threshold": 0.82,

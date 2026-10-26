@@ -6,7 +6,10 @@ Plain UTF-8 text, one entry per line:
     Mariana Enacles          ← a term (kept exactly as written)
     polieste -> Poliéster    ← an explicit fix (also "→"); the right side is a term too
 
-Files are merged in order (global first, then project ones); later files win on fixes.
+Sources are merged in order: the active glossary of the library
+(`<config dir>/glossaries/<name>.txt`, config `review.glossary`), the project file
+next to the media, then files or library names passed with --glossary. Later sources
+win on fixes.
 """
 
 from __future__ import annotations
@@ -72,9 +75,112 @@ class Glossary:
         return bool(self.terms or self.fixes)
 
 
+DEFAULT_NAME = "default"
+FORBIDDEN = set('/\\:*?"<>|')
+
+
+def library_dir() -> Path:
+    """Named glossaries live here: `<config dir>/glossaries/<name>.txt`."""
+    return paths.config_dir() / "glossaries"
+
+
+def safe_name(name: str) -> str:
+    """A glossary name usable as a file name on every OS (raises ValueError otherwise)."""
+    clean = name.strip()
+    if not clean or clean.startswith(".") or any(ch in FORBIDDEN for ch in clean):
+        raise ValueError(f"Invalid glossary name '{name}' (avoid / \\ : * ? \" < > |)")
+    return clean
+
+
+def library_file(name: str) -> Path:
+    """File of a named glossary (it may not exist yet)."""
+    return library_dir() / f"{safe_name(name)}.txt"
+
+
+def migrate_legacy() -> None:
+    """An old single `<config dir>/glossary.txt` becomes the glossary named "default"."""
+    legacy = paths.config_dir() / "glossary.txt"
+    target = library_file(DEFAULT_NAME)
+    if legacy.is_file() and not target.exists():
+        library_dir().mkdir(parents=True, exist_ok=True)
+        legacy.rename(target)
+
+
+def list_names() -> list[str]:
+    """Names of the glossaries in the library, sorted."""
+    migrate_legacy()
+    folder = library_dir()
+    return sorted(p.stem for p in folder.glob("*.txt")) if folder.is_dir() else []
+
+
+def active_name() -> str:
+    """The active glossary (config `review.glossary`, default "default")."""
+    from legendaria_engine.config import load_config
+
+    return load_config()["review"].get("glossary") or DEFAULT_NAME
+
+
 def global_file() -> Path:
-    """The user's glossary for every project: `<config dir>/glossary.txt`."""
-    return paths.config_dir() / "glossary.txt"
+    """The active library glossary, used for every project."""
+    migrate_legacy()
+    return library_file(active_name())
+
+
+def resolve(ref: str | Path) -> Path:
+    """A glossary given as a file path or as the name of a library glossary."""
+    path = Path(ref).expanduser()
+    if path.is_file():
+        return path
+    try:
+        named = library_file(str(ref))
+    except ValueError:
+        named = None
+    if named is not None and named.is_file():
+        return named
+    raise FileNotFoundError(f"Glossary not found: no file or library glossary named '{ref}'")
+
+
+def create(name: str) -> Path:
+    """A new empty library glossary (with the explanatory header)."""
+    path = library_file(name)
+    if path.exists():
+        raise FileExistsError(f"A glossary named '{name}' already exists")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(HEADER, encoding="utf-8")
+    return path
+
+
+def import_file(source: Path, name: str | None = None, overwrite: bool = False) -> Path:
+    """Copy a glossary file into the library (named after the file unless `name`)."""
+    source = Path(source).expanduser()
+    if not source.is_file():
+        raise FileNotFoundError(f"Glossary not found: {source}")
+    Glossary().merge_text(source.read_text(encoding="utf-8"))  # must parse
+    target = library_file(name or source.stem)
+    if target.exists() and not overwrite:
+        raise FileExistsError(f"A glossary named '{target.stem}' already exists")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+    return target
+
+
+def export_file(name: str, destination: Path) -> Path:
+    """Copy a library glossary to a file (to share it or back it up)."""
+    source = library_file(name)
+    if not source.is_file():
+        raise FileNotFoundError(f"No glossary named '{name}'")
+    destination = Path(destination).expanduser()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+    return destination
+
+
+def delete(name: str) -> None:
+    """Remove a library glossary."""
+    path = library_file(name)
+    if not path.is_file():
+        raise FileNotFoundError(f"No glossary named '{name}'")
+    path.unlink()
 
 
 def project_file(media: Path) -> Path:
@@ -85,8 +191,9 @@ def project_file(media: Path) -> Path:
 def load(
     extra: list[Path] | None = None, media: Path | None = None, use_global: bool = True
 ) -> Glossary:
-    """Global glossary, then the project one next to `media`, then `extra` files."""
-    explicit = [Path(p).expanduser() for p in extra or []]
+    """Active library glossary, then the project one next to `media`, then `extra`
+    (files or library names)."""
+    explicit = [resolve(p) for p in extra or []]
     candidates: list[Path] = []
     if use_global:
         candidates.append(global_file())

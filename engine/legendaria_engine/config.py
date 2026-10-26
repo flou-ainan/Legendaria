@@ -105,6 +105,18 @@ def load_config(overrides: dict[str, Any] | None = None) -> dict[str, Any]:
     return config
 
 
+def update_user_config(changes: dict[str, Any]) -> Path:
+    """Merge `changes` into the user's config.json (creating it) and validate the result."""
+    path = paths.user_config_file()
+    current = read_json(path) if path.is_file() else {}
+    updated = deep_merge(current, changes)
+    defaults = read_json(paths.defaults_dir() / "config.json")
+    validate(deep_merge(defaults, updated), str(path))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(updated, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
 def load_models() -> dict[str, dict[str, Any]]:
     """The model catalog: shipped `models.json` plus the user's additions or changes."""
     catalog = read_json(paths.defaults_dir() / "models.json")["models"]
