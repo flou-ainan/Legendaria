@@ -264,10 +264,10 @@ Following ADR-008:
 
 ## 8. Backlog (not scheduled)
 
-- Fast burn-in without the editor: transcript → `.ass` with styles → FFmpeg (NVENC when available).
+- ~~Fast burn-in without the editor~~: moved into plan 04 §6 (`flosub burn`, `.ass` + FFmpeg/libass).
 - Apple Silicon backend (contributor-led).
 - Subtitle translation (Whisper translate mode, or an LLM pass).
-- WhisperX-style forced alignment, if word timings are not precise enough.
+- WhisperX-style forced alignment, if word timings are not precise enough (fallback for plan 04 §6.4 `flosub align`).
 - Mobile app and cloud API (from the origin brainstorm).
 - Kdenlive integration (the owner edits in Kdenlive): use the CLI or the local API (ADR-011).
 - Native window for `flosub gui` (pywebview), after the MVP (plan 05).
