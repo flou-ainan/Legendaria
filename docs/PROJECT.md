@@ -3,7 +3,7 @@
 > A condensed map of the project, so agents and people can find what they need without rereading the code.
 > **Update this file with every change to the project** (files, functions, stack, structure). Conventions: `docs/dev-docs/README.md`.
 
-**Last updated:** 2026-10-24 — step 12 (stage 2c: regenerate a time range; engine 0.1.0.dev2).
+**Last updated:** 2026-10-25 — step 13 (plan 03: glossary + reviewer; ADR-010/011; plans 04–05 drafted).
 
 ---
 
@@ -70,6 +70,8 @@ engine/ (`flosub`) ── faster-whisper (GPU → CPU fallback) ──► transc
 | [007](dev-docs/decisions/ADR-007-cross-platform.md) | Linux, macOS, Windows 10+ | accepted |
 | [008](dev-docs/decisions/ADR-008-contribution-workflow.md) | Branch + PR, Conventional Commits, SemVer, CI on 3 OSes | accepted |
 | [009](dev-docs/decisions/ADR-009-project-name.md) | Name: Legendária (`legendaria`), CLI `flosub` | accepted |
+| [010](dev-docs/decisions/ADR-010-review-pipeline.md) | Glossary in 3 layers + LLM reviewer (OpenAI-compatible, suggestions), device profiles | accepted |
+| [011](dev-docs/decisions/ADR-011-modular-architecture.md) | Engine core → CLI/HTTP API → clients (Blender, web GUI, Kdenlive later) | accepted |
 
 ## 5. Folder structure
 
@@ -505,5 +507,7 @@ Generate the glowing Legendária key art (hero and banner) as SVG.
 
 ## 7. In progress
 
-- Plan 02 (Blender add-on): done (steps 09–12). Next: plan 03 (CapCut-style animations, style presets), README "how to install" once the add-on is released. Then plan 03 (CapCut animations and style presets).
-- Backlog: see plan 01, section 8.
+- Plan 02 (Blender add-on): done (steps 09–12).
+- **Next: plan 03, accuracy** (glossary + LLM reviewer): stages 3a glossary, 3b LLM, 3c Blender UI.
+- Then plan 04 (CapCut animations), plan 05 (local API + `flosub gui` web interface).
+- Backlog: plan 01, section 8.

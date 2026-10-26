@@ -31,7 +31,9 @@
 |---|---|---|---|
 | **0. Foundation** | Contribution workflow, CI, templates, final name + logo (section 7) | all (CI) | **now** |
 | **1. MVP** | Engine CLI + Blender add-on: transcribe pt/en, text strips, SRT/VTT export, model download, "Install engine" button, pt_BR/en UI | Linux (NVIDIA + CPU), code already portable | next |
-| 2. CapCut styles | Short word-timed chunks, current-word highlight, style presets (JSON), burn-in through Blender render | Linux | after MVP |
+| 2a. Accuracy (plan 03) | Glossary (Whisper bias + deterministic fixes) and LLM reviewer (local OpenAI-compatible, cloud optional) as suggestions; device profiles | all | **next** |
+| 2b. CapCut styles (plan 04) | Animations (pop-in, current-word highlight), style presets (JSON), burn-in through Blender render | Linux | after plan 03 |
+| 2c. Local API + web GUI (plan 05) | `flosub gui` in the browser, HTTP API for all clients; native window (pywebview) optional after MVP | all | after plan 04 |
 | 3. Cross-platform | Windows (CUDA + CPU) and macOS (CPU; Apple Silicon backend open to contributors) | all | later |
 | 4. Easy install | Native per-OS installers wrapping the "Install engine" flow, optionally bundling a portable Blender | all | later |
 | 5. User docs and outreach | MkDocs Material site on GitHub Pages (en + pt-BR), YouTube tutorial | — | later |
@@ -267,6 +269,8 @@ Following ADR-008:
 - Subtitle translation (Whisper translate mode, or an LLM pass).
 - WhisperX-style forced alignment, if word timings are not precise enough.
 - Mobile app and cloud API (from the origin brainstorm).
+- Kdenlive integration (the owner edits in Kdenlive): use the CLI or the local API (ADR-011).
+- Native window for `flosub gui` (pywebview), after the MVP (plan 05).
 - Refine the glowing key art (more sparkle/flare, closer to the Gemini reference). The owner considers the current version good for now.
 
 ## 9. Open questions
