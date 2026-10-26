@@ -19,7 +19,7 @@ What it does:
 
 Goals: a "next → next → finish" install for end users; a hackable setup driven by JSON configs; friendly to contributors; Linux, macOS and Windows 10+; UI and user docs in English and pt-BR (open to more languages).
 
-**Current state:** the engine (`flosub`, on PyPI as `legendaria`) and the Blender add-on core work end to end: select a video in the VSE, pick a model (auto-download), generate CapCut-style caption strips in the background, confirm before replacing, re-apply a style, export SRT/VTT, English/Portuguese UI. "Install engine" sets everything up from Blender (2b); "Regenerate range" redoes only the preview range or the selected captions (2c). Plan 02 is complete; next is plan 03 (CapCut animations and style presets). Plans: `dev-docs/planning/plan_01_*`, `plan_02_blender_addon.md`.
+**Current state:** the engine (`flosub`, on PyPI as `legendaria`) and the Blender add-on core work end to end: select a video in the VSE, pick a model (auto-download), generate CapCut-style caption strips in the background, confirm before replacing, re-apply a style, export SRT/VTT, English/Portuguese UI. "Install engine" sets everything up from Blender (2b); "Regenerate range" redoes only the preview range or the selected captions (2c). The default style is "one word, pop" (yellow). Accuracy (plan 03): a glossary library steers Whisper and drives a review that suggests corrections; in Blender the panel picks the active glossary (new / import / export / edit), adds terms from a caption or a suggestion, reviews and applies ticked corrections in place. An LLM reviewer exists but is experimental and off by default. Next: the MVP subset of plan 04 (`.ass` export, burn-in, exact preview). Plans: `dev-docs/planning/`.
 
 ## 2. Architecture
 
@@ -400,7 +400,7 @@ Review document (`<name>.review.json`, v1): suggested corrections to accept or r
 - `blender_addon/legendaria/blender_manifest.toml`: extension id `legendaria`, Blender ≥ 4.2, GPL-3.0-or-later, permissions (files, network via the engine).
 - `blender_addon/legendaria/presets/pop.json` (yellow, bold, outline — MVP default), `captions.json`, `subtitles.json`: text-strip styles (font size for 1080 px, scaled to the scene; position, alignment, outline, shadow, box). A user copy in `<config dir>/presets/` overrides them.
 - `blender_addon/legendaria/locales/pt_BR.json` (+ README): UI translations, English source strings as keys.
-- `blender_addon/tests/`: `test_i18n.py` (every UI string translated, no unused or mismatched entries), `test_installer.py` (uv asset names, checksum, extraction, versions), `test_source_rules.py` (Blender API pitfalls, e.g. confirm-dialog icons), `test_timecode.py`, `test_engine_bridge.py` (fake flosub), `conftest.py` (imports the add-on package without bpy), `blender_smoke.py` (headless, inside Blender; `--real` runs flosub), `ui_walkthrough.py` (GUI session with screenshots under xvfb; `--install confirm|run` tests the Install engine flow).
+- `blender_addon/tests/`: `test_i18n.py` (every UI string translated, no unused or mismatched entries), `test_installer.py` (uv asset names, checksum, extraction, versions), `test_source_rules.py` (Blender API pitfalls, e.g. confirm-dialog icons), `test_timecode.py`, `test_engine_bridge.py` (fake flosub), `conftest.py` (imports the add-on package without bpy), `blender_smoke.py` (headless, inside Blender, with a throwaway config folder; glossary library and review checks; `--real` runs flosub, review and apply), `ui_walkthrough.py` (GUI session with screenshots under xvfb; `--install confirm|run` tests the Install engine flow).
 
 ### blender_addon/legendaria/__init__.py — 36 lines
 Legendária: automatic CapCut-style subtitles in Blender's Video Sequencer.
@@ -423,7 +423,7 @@ VSE API differences between Blender 4.2 and 5.x, detected by feature, not versio
 | `set_if_present(strip, name, value)` | 60 | Set a property when this Blender version has it; returns whether it was set. |
 | `media_path(strip)` | 68 | Absolute file path of a MOVIE or SOUND strip ('' for other types). |
 
-### blender_addon/legendaria/engine_bridge.py — 189 lines
+### blender_addon/legendaria/engine_bridge.py — 209 lines
 Find and run the `flosub` engine as a separate process (ADR-003). No bpy here.
 
 | Function / class | Line | What it does |
@@ -436,13 +436,14 @@ Find and run the `flosub` engine as a separate process (ADR-003). No bpy here.
 | `version_key(text)` | 75 | Sortable key for versions like "0.1.0", "0.1.0.dev1" or "flosub 0.2.0" (dev < final). |
 | `run_json(engine, args, timeout)` | 97 | Run a quick command that prints one JSON document (e.g. `models list --json`). |
 | `run_text(engine, args, timeout)` | 105 | Run a quick command and return its stdout (e.g. `--version`). |
-| `class EngineJob` | 113 | A running `flosub --progress json ...` process whose events can be polled. |
-| `EngineJob.poll()` | 141 | Events received since the last call (never blocks). |
-| `EngineJob.finished()` | 151 | True once the process has exited and all of its output has been read. |
-| `EngineJob.returncode()` | 156 | Exit code, or None while running. |
-| `EngineJob.stderr_tail()` | 160 | Last lines the engine wrote to stderr (for error reports). |
-| `EngineJob.cancel()` | 164 | Stop the engine: terminate, then kill if it does not exit quickly. |
-| `EngineJob.wait(timeout)` | 185 | Block until the process exits and its output is read (tests and scripts, not the UI). |
+| `run_events(engine, args, timeout)` | 113 | Run a quick command with JSON-lines events; raise RuntimeError on an `error` event. |
+| `class EngineJob` | 133 | A running `flosub --progress json ...` process whose events can be polled. |
+| `EngineJob.poll()` | 161 | Events received since the last call (never blocks). |
+| `EngineJob.finished()` | 171 | True once the process has exited and all of its output has been read. |
+| `EngineJob.returncode()` | 176 | Exit code, or None while running. |
+| `EngineJob.stderr_tail()` | 180 | Last lines the engine wrote to stderr (for error reports). |
+| `EngineJob.cancel()` | 184 | Stop the engine: terminate, then kill if it does not exit quickly. |
+| `EngineJob.wait(timeout)` | 205 | Block until the process exits and its output is read (tests and scripts, not the UI). |
 
 ### blender_addon/legendaria/i18n.py — 46 lines
 UI translations (ADR-005): English source strings, `locales/<lang>.json` dictionaries.
@@ -475,7 +476,7 @@ The "Install engine" step: set up flosub for users who never open a terminal (pl
 | `is_installed()` | 270 | True when the managed engine exists. |
 | `uninstall()` | 275 | Delete everything the installer created (models live elsewhere and are kept). |
 
-### blender_addon/legendaria/operators.py — 644 lines
+### blender_addon/legendaria/operators.py — 646 lines
 Operators: generate (runs the engine without blocking), cancel, re-apply style, export, refresh.
 
 | Function / class | Line | What it does |
@@ -494,48 +495,49 @@ Operators: generate (runs the engine without blocking), cancel, re-apply style, 
 | `LEGENDARIA_OT_generate.poll(context)` | 185 | Needs a scene with settings and no job already running. |
 | `LEGENDARIA_OT_generate.invoke(context, event)` | 189 | Validate, then ask before replacing existing captions. |
 | `LEGENDARIA_OT_generate.execute(context)` | 208 | Start the engine and the modal timer. |
-| `LEGENDARIA_OT_generate.handle_event(event)` | 240 | Update progress and status from one engine event. |
-| `LEGENDARIA_OT_generate.modal(context, event)` | 278 | Poll the engine on each timer tick; Esc or the Cancel button stops it. |
-| `LEGENDARIA_OT_generate.cleanup(context)` | 319 | Remove the timer and mark the job as stopped. |
-| `class LEGENDARIA_OT_cancel` | 329 | Stop the running transcription |
-| `LEGENDARIA_OT_cancel.execute(context)` | 335 | Ask the running generate operator to stop. |
-| `class LEGENDARIA_OT_reapply_style` | 341 | Rebuild the captions from the saved transcript with the chosen style, without transcribing again |
-| `LEGENDARIA_OT_reapply_style.poll(context)` | 349 | Needs a saved transcript and no running job. |
-| `LEGENDARIA_OT_reapply_style.invoke(context, event)` | 354 | Ask before replacing captions. |
-| `LEGENDARIA_OT_reapply_style.execute(context)` | 372 | Run `flosub export --style` on the saved transcript and rebuild the strips. |
-| `class LEGENDARIA_OT_export` | 415 | Save the captions on the channel as an SRT or VTT file (with your edits) |
-| `LEGENDARIA_OT_export.export_channel(context)` | 431 | Channel to export: the one used last, else the setting, else the active strip's. |
-| `LEGENDARIA_OT_export.invoke(context, event)` | 437 | Open the file browser with a sensible default name. |
-| `LEGENDARIA_OT_export.execute(context)` | 448 | Write the file from the text strips. |
-| `class LEGENDARIA_OT_exact_colors` | 472 | Use the Standard view transform so captions keep their real colors |
-| `LEGENDARIA_OT_exact_colors.execute(context)` | 479 | Switch the scene's view transform to Standard. |
-| `class LEGENDARIA_OT_refresh_engine` | 486 | Look for the transcription engine again and reload its models |
-| `LEGENDARIA_OT_refresh_engine.execute(context)` | 492 | Re-run engine detection. |
-| `install_status()` | 501 | Translated status line and progress of the running install (for panel and preferences). |
-| `class LEGENDARIA_OT_install_engine` | 511 | Download and set up the transcription engine (uv, Python, flosub and the default model) |
-| `LEGENDARIA_OT_install_engine.poll(context)` | 520 | Not while an install is already running. |
-| `LEGENDARIA_OT_install_engine.invoke(context, event)` | 524 | Explain what will be downloaded and ask first. |
-| `LEGENDARIA_OT_install_engine.execute(context)` | 544 | Start the installer thread and poll it from a timer. |
-| `LEGENDARIA_OT_install_engine.modal(context, event)` | 554 | Redraw while installing; report the result at the end. |
-| `class LEGENDARIA_OT_cancel_install` | 577 | Stop installing the engine |
-| `LEGENDARIA_OT_cancel_install.execute(context)` | 583 | Ask the installer to stop. |
-| `class LEGENDARIA_OT_uninstall_engine` | 590 | Delete the engine installed by this add-on (downloaded models are kept) |
-| `LEGENDARIA_OT_uninstall_engine.poll(context)` | 597 | Only when the add-on's own engine is installed and idle. |
-| `LEGENDARIA_OT_uninstall_engine.invoke(context, event)` | 601 | Ask first. |
-| `LEGENDARIA_OT_uninstall_engine.execute(context)` | 614 | Remove the engine folder and look for another engine. |
-| `register()` | 635 | Register the operators. |
-| `unregister()` | 641 | Remove the operators. |
+| `LEGENDARIA_OT_generate.handle_event(event)` | 242 | Update progress and status from one engine event. |
+| `LEGENDARIA_OT_generate.modal(context, event)` | 280 | Poll the engine on each timer tick; Esc or the Cancel button stops it. |
+| `LEGENDARIA_OT_generate.cleanup(context)` | 321 | Remove the timer and mark the job as stopped. |
+| `class LEGENDARIA_OT_cancel` | 331 | Stop the running transcription |
+| `LEGENDARIA_OT_cancel.execute(context)` | 337 | Ask the running generate operator to stop. |
+| `class LEGENDARIA_OT_reapply_style` | 343 | Rebuild the captions from the saved transcript with the chosen style, without transcribing again |
+| `LEGENDARIA_OT_reapply_style.poll(context)` | 351 | Needs a saved transcript and no running job. |
+| `LEGENDARIA_OT_reapply_style.invoke(context, event)` | 356 | Ask before replacing captions. |
+| `LEGENDARIA_OT_reapply_style.execute(context)` | 374 | Run `flosub export --style` on the saved transcript and rebuild the strips. |
+| `class LEGENDARIA_OT_export` | 417 | Save the captions on the channel as an SRT or VTT file (with your edits) |
+| `LEGENDARIA_OT_export.export_channel(context)` | 433 | Channel to export: the one used last, else the setting, else the active strip's. |
+| `LEGENDARIA_OT_export.invoke(context, event)` | 439 | Open the file browser with a sensible default name. |
+| `LEGENDARIA_OT_export.execute(context)` | 450 | Write the file from the text strips. |
+| `class LEGENDARIA_OT_exact_colors` | 474 | Use the Standard view transform so captions keep their real colors |
+| `LEGENDARIA_OT_exact_colors.execute(context)` | 481 | Switch the scene's view transform to Standard. |
+| `class LEGENDARIA_OT_refresh_engine` | 488 | Look for the transcription engine again and reload its models |
+| `LEGENDARIA_OT_refresh_engine.execute(context)` | 494 | Re-run engine detection. |
+| `install_status()` | 503 | Translated status line and progress of the running install (for panel and preferences). |
+| `class LEGENDARIA_OT_install_engine` | 513 | Download and set up the transcription engine (uv, Python, flosub and the default model) |
+| `LEGENDARIA_OT_install_engine.poll(context)` | 522 | Not while an install is already running. |
+| `LEGENDARIA_OT_install_engine.invoke(context, event)` | 526 | Explain what will be downloaded and ask first. |
+| `LEGENDARIA_OT_install_engine.execute(context)` | 546 | Start the installer thread and poll it from a timer. |
+| `LEGENDARIA_OT_install_engine.modal(context, event)` | 556 | Redraw while installing; report the result at the end. |
+| `class LEGENDARIA_OT_cancel_install` | 579 | Stop installing the engine |
+| `LEGENDARIA_OT_cancel_install.execute(context)` | 585 | Ask the installer to stop. |
+| `class LEGENDARIA_OT_uninstall_engine` | 592 | Delete the engine installed by this add-on (downloaded models are kept) |
+| `LEGENDARIA_OT_uninstall_engine.poll(context)` | 599 | Only when the add-on's own engine is installed and idle. |
+| `LEGENDARIA_OT_uninstall_engine.invoke(context, event)` | 603 | Ask first. |
+| `LEGENDARIA_OT_uninstall_engine.execute(context)` | 616 | Remove the engine folder and look for another engine. |
+| `register()` | 637 | Register the operators. |
+| `unregister()` | 643 | Remove the operators. |
 
-### blender_addon/legendaria/panel.py — 127 lines
+### blender_addon/legendaria/panel.py — 168 lines
 Sidebar panel in the Video Sequencer ("Legendária" tab).
 
 | Function / class | Line | What it does |
 |---|---|---|
 | `draw_engine_box(layout)` | 12 | Engine install / update / progress UI. Returns True when the engine is ready to use. |
-| `class LEGENDARIA_PT_main` | 44 | Generate, re-style and export captions |
-| `LEGENDARIA_PT_main.draw(context)` | 53 | Engine status, source, options, generate/progress, re-style and export. |
-| `register()` | 118 | Register the panel. |
-| `unregister()` | 124 | Remove the panel. |
+| `draw_review_box(layout, settings)` | 44 | Glossary picker (new / import / export / edit / add) and the review suggestions. |
+| `class LEGENDARIA_PT_main` | 83 | Generate, re-style and export captions |
+| `LEGENDARIA_PT_main.draw(context)` | 92 | Engine status, source, options, generate/progress, re-style and export. |
+| `register()` | 159 | Register the panel. |
+| `unregister()` | 165 | Remove the panel. |
 
 ### blender_addon/legendaria/preferences.py — 51 lines
 Add-on preferences: where the engine is, and its detected status.
@@ -547,16 +549,54 @@ Add-on preferences: where the engine is, and its detected status.
 | `register()` | 42 | Register the preferences class. |
 | `unregister()` | 48 | Remove the preferences class. |
 
-### blender_addon/legendaria/properties.py — 145 lines
+### blender_addon/legendaria/properties.py — 225 lines
 Scene settings and the engine info cache (models, languages, styles from `flosub`).
 
 | Function / class | Line | What it does |
 |---|---|---|
-| `addon_prefs(context)` | 36 | The add-on preferences, or None when the add-on is not enabled through Preferences. |
-| `refresh_engine_info(context)` | 43 | Locate flosub and reload models, languages and styles. Returns True when found. |
-| `class LegendariaSettings` | 99 | Per-scene options and the state of the running job. |
-| `register()` | 134 | Register the settings and attach them to scenes. |
-| `unregister()` | 141 | Remove the settings. |
+| `addon_prefs(context)` | 40 | The add-on preferences, or None when the add-on is not enabled through Preferences. |
+| `refresh_engine_info(context)` | 47 | Locate flosub and reload models, languages and styles. Returns True when found. |
+| `refresh_glossaries(engine)` | 92 | Reload the glossary library (names, sizes, active one) from the engine. |
+| `class LegendariaSuggestion` | 146 | One suggested correction from `flosub review`. |
+| `class LegendariaSettings` | 159 | Per-scene options and the state of the running job. |
+| `register()` | 214 | Register the settings and attach them to scenes. |
+| `unregister()` | 221 | Remove the settings. |
+
+### blender_addon/legendaria/review_ops.py — 441 lines
+Glossary and review operators (plan 03, stage 3c): thin wrappers around the engine.
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `class LEGENDARIA_OT_glossary_new` | 38 | Create a new, empty glossary and make it the active one |
+| `LEGENDARIA_OT_glossary_new.invoke(context, event)` | 46 | Ask for the name. |
+| `LEGENDARIA_OT_glossary_new.execute(context)` | 50 | `flosub glossary new NAME --activate`. |
+| `class LEGENDARIA_OT_glossary_import` | 62 | Add a glossary file (.txt) to your glossaries and make it the active one |
+| `LEGENDARIA_OT_glossary_import.invoke(context, event)` | 71 | Open the file browser. |
+| `LEGENDARIA_OT_glossary_import.execute(context)` | 76 | `flosub glossary import FILE`, then `use` it. |
+| `class LEGENDARIA_OT_glossary_export` | 89 | Save the active glossary to a file, to share it or keep a copy |
+| `LEGENDARIA_OT_glossary_export.invoke(context, event)` | 98 | Open the file browser with the glossary's name. |
+| `LEGENDARIA_OT_glossary_export.execute(context)` | 104 | `flosub glossary export NAME --to FILE`. |
+| `class LEGENDARIA_OT_glossary_edit` | 116 | Open the active glossary in your text editor (one term per line, or 'wrong -> right') |
+| `LEGENDARIA_OT_glossary_edit.execute(context)` | 122 | Create the file if needed and open it with the system's editor. |
+| `class LEGENDARIA_OT_glossary_add` | 135 | Add a word or name to a glossary, so the next transcriptions and reviews get it right |
+| `LEGENDARIA_OT_glossary_add.invoke(context, event)` | 151 | Prefill with the selected caption's text, then let the user trim it. |
+| `LEGENDARIA_OT_glossary_add.execute(context)` | 160 | `flosub glossary add TERM [--media VIDEO]`. |
+| `class LEGENDARIA_OT_review` | 193 | Look for transcription errors using the glossary (and, if enabled, an AI model) and list suggested corrections |
+| `LEGENDARIA_OT_review.poll(context)` | 205 | Needs a transcript from a previous run and no running job. |
+| `LEGENDARIA_OT_review.execute(context)` | 210 | Start `flosub review` in the background. |
+| `LEGENDARIA_OT_review.modal(context, event)` | 234 | Poll the engine; fill the suggestions list when it is done. |
+| `load_suggestions(settings, review_path)` | 283 | Fill the scene's suggestion list from a review file; returns how many are pending. |
+| `class LEGENDARIA_OT_review_select` | 300 | Tick or untick every suggestion |
+| `LEGENDARIA_OT_review_select.execute(context)` | 308 | Set `accept` on every listed suggestion. |
+| `merged_ranges(spans)` | 315 | Merge overlapping or touching frame ranges. |
+| `correction_spans(scene, plan, cues, chosen)` | 326 | Frame spans to rebuild: every old caption and new cue touching a corrected word. |
+| `class LEGENDARIA_OT_review_apply` | 350 | Apply the ticked corrections: the transcript is updated and only the affected captions are rebuilt |
+| `LEGENDARIA_OT_review_apply.poll(context)` | 358 | Needs suggestions and no running job. |
+| `LEGENDARIA_OT_review_apply.execute(context)` | 363 | `flosub review apply`, re-export cues, rebuild the strips in each corrected span. |
+| `class LEGENDARIA_UL_suggestions` | 404 | Suggested corrections: tick to accept, + to add the corrected word to the glossary. |
+| `LEGENDARIA_UL_suggestions.draw_item(context, layout, data, item, icon, active_data, active_propname, index)` | 407 | One row: checkbox, before → after, add-to-glossary button. |
+| `register()` | 432 | Register the glossary and review operators. |
+| `unregister()` | 438 | Remove them. |
 
 ### blender_addon/legendaria/strips.py — 194 lines
 Cues ↔ text strips: create caption strips, find the ones we made, read them back.
@@ -587,7 +627,6 @@ Frames ↔ seconds and SRT/VTT text. Pure Python (no bpy), so it can be unit-tes
 | `format_timestamp(seconds, separator)` | 21 | `HH:MM:SS,mmm` (SRT) or `HH:MM:SS.mmm` (VTT). Hours keep counting past 24. |
 | `to_srt(cues)` | 30 | SRT text from (start, end, text) tuples. |
 | `to_vtt(cues)` | 39 | WebVTT text from (start, end, text) tuples. |
-
 
 ### tools/project_map.py — 82 lines
 Print the "File map" entries of docs/PROJECT.md for Python files.
@@ -624,7 +663,8 @@ Generate the glowing Legendária key art (hero and banner) as SVG.
 ## 7. In progress
 
 - Plan 02 (Blender add-on): done (steps 09–12).
-- **Plan 03, accuracy:** 3a glossary (step 18), 3b LLM reviewer (step 19), glossary library (step 20) done. Next: 3c (Blender UI: glossary drop-down, suggestions, Add to glossary).
+- **Plan 03, accuracy:** done — 3a glossary (step 18), 3b LLM reviewer (step 19, experimental), glossary library (step 20), 3c Blender UI (step 22). Engine 0.1.0.dev4 is not on PyPI yet (needs the owner's tag), so "Install engine" gets it only after that release.
+- **Next:** the MVP subset of plan 04 (`.ass` export with the pop style, `flosub burn`, exact preview in Blender), then the owner's manual test, README, alpha release.
 - Then plan 04 (CapCut animations — MVP look "one-word pop" decided, §8; style catalog §9 — `.ass` export / exact preview / burn-in / SRT alignment — §6), plan 05 (local API + `flosub gui` web interface).
 - Plan 06 (Blender UX, draft): the owner finds the VSE hard to reach; one-click setup and entry points.
 - **Known issues:** `dev-docs/known-issues.md` (KI-001, high: desktop freeze when loading `medium` from Blender).

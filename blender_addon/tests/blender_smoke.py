@@ -10,6 +10,8 @@ Without --real it needs no engine output (fixture cues). With --real it runs the
 from __future__ import annotations
 
 import argparse
+import json
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -17,10 +19,12 @@ from pathlib import Path
 import bpy
 
 ROOT = Path(__file__).resolve().parents[1]
+# Glossaries and config go to a throwaway folder, never the user's (models stay shared).
+os.environ["LEGENDARIA_CONFIG_DIR"] = tempfile.mkdtemp(prefix="legendaria-config-")
 sys.path.insert(0, str(ROOT))
 
 import legendaria  # noqa: E402
-from legendaria import compat, operators, properties, strips  # noqa: E402
+from legendaria import compat, operators, properties, review_ops, strips  # noqa: E402
 
 args = argparse.ArgumentParser()
 args.add_argument("--media", required=True)
@@ -161,6 +165,62 @@ try:
         str(properties.STYLE_ITEMS[:1]),
     )
 
+    # Glossary library (stage 3c): new, add, switch, export — all through the engine.
+    result = bpy.ops.legendaria.glossary_new(name="smoke")
+    check(
+        "new glossary becomes active",
+        result == {"FINISHED"} and properties.GLOSSARY["active"] == "smoke",
+        str(properties.GLOSSARY),
+    )
+    bpy.ops.legendaria.glossary_add(term="  Poliéster. ", target="active")
+    bpy.ops.legendaria.glossary_add(term="Enacles", target="active")
+    item = next((i for i in properties.GLOSSARY_ITEMS if i[0] == "smoke"), None)
+    check("terms added (punctuation trimmed)", item and item[2].startswith("2 "), str(item))
+    words = (Path(properties.GLOSSARY["folder"]) / "smoke.txt").read_text(encoding="utf-8")
+    check("glossary file has the clean term", "Poliéster\n" in words, repr(words))
+    scene.legendaria.glossary = "default"
+    check("drop-down switches the active glossary", properties.GLOSSARY["active"] == "default")
+    scene.legendaria.glossary = "smoke"
+    out = Path(tempfile.mkdtemp()) / "shared"
+    result = bpy.ops.legendaria.glossary_export(filepath=str(out))
+    check("glossary export", result == {"FINISHED"} and out.with_suffix(".txt").is_file())
+
+    # Suggestions list and the spans rebuilt when applying.
+    review_file = Path(tempfile.mkdtemp()) / "x.review.json"
+    review_file.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "suggestions": [
+                    {
+                        "id": 1,
+                        "start": 1.0,
+                        "end": 1.4,
+                        "before": "a",
+                        "after": "b",
+                        "status": "pending",
+                    },
+                    {
+                        "id": 2,
+                        "start": 2.0,
+                        "end": 2.2,
+                        "before": "c",
+                        "after": "d",
+                        "status": "rejected",
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    count = review_ops.load_suggestions(scene.legendaria, review_file)
+    check(
+        "only pending suggestions listed",
+        count == 1 and scene.legendaria.suggestions[0].after == "b",
+    )
+    check("spans merge", review_ops.merged_ranges([(5, 9), (1, 3), (8, 12)]) == [(1, 3), (5, 12)])
+    scene.legendaria.suggestions.clear()
+
     if opts.real:
         # Real transcription through the same pieces the modal operator uses.
         settings = scene.legendaria
@@ -272,6 +332,45 @@ try:
             str(spans),
         )
         scene.use_preview_range = False
+
+        # Review with a glossary fix and apply it: only the corrected captions change.
+        caps = sorted(
+            (s for s in compat.top_strips(editor) if strips.is_ours(s)),
+            key=lambda s: s.frame_final_start,
+        )
+        target = next(s for s in caps if len(review_ops._clean_term(s.text).split()[0]) >= 4)
+        wrong = review_ops._clean_term(target.text).split()[0]
+        bpy.ops.legendaria.glossary_add(term=f"{wrong} -> Zebrafix", target="active")
+        job = operators.engine_bridge.EngineJob(
+            properties.ENGINE["path"],
+            ["review", settings.transcript_path, "--mode", "suggest", "--no-llm"],
+        )
+        code = job.wait(timeout=300)
+        done = next((e for e in job.poll() if e.get("event") == "done"), None)
+        check("review engine run", code == 0 and done, job.stderr_tail())
+        review_path = next(p for p in done["outputs"] if p.endswith(".review.json"))
+        found = review_ops.load_suggestions(settings, Path(review_path))
+        check("review finds the glossary fix", found >= 1, str(found))
+        for i, item in enumerate(settings.suggestions):
+            item.accept = i == 0
+        before = {
+            (s.frame_final_start, s.text) for s in compat.top_strips(editor) if strips.is_ours(s)
+        }
+        result = bpy.ops.legendaria.review_apply()
+        after = {
+            (s.frame_final_start, s.text) for s in compat.top_strips(editor) if strips.is_ours(s)
+        }
+        check(
+            "apply puts the correction on screen",
+            result == {"FINISHED"} and any("Zebrafix" in t for _, t in after),
+            str(sorted(after - before)),
+        )
+        check(
+            "apply rebuilds only a few captions",
+            0 < len(before - after) <= 3,
+            str(sorted(before - after)),
+        )
+        check("suggestion list cleared", len(settings.suggestions) == 0)
 
         settings.style = "subtitles"
         result = bpy.ops.legendaria.reapply_style()

@@ -11,6 +11,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Add-on **"Install engine"** button: downloads uv, Python 3.11, the engine (with GPU support when an NVIDIA card is present) and the default model into one folder, with progress and cancel; uninstall and "engine too old" warning with update.
 - Add-on: caption colors are exact. Generating switches the scene to the Standard view transform (Blender's default AgX/Filmic turned yellow into a pale white), and the panel offers "Fix caption colors".
 - Add-on: "One word (pop)" style (yellow, bold) is the default.
+- Add-on **glossary and review** (needs engine 0.1.0.dev4): pick the active glossary in a drop-down, create, import, export or edit glossaries; "Use glossary" toggle; "Add to glossary" from a selected caption or a suggestion (to the active glossary or the video's folder); "Review captions" lists suggested corrections with checkboxes; "Apply corrections" updates the transcript and rebuilds only the affected captions. "Use AI (experimental)" also asks the LLM reviewer.
 - Add-on **"Regenerate range"**: redo only the preview range or the selected captions, with confirmation; captions outside are untouched.
 - Project documentation, brand kit, contribution setup (CONTRIBUTING, Code of Conduct, security policy, templates, ruff, pre-commit, CI on Linux / macOS / Windows and inside Blender 4.2 / 5.2), `tools/project_map.py`.
 
