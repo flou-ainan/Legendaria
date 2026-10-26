@@ -48,6 +48,8 @@
   "Model": "Modelo",
   "Model downloaded. Loading…": "Modelo baixado. Carregando…",
   "No text strips on channel {channel}.": "Nenhuma faixa de texto no canal {channel}.",
+  "One word (pop)": "Uma palavra (pop)",
+  "One word at a time (two when the first is very short), in the highlight color": "Uma palavra por vez (duas quando a primeira é bem curta), na cor de destaque",
   "Only a range": "Só um trecho",
   "Path to the flosub program or its folder. Leave empty to find it automatically": "Caminho do programa flosub ou da pasta dele. Deixe vazio para encontrar automaticamente",
   "Portuguese": "Português",

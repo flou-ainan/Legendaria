@@ -96,7 +96,7 @@
     },
     "styles": {
       "type": "object",
-      "description": "Cue styles: how words are grouped into on-screen text. 'captions' = short CapCut-style phrases (Blender default); 'subtitles' = film-style lines (SRT/VTT default). Add your own.",
+      "description": "Cue styles: how words are grouped into on-screen text. 'pop' = one word at a time (two when the first is very short), for pop animations; 'captions' = short CapCut-style phrases (Blender default); 'subtitles' = film-style lines (SRT/VTT default). Add your own.",
       "additionalProperties": {
         "type": "object",
         "properties": {
@@ -155,6 +155,22 @@
           "break_on_segment": {
             "type": "boolean",
             "description": "Start a new cue at each Whisper segment."
+          },
+          "join_short": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "description": "A single word with at most this many letters (\"a\", \"de\", \"no\") may take the next word, even beyond max_words."
+          },
+          "fill_gaps": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "Extend a cue to the next one when the silence between them is at most this many seconds (avoids blinking)."
           }
         },
         "additionalProperties": false

@@ -16,6 +16,8 @@ STYLE_NUMBERS = (
     "max_duration",
     "min_duration",
     "pause_break",
+    "join_short",
+    "fill_gaps",
 )
 
 

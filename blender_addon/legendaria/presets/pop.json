@@ -1,0 +1,19 @@
+{
+  "$comment": "Style of one-word 'pop' caption strips (the MVP CapCut look). Sizes are for a 1080 px tall video and scale with the scene resolution. The pop animation itself comes in plan 04. Copy this file to <user config dir>/presets/pop.json to override it.",
+  "version": 1,
+  "font_size": 96,
+  "location": [0.5, 0.2],
+  "align_x": "CENTER",
+  "align_y": "CENTER",
+  "wrap_width": 0.9,
+  "color": [1.0, 1.0, 0.0, 1.0],
+  "use_bold": true,
+  "use_outline": true,
+  "outline_color": [0.0, 0.0, 0.0, 1.0],
+  "outline_width": 0.1,
+  "use_shadow": true,
+  "shadow_color": [0.0, 0.0, 0.0, 0.6],
+  "use_box": false,
+  "box_color": [0.0, 0.0, 0.0, 0.6],
+  "box_margin": 0.02
+}

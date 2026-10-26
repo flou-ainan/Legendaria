@@ -14,11 +14,20 @@ MIN_ENGINE = "0.1.0.dev2"  # oldest flosub with what this add-on uses (cue style
 MODEL_ITEMS: list[tuple[str, str, str]] = []
 LANGUAGE_ITEMS: list[tuple[str, str, str]] = [("auto", "Auto-detect", "Detect the spoken language")]
 STYLE_ITEMS: list[tuple[str, str, str]] = [
+    (
+        "pop",
+        "One word (pop)",
+        "One word at a time (two when the first is very short), in the highlight color",
+    ),
     ("captions", "Captions (short)", "Short CapCut-style phrases"),
     ("subtitles", "Subtitles (film)", "Longer film-style lines"),
 ]
 LANGUAGE_NAMES = {"pt": "Portuguese", "en": "English", "es": "Spanish", "fr": "French"}
 STYLE_LABELS = {
+    "pop": (
+        "One word (pop)",
+        "One word at a time (two when the first is very short), in the highlight color",
+    ),
     "captions": ("Captions (short)", "Short CapCut-style phrases"),
     "subtitles": ("Subtitles (film)", "Longer film-style lines"),
 }
@@ -66,7 +75,8 @@ def refresh_engine_info(context=None) -> bool:
         code for code in config.get("ui_languages", ["auto", "pt", "en"]) if code != "auto"
     ]
     LANGUAGE_ITEMS[1:] = [(c, LANGUAGE_NAMES.get(c, c), c) for c in languages]
-    styles = sorted(config.get("styles", {}), key=lambda s: s != "captions")
+    order = {"pop": 0, "captions": 1, "subtitles": 2}
+    styles = sorted(config.get("styles", {}), key=lambda s: order.get(s, 9))
     STYLE_ITEMS[:] = [
         (s, *STYLE_LABELS.get(s, (s, tr("Style '{name}' from your config").format(name=s))))
         for s in styles

@@ -13,6 +13,17 @@
   "word_timestamps": true,
   "style": "subtitles",
   "styles": {
+    "pop": {
+      "max_words": 1,
+      "join_short": 3,
+      "max_chars": 24,
+      "max_duration": 1.6,
+      "min_duration": 0.25,
+      "pause_break": 0.6,
+      "fill_gaps": 0.35,
+      "break_after": ".,!?;:…",
+      "break_on_segment": true
+    },
     "subtitles": {
       "max_chars": 84,
       "line_length": 42,

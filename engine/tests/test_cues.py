@@ -108,3 +108,53 @@ def test_attached_pieces_stay_glued():
         Word(0.5, 0.7, " Tom's"),
     ]
     assert texts(make_cues(transcript(segment(ws)), {})) == ["Descreve-se o Tom's"]
+
+
+def test_attached_pieces_never_start_a_cue():
+    ws = [
+        Word(0, 0.3, " bem"),
+        Word(0.3, 0.6, "-vindas"),
+        Word(0.7, 1.0, " ao"),
+        Word(1.0, 1.3, " canal"),
+    ]
+    result = make_cues(transcript(segment(ws)), {"max_words": 1})
+    assert texts(result) == ["bem-vindas", "ao", "canal"]
+
+
+def test_short_words_pair_with_the_next():
+    ws = words(
+        ("a", 0, 0.1),
+        ("bolsa", 0.1, 0.5),
+        ("de", 0.5, 0.6),
+        ("crochê", 0.6, 1.0),
+        ("linda", 1.0, 1.4),
+    )
+    result = make_cues(transcript(segment(ws)), {"max_words": 1, "join_short": 3})
+    assert texts(result) == ["a bolsa", "de crochê", "linda"]
+
+
+def test_short_word_ending_a_sentence_does_not_pair():
+    ws = words(("é.", 0, 0.2), ("Agora", 0.3, 0.6))
+    result = make_cues(
+        transcript(segment(ws)), {"max_words": 1, "join_short": 3, "break_after": "."}
+    )
+    assert texts(result) == ["é.", "Agora"]
+
+
+def test_fill_gaps_closes_short_silences_only():
+    ws = words(("um", 0.0, 0.2), ("dois", 0.4, 0.6), ("três", 2.0, 2.2))
+    result = make_cues(transcript(segment(ws)), {"max_words": 1, "fill_gaps": 0.35})
+    assert [(c.start, c.end) for c in result.cues] == [(0.0, 0.4), (0.4, 0.6), (2.0, 2.2)]
+
+
+def test_pop_style_on_defaults():
+    config = load_config()
+    ws = words(
+        *[
+            (w, i * 0.3, i * 0.3 + 0.25)
+            for i, w in enumerate(["e", "hoje", "eu", "trouxe", "a", "bolsa"])
+        ]
+    )
+    result = make_cues(transcript(segment(ws)), config["styles"]["pop"], "pop")
+    assert texts(result) == ["e hoje", "eu trouxe", "a bolsa"]
+    assert all(len(c.text.split()) <= 2 for c in result.cues)
