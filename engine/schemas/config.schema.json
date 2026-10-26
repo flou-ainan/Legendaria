@@ -175,6 +175,36 @@
         },
         "additionalProperties": false
       }
+    },
+    "review": {
+      "type": "object",
+      "description": "Glossary and caption review (plan 03).",
+      "properties": {
+        "mode": {
+          "enum": [
+            "suggest",
+            "auto"
+          ],
+          "description": "suggest: write <name>.review.json for the user to accept; auto: apply corrections directly."
+        },
+        "glossary_bias": {
+          "type": "boolean",
+          "description": "Pass glossary terms to Whisper as hotwords while transcribing."
+        },
+        "fuzzy_threshold": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 1,
+          "description": "How similar an uncertain word must be to a glossary term to suggest it (0.5–1)."
+        },
+        "low_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Words below this Whisper confidence are checked against the glossary."
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false

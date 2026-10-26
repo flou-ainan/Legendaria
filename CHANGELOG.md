@@ -14,6 +14,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Add-on **"Regenerate range"**: redo only the preview range or the selected captions, with confirmation; captions outside are untouched.
 - Project documentation, brand kit, contribution setup (CONTRIBUTING, Code of Conduct, security policy, templates, ruff, pre-commit, CI on Linux / macOS / Windows and inside Blender 4.2 / 5.2), `tools/project_map.py`.
 
+## [engine 0.1.0.dev4] - 2026-10-26
+
+### Added
+- **Glossary** (plain text: terms and `wrong -> right` fixes; global, per project next to the media, or `--glossary`), `flosub glossary path|show|add`.
+- Glossary terms steer Whisper while transcribing (`hotwords`); `--no-glossary` turns it off.
+- **Review without AI:** `flosub review FILE.json` (or `transcribe --review`) suggests explicit fixes and close matches of uncertain words, written to `<name>.review.json` (or applied directly in `auto` mode); `flosub review apply` applies the chosen suggestions and re-times the words.
+
 ## [engine 0.1.0.dev3] - 2026-10-26
 
 ### Added
