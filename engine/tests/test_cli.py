@@ -116,9 +116,8 @@ def test_glossary_add_show_and_review_flow(tmp_path, capsys):
     code, events, _ = run(["glossary", "add", "Poliéster", "--file", str(project)], capsys)
     assert code == 0 and events[-1]["added"] is True
 
-    code, events, _ = run(
-        ["review", str(source)], capsys
-    )  # project glossary found next to the JSON
+    # the project glossary next to the JSON is found; no LLM in tests
+    code, events, _ = run(["review", str(source), "--no-llm"], capsys)
     assert code == 0
     suggestion = next(e for e in events if e["event"] == "suggestion")
     assert suggestion["after"] == "Poliéster."
@@ -134,5 +133,5 @@ def test_glossary_add_show_and_review_flow(tmp_path, capsys):
 def test_review_without_glossary_is_an_error(transcript, tmp_path, capsys):
     source = tmp_path / "clip.json"
     transcript.save(source)
-    code, events, _ = run(["review", str(source)], capsys)
+    code, events, _ = run(["review", str(source), "--no-llm"], capsys)
     assert code == 2 and "glossary" in events[-1]["message"].lower()

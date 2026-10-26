@@ -128,8 +128,10 @@ def cmd_transcribe(args: argparse.Namespace, reporter: Reporter) -> int:
     out_dir = Path(args.output_dir).expanduser() if args.output_dir else media.parent
     stem = out_dir / media.stem
     extra: dict = {}
-    if args.review and glossary:
-        transcript, extra = run_review(transcript, glossary, config, stem, reporter)
+    if args.review:
+        transcript, extra = run_review(
+            transcript, glossary, config, stem, reporter, wants_llm(config, None)
+        )
     outputs = write_outputs(transcript, stem, config["formats"], config, style)
     reporter.emit(
         "done",
@@ -154,29 +156,103 @@ def load_glossary(args: argparse.Namespace, media: Path, reporter: Reporter):
     return merged
 
 
-def run_review(transcript: Transcript, glossary, config: dict, stem: Path, reporter: Reporter):
-    """Layer 2 fixes: write `<stem>.review.json` (suggest) or apply them (auto)."""
+def wants_llm(config: dict, flag: bool | None) -> bool | None:
+    """True/False when decided by the flag or config; None means "auto" (use it if reachable)."""
+    if flag is not None:
+        return flag
+    review_cfg = config["review"]
+    if review_cfg.get("profile", "auto") in ("light", "standard"):
+        return False
+    if review_cfg.get("profile") == "full":
+        return True
+    enabled = review_cfg.get("llm", {}).get("enabled", "auto")
+    return None if enabled == "auto" else bool(enabled)
+
+
+def run_review(
+    transcript: Transcript,
+    glossary,
+    config: dict,
+    stem: Path,
+    reporter: Reporter,
+    use_llm: bool | None = False,
+    llm_overrides: dict | None = None,
+):
+    """Glossary fixes (layer 2) and, when wanted, the LLM reviewer (layer 3).
+
+    Writes `<stem>.review.json` in suggest mode, or applies everything in auto mode.
+    """
     from legendaria_engine.review import fix_rules
     from legendaria_engine.review.suggestions import Review, apply
 
     review_cfg = config["review"]
+    low = review_cfg.get("low_confidence", 0.5)
     found = fix_rules.suggest(
-        transcript,
-        glossary,
-        threshold=review_cfg.get("fuzzy_threshold", 0.82),
-        low_confidence=review_cfg.get("low_confidence", 0.5),
+        transcript, glossary, threshold=review_cfg.get("fuzzy_threshold", 0.82), low_confidence=low
     )
-    for s in found:
+    extra: dict = {}
+    if use_llm is not False:
+        llm_found, info = run_llm(
+            transcript, glossary, review_cfg, reporter, use_llm, llm_overrides or {}
+        )
+        taken = {(s.segment, i) for s in found for i in range(s.first, s.last)}
+        llm_found = [
+            s for s in llm_found if not any((s.segment, i) in taken for i in range(s.first, s.last))
+        ]
+        found = sorted(found + llm_found, key=lambda s: (s.segment, s.first))
+        extra.update(info)
+    for number, s in enumerate(found, start=1):
+        s.id = number
         reporter.emit(
-            "suggestion", id=s.id, start=s.start, before=s.before, after=s.after, source=s.source
+            "suggestion",
+            id=s.id,
+            start=s.start,
+            before=s.before,
+            after=s.after,
+            source=s.source,
+            reason=s.reason,
         )
     if review_cfg.get("mode", "suggest") == "auto":
         for s in found:
             s.status = "accepted"
-        return apply(transcript, found), {"applied": len(found)}
+        return apply(transcript, found), {**extra, "applied": len(found)}
     path = stem.parent / f"{stem.name}.review.json"
     Review(transcript=str(stem.parent / f"{stem.name}.json"), suggestions=found).save(path)
-    return transcript, {"outputs": [str(path)], "suggestions": len(found)}
+    return transcript, {**extra, "outputs": [str(path)], "suggestions": len(found)}
+
+
+def run_llm(transcript, glossary, review_cfg: dict, reporter: Reporter, use_llm, overrides: dict):
+    """Layer 3 with graceful degradation: in auto mode an unreachable server just skips it."""
+    from legendaria_engine.review import llm, reviewer
+
+    llm_cfg = review_cfg.get("llm", {})
+    try:
+        settings = llm.resolve(llm_cfg, **overrides)
+        client = llm.LLMClient(settings)
+        client.pick_model()
+    except llm.LLMError as exc:
+        if use_llm is None:
+            reporter.warning(f"LLM reviewer unavailable, using the glossary only ({exc})")
+            return [], {"llm": "unavailable"}
+        raise
+    reporter.log(f"LLM reviewer: {settings.provider} / {settings.model}")
+    try:
+        found, rejected = reviewer.review(
+            transcript,
+            client,
+            glossary,
+            reporter,
+            low_confidence=review_cfg.get("low_confidence", 0.5),
+            batch_lines=llm_cfg.get("batch_lines", 20),
+            context_lines=llm_cfg.get("context_lines", 2),
+            max_change_ratio=llm_cfg.get("max_change_ratio", 0.35),
+        )
+    finally:
+        if llm_cfg.get("unload_after", True):
+            client.unload()
+    if rejected:
+        reporter.log(f"LLM changes rejected by the guard (rewrites): {rejected}")
+    return found, {"llm": f"{settings.provider}/{settings.model}", "llm_rejected": rejected}
 
 
 def cmd_export(args: argparse.Namespace, reporter: Reporter) -> int:
@@ -203,13 +279,16 @@ def cmd_review(args: argparse.Namespace, reporter: Reporter) -> int:
     transcript = Transcript.load(source)
     config = load_config({"review": {"mode": args.mode} if args.mode else {}})
     glossary = load_glossary(args, source, reporter)
-    if not glossary:
+    use_llm = wants_llm(config, args.llm)
+    if not glossary and use_llm is False:
         reporter.error(
-            "No glossary found. Create one with `flosub glossary add` or pass --glossary."
+            "No glossary found and the LLM is off. Add terms with `flosub glossary add`, "
+            "pass --glossary, or use --llm."
         )
         return 2
     stem = source.parent / source.name.removesuffix(".json")
-    transcript, extra = run_review(transcript, glossary, config, stem, reporter)
+    overrides = {"provider": args.provider, "model": args.llm_model, "base_url": args.base_url}
+    transcript, extra = run_review(transcript, glossary, config, stem, reporter, use_llm, overrides)
     outputs = extra.pop("outputs", [])
     if "applied" in extra:
         transcript.save(source)
@@ -250,6 +329,33 @@ def review_apply(path: Path, args: argparse.Namespace, reporter: Reporter) -> in
         )
     reporter.emit("done", outputs=outputs, applied=len(chosen))
     return 0
+
+
+def cmd_llm(args: argparse.Namespace, reporter: Reporter) -> int:
+    """`flosub llm check|providers`: test the reviewer's server and list its models."""
+    from legendaria_engine.review import llm
+
+    if args.action == "providers":
+        print(json.dumps(llm.load_providers(), ensure_ascii=False, indent=2))
+        return 0
+    config = load_config()
+    result: dict = {"ok": False}
+    try:
+        settings = llm.resolve(
+            config["review"].get("llm", {}),
+            provider=args.provider,
+            base_url=args.base_url,
+            model=args.llm_model,
+        )
+        result.update(provider=settings.provider, base_url=settings.base_url)
+        client = llm.LLMClient(settings)
+        result["models"] = client.list_models()
+        result["model"] = client.pick_model()
+        result["ok"] = True
+    except llm.LLMError as exc:
+        result["error"] = str(exc)
+    print(json.dumps(result, ensure_ascii=False))
+    return 0 if result["ok"] else 1
 
 
 def cmd_glossary(args: argparse.Namespace, reporter: Reporter) -> int:
@@ -373,12 +479,26 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--glossary", action="append", metavar="FILE", help="extra glossary file")
     r.add_argument("--no-glossary", action="store_true", help=argparse.SUPPRESS)
     r.add_argument("--mode", choices=["suggest", "auto"], help="default from config (suggest)")
+    r.add_argument(
+        "--llm", dest="llm", action="store_true", default=None, help="use the LLM reviewer"
+    )
+    r.add_argument("--no-llm", dest="llm", action="store_false", help="glossary fixes only")
+    r.add_argument("--provider", help="LLM provider (see `flosub llm providers`)")
+    r.add_argument("--model", dest="llm_model", help="LLM model id")
+    r.add_argument("--base-url", help="LLM server URL (OpenAI-compatible)")
     r.add_argument("--ids", help="apply: comma-separated suggestion ids")
     r.add_argument("--all", action="store_true", help="apply: every pending suggestion")
     r.add_argument("--reject-rest", action="store_true", help="apply: mark the others rejected")
     r.add_argument("--format", type=parse_formats, help="apply: also re-export (cues,srt,vtt)")
     r.add_argument("--style", help="apply: cue style for the re-export")
     r.set_defaults(func=cmd_review)
+
+    llm_parser = sub.add_parser("llm", help="check the LLM reviewer's server, list providers")
+    llm_parser.add_argument("action", choices=["check", "providers"])
+    llm_parser.add_argument("--provider")
+    llm_parser.add_argument("--model", dest="llm_model")
+    llm_parser.add_argument("--base-url")
+    llm_parser.set_defaults(func=cmd_llm)
 
     g = sub.add_parser("glossary", help="show, locate or add to a glossary")
     g.add_argument("action", choices=["show", "path", "add"])

@@ -57,6 +57,19 @@
     "mode": "suggest",
     "glossary_bias": true,
     "fuzzy_threshold": 0.82,
-    "low_confidence": 0.5
+    "low_confidence": 0.5,
+    "profile": "auto",
+    "llm": {
+      "enabled": "auto",
+      "provider": "ollama",
+      "base_url": "",
+      "model": "",
+      "api_key_env": "",
+      "batch_lines": 20,
+      "context_lines": 2,
+      "max_change_ratio": 0.35,
+      "timeout_s": 180,
+      "unload_after": true
+    }
   }
 }
