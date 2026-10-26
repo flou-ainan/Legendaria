@@ -3,7 +3,7 @@
 > A condensed map of the project, so agents and people can find what they need without rereading the code.
 > **Update this file with every change to the project** (files, functions, stack, structure). Conventions: `docs/dev-docs/README.md`.
 
-**Last updated:** 2026-10-25 — step 13 (plan 03: glossary + reviewer; ADR-010/011; plans 04–05 drafted).
+**Last updated:** 2026-10-26 — step 14 (`.ass` research folded into plan 04; ADR-012 proposed).
 
 ---
 
@@ -72,6 +72,7 @@ engine/ (`flosub`) ── faster-whisper (GPU → CPU fallback) ──► transc
 | [009](dev-docs/decisions/ADR-009-project-name.md) | Name: Legendária (`legendaria`), CLI `flosub` | accepted |
 | [010](dev-docs/decisions/ADR-010-review-pipeline.md) | Glossary in 3 layers + LLM reviewer (OpenAI-compatible, suggestions), device profiles | accepted |
 | [011](dev-docs/decisions/ADR-011-modular-architecture.md) | Engine core → CLI/HTTP API → clients (Blender, web GUI, Kdenlive later) | accepted |
+| [012](dev-docs/decisions/ADR-012-ass-styled-format.md) | `.ass` as styled format: one preset → `.ass` (libass overlay/burn) and Blender strips | proposed |
 
 ## 5. Folder structure
 
@@ -117,7 +118,7 @@ Legendaria/
         ├── planning/        # plans (before implementing)
         ├── devlog/          # executed steps
         ├── decisions/       # ADRs
-        └── references/      # origin_brainstorm.md
+        └── references/      # origin_brainstorm.md, ass_brainstorm.md
 ```
 
 Build the add-on package: `blender --command extension build --source-dir blender_addon/legendaria --output-dir dist` (gives `legendaria-<version>.zip`, installed with Edit → Preferences → Get Extensions → Install from Disk).
@@ -509,5 +510,5 @@ Generate the glowing Legendária key art (hero and banner) as SVG.
 
 - Plan 02 (Blender add-on): done (steps 09–12).
 - **Next: plan 03, accuracy** (glossary + LLM reviewer): stages 3a glossary, 3b LLM, 3c Blender UI.
-- Then plan 04 (CapCut animations), plan 05 (local API + `flosub gui` web interface).
+- Then plan 04 (CapCut animations, `.ass` export / exact preview / burn-in / SRT alignment — §6), plan 05 (local API + `flosub gui` web interface).
 - Backlog: plan 01, section 8.

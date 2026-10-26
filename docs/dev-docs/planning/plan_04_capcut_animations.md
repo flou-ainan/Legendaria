@@ -79,11 +79,53 @@ Open question (needs owner input): how to render per-word highlighting in Blende
 - [ ] Engine cue format unchanged (cues v1 still valid).
 - [ ] Docs: `PROJECT.md` file map updated, devlog step written.
 
-## 6. Decisions that need the owner's input
+## 6. `.ass` integration (added 2026-10-26)
+
+Source: the owner's conversation about `.ass` (summary and checks: `references/ass_brainstorm.md`), proposed decision ADR-012. It answers open question 2 of §7 (karaoke rendering) with a second, exact rendering path.
+
+### 6.1 One preset, two renderers
+
+The preset JSON (§3.1) gains the fields `.ass` needs: font name, the four colors with alpha, outline, shadow, blur, alignment and margins, uppercase, and an animation block (`pop_scale`, `pop_ms`, `karaoke: fill|instant|none`, `fade_in_ms`). The **engine** turns a preset plus cues into `.ass`; the **add-on** turns the same preset into text-strip properties. The look is defined once.
+
+### 6.2 Engine (`flosub`)
+
+- `formats.to_ass(cues, preset, profile)`:
+  - `[Script Info]` (PlayRes from the media), `[V4+ Styles]` from the preset, and `[Events]` with `\kf` (word durations in centiseconds), `\t` pops and `\fad`.
+  - Profile `full` (CapCut look) or `basic` (bold, italic, color, outline, position only: **Kdenlive-compatible**, for the owner's workflow).
+- `--format ass` on `transcribe` and `export`, plus `--ass-profile full|basic` and `--preset NAME`.
+- `flosub overlay video.json --preset P` renders the subtitles alone to a transparent `video.overlay.mov` (FFmpeg `ass` filter on a transparent canvas, qtrle argb). Checked: real alpha, karaoke fill correct.
+- `flosub burn video.mp4 --preset P` produces the final video with burned-in subtitles (FFmpeg `ass` filter; NVENC when available). This replaces the "fast burn-in" backlog item of plan 01.
+- FFmpeg lookup per OS: PATH, the managed install (later), or a configured path. The styled path explains clearly when FFmpeg or libass is missing.
+
+### 6.3 Blender
+
+- **Editing:** the text strips stay the place to edit text, timing and position (plan 02).
+- **Exact preview (optional toggle):**
+  - "Exact preview" runs `flosub overlay` and puts the alpha `.mov` above the captions channel with `ALPHA_OVER`. Checked on 4.2.23 and 5.2.3.
+  - "Refresh preview" after edits. The overlay is built from the **current strips**: strips → cues → `.ass` → overlay.
+- **Native animations** (§3.3) remain for those who want to keyframe inside Blender.
+- **Import `.ass` / `.srt`:** a light parser in the add-on (styles and dialogue; basic tags mapped to strip properties; override tags kept in a custom property, so a round trip does not lose them).
+- **Export `.ass`** next to SRT/VTT.
+- **Color management:** if the scene's view transform is not "Standard", the panel warns and offers a one-click switch. The default Filmic (4.2) and AgX (5.x) tone-map caption colors (yellow turned khaki in the check). This also affects the current add-on.
+
+### 6.4 Bring your own subtitles: align an existing `.srt`
+
+`flosub align video.mp4 --srt existing.srt`: transcribe with word timings, then align the SRT text to the transcribed words with a text diff (the same re-alignment as plan 03, `review/align.py`). The result is a transcript with the **user's text** and **word timings**, ready for CapCut styles and `.ass`. WhisperX/wav2vec2 forced alignment stays in the backlog as a fallback for difficult audio.
+
+### 6.5 Stages
+
+- **4a.** Preset schema v2 (shared by the engine and the add-on) and the preset gallery in the panel (§3–4); "Standard" view transform check.
+- **4b.** Engine `.ass` export (`full` / `basic`), `overlay`, `burn`; FFmpeg lookup.
+- **4c.** Blender: exact-preview overlay, native animations (`pop_in`, `karaoke`), `.ass` export.
+- **4d.** Import: `.ass` / `.srt` into Blender; `flosub align --srt`.
+
+## 7. Decisions that need the owner's input
 
 1. **Look of the CapCut presets:** font size, colors (current-word highlight color, dim color), position, outline/shadow — propose defaults below or send reference screenshots.
 2. **Karaoke rendering:** one strip per word vs. another approach; do keyframed strip properties work on your Blender 4.2.23/5.2.3?
 3. **Emphasis words:** auto-detect from audio or manual list in a preset?
+4. **Default preview in Blender** (ADR-012): native animated strips (editable, approximate), or the exact libass overlay (pixel-perfect, regenerated after edits)? Proposal: native for editing, the exact overlay as a toggle.
+5. **Kdenlive:** is the `basic` `.ass` profile (Kdenlive-compatible) a priority, given the owner's current workflow?
 
 Proposed CapCut defaults (to confirm):
 - `font_size`: 76 (1080p base), `color`: white, `outline`: black, `position`: bottom-center slightly raised, `current_word_color`: yellow (`[1, 1, 0, 1]`), `dim_color`: half-opacity white.
