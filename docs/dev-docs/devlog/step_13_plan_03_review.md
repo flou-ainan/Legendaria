@@ -29,6 +29,10 @@ A detailed "Plan 03 — CapCut-style animations" draft written by another agent 
 
 Documentation only. The prototypes were ad-hoc scripts run outside the repository.
 
+## Follow-up decision (2026-10-25)
+
+Accepted fixes are **not** added to the glossary automatically. Every interface must offer "Add to glossary" (from a suggestion or from a selected caption), backed by `flosub glossary add`. Recorded in plan 03 §3.6 and ADR-010.
+
 ## Pending / next steps
 
 - Stage 3a: glossary in the engine and CLI.
