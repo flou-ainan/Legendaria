@@ -28,9 +28,14 @@ def load_preset(style: str) -> dict:
     return json.loads((PRESETS_DIR / "captions.json").read_text(encoding="utf-8"))
 
 
-def apply_preset(strip, preset: dict, resolution_y: int) -> None:
-    """Apply a style preset to a text strip; font sizes are scaled from 1080 px."""
-    scale = resolution_y / 1080 if resolution_y else 1.0
+def short_side(scene) -> int:
+    """The render's shorter side in pixels (1080 for both 1920x1080 and 1080x1920)."""
+    return min(scene.render.resolution_x, scene.render.resolution_y)
+
+
+def apply_preset(strip, preset: dict, short: int) -> None:
+    """Apply a style preset to a text strip; font sizes are for a 1080 px short side."""
+    scale = short / 1080 if short else 1.0
     if "font_size" in preset:
         strip.font_size = preset["font_size"] * scale
     if "location" in preset:
@@ -157,7 +162,7 @@ def create_strips(
         strip.text = cue["text"]
         strip[TAG] = index
         strip[WORDS] = json.dumps(cue.get("words", []), ensure_ascii=False)
-        apply_preset(strip, preset, scene.render.resolution_y)
+        apply_preset(strip, preset, short_side(scene))
         created.append(strip)
         kept.append((start, end))  # later cues must not overlap this one either
     return created
@@ -192,3 +197,19 @@ def read_cues(
         )
         for s in chosen
     ]
+
+
+def write_cues_file(
+    path: Path, cues: list[tuple[float, float, str]], style: str, source: str
+) -> Path:
+    """Save (start, end, text) captions as a cues JSON v1 the engine can export or render."""
+    data = {
+        "version": 1,
+        "style": style,
+        "source": source,
+        "language": None,
+        "cues": [{"start": a, "end": b, "text": t, "words": []} for a, b, t in cues],
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    return path

@@ -30,6 +30,10 @@ jobs:
       - name: Lint and format (pre-commit)
         run: uvx pre-commit@4.6.2 run --all-files --show-diff-on-failure
 
+      - name: FFmpeg (burn-in and overlay tests)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
       - name: Engine tests
         if: hashFiles('engine/pyproject.toml') != ''
         working-directory: engine
@@ -77,7 +81,7 @@ jobs:
           tar -xf "$file" -C ~/blender --strip-components=1
 
       - name: System libraries for Blender
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libxkbcommon0 libsm6 libice6 libegl1
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libxkbcommon0 libsm6 libice6 libegl1 ffmpeg
 
       - name: Test audio clip
         run: |

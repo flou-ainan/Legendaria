@@ -1,4 +1,4 @@
-"""`flosub` command line: transcribe, export, models, config."""
+"""`flosub` command line: transcribe, export, review, glossary, burn, overlay, models, config."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pathlib import Path
 
 from legendaria_engine import __version__, paths
 from legendaria_engine.config import ConfigError, load_config
-from legendaria_engine.cues import make_cues
+from legendaria_engine.cues import CueList, make_cues
 from legendaria_engine.events import Reporter, make_reporter
 from legendaria_engine.formats import FORMATS, WRITERS
 from legendaria_engine.schema import Transcript
@@ -22,26 +22,90 @@ def output_path(stem: Path, fmt: str) -> Path:
 
 
 def write_outputs(
-    transcript: Transcript, stem: Path, formats: list[str], config: dict, style: str
+    transcript: Transcript | None,
+    stem: Path,
+    formats: list[str],
+    config: dict,
+    style: str,
+    size: tuple[int, int] | None = None,
+    cues: CueList | None = None,
 ) -> list[str]:
     """Write the requested formats next to `stem` (no extension); returns the paths.
 
-    `json` is the full transcript; `cues`, `srt` and `vtt` use the cues of `style`.
+    `json` is the full transcript; the others use the cues of `style`, or `cues` when
+    given (an edited cue list, e.g. from Blender). `ass` is drawn on a `size` canvas.
     """
+    from legendaria_engine.ass import to_ass
+
     stem.parent.mkdir(parents=True, exist_ok=True)
     rules = config["styles"][style]
-    cues = make_cues(transcript, rules, style) if set(formats) - {"json"} else None
+    if cues is None and set(formats) - {"json"}:
+        cues = make_cues(transcript, rules, style)
     written = []
     for fmt in formats:
         target = output_path(stem, fmt)
         if fmt == "json":
+            if transcript is None:
+                raise ValueError("A cues file has no transcript to write as json")
             transcript.save(target)
         elif fmt == "cues":
             cues.save(target)
+        elif fmt == "ass":
+            text = to_ass(cues, rules.get("ass"), size, rules.get("line_length"))
+            target.write_text(text, encoding="utf-8")
         else:
             target.write_text(WRITERS[fmt](cues, rules.get("line_length")), encoding="utf-8")
         written.append(str(target))
     return written
+
+
+def parse_size(value: str) -> tuple[int, int]:
+    """argparse type: `WIDTHxHEIGHT` → (width, height)."""
+    width, _, height = value.lower().partition("x")
+    try:
+        size = int(width), int(height)
+    except ValueError:
+        raise argparse.ArgumentTypeError("size must look like 1920x1080") from None
+    if min(size) <= 0:
+        raise argparse.ArgumentTypeError("size must be positive")
+    return size
+
+
+def canvas_size(
+    config: dict, given: tuple[int, int] | None, media: str | Path | None
+) -> tuple[int, int] | None:
+    """Canvas for `.ass`: `--size`, else the media's video size, else None (1920x1080)."""
+    if given:
+        return given
+    if media and Path(media).is_file():
+        from legendaria_engine.media import video_size
+
+        return video_size(Path(media), config)
+    return None
+
+
+def load_subtitles(path: Path) -> tuple[Transcript | None, CueList | None, str | None]:
+    """A subtitle source: (transcript, cues, ass text); exactly one is set."""
+    if path.suffix.lower() == ".ass":
+        return None, None, path.read_text(encoding="utf-8")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if "cues" in data:
+        return None, CueList.from_dict(data), None
+    return Transcript.from_dict(data), None, None
+
+
+def ass_for(path: Path, config: dict, style: str, size: tuple[int, int] | None) -> tuple[str, str]:
+    """(.ass text, source media) from a transcript, a cues JSON or an `.ass` file."""
+    from legendaria_engine.ass import to_ass
+
+    transcript, cues, text = load_subtitles(path)
+    if text is not None:
+        return text, ""
+    rules = config["styles"][style]
+    source = transcript.source if transcript else cues.source
+    if cues is None:
+        cues = make_cues(transcript, rules, style)
+    return to_ass(cues, rules.get("ass"), size, rules.get("line_length")), source
 
 
 def parse_clip(value: str) -> tuple[float, float]:
@@ -132,7 +196,8 @@ def cmd_transcribe(args: argparse.Namespace, reporter: Reporter) -> int:
         transcript, extra = run_review(
             transcript, glossary, config, stem, reporter, wants_llm(config, None)
         )
-    outputs = write_outputs(transcript, stem, config["formats"], config, style)
+    size = canvas_size(config, None, media) if "ass" in config["formats"] else None
+    outputs = write_outputs(transcript, stem, config["formats"], config, style, size)
     reporter.emit(
         "done",
         outputs=outputs + extra.get("outputs", []),
@@ -256,15 +321,18 @@ def run_llm(transcript, glossary, review_cfg: dict, reporter: Reporter, use_llm,
 
 
 def cmd_export(args: argparse.Namespace, reporter: Reporter) -> int:
-    """`flosub export`: turn a transcript JSON into cues / SRT / VTT in a given style."""
+    """`flosub export`: a transcript (or an edited cues JSON) → cues / SRT / VTT / ASS."""
     source = Path(args.file).expanduser()
-    transcript = Transcript.load(source)
+    transcript, cues, _ = load_subtitles(source)
     config = load_config()
-    style = check_style(config, args.style)
-    default_stem = source.parent / source.name.removesuffix(".json")
-    stem = Path(args.output) if args.output else default_stem
-    outputs = write_outputs(transcript, stem, args.format, config, style)
-    reporter.emit("done", outputs=outputs, segments=len(transcript.segments), style=style)
+    style = check_style(config, args.style or (cues.style if cues else None))
+    name = source.name.removesuffix(".json").removesuffix(".cues")
+    stem = Path(args.output) if args.output else source.parent / name
+    media = transcript.source if transcript else cues.source
+    size = canvas_size(config, args.size, media) if "ass" in args.format else None
+    outputs = write_outputs(transcript, stem, args.format, config, style, size, cues)
+    count = len(transcript.segments) if transcript else len(cues.cues)
+    reporter.emit("done", outputs=outputs, segments=count, style=style)
     return 0
 
 
@@ -324,9 +392,9 @@ def review_apply(path: Path, args: argparse.Namespace, reporter: Reporter) -> in
         config = load_config()
         style = check_style(config, args.style)
         stem = transcript_path.parent / transcript_path.name.removesuffix(".json")
-        outputs += write_outputs(
-            transcript, stem, [f for f in args.format if f != "json"], config, style
-        )
+        formats = [f for f in args.format if f != "json"]
+        size = canvas_size(config, None, transcript.source) if "ass" in formats else None
+        outputs += write_outputs(transcript, stem, formats, config, style, size)
     reporter.emit("done", outputs=outputs, applied=len(chosen))
     return 0
 
@@ -462,6 +530,68 @@ def glossary_target(args: argparse.Namespace) -> Path:
     return glossary.global_file()
 
 
+def cmd_burn(args: argparse.Namespace, reporter: Reporter) -> int:
+    """`flosub burn VIDEO`: a copy of the video with the subtitles drawn in (FFmpeg + libass)."""
+    from legendaria_engine import media
+
+    video = Path(args.file).expanduser().resolve()
+    if not video.is_file():
+        reporter.error(f"File not found: {video}")
+        return 2
+    subs = Path(args.subs).expanduser() if args.subs else video.parent / f"{video.stem}.json"
+    if not subs.is_file():
+        reporter.error(
+            f"Subtitles not found: {subs}. Transcribe first (`flosub transcribe`) or pass --subs."
+        )
+        return 2
+    config = load_config()
+    style = check_style(config, args.style)
+    text, _ = ass_for(subs, config, style, canvas_size(config, None, video))
+    output = (
+        Path(args.output).expanduser().resolve()
+        if args.output
+        else video.parent / f"{video.stem}.subtitled.mp4"
+    )
+    if output.resolve() == video:
+        reporter.error("The output would overwrite the input video; choose another --output.")
+        return 2
+    media.burn(config, video, text, output, reporter)
+    reporter.emit("done", outputs=[str(output)], style=style)
+    return 0
+
+
+def cmd_overlay(args: argparse.Namespace, reporter: Reporter) -> int:
+    """`flosub overlay SUBS`: the subtitles alone on a transparent video (for editors)."""
+    from legendaria_engine import media
+
+    subs = Path(args.file).expanduser()
+    config = load_config()
+    style = check_style(config, args.style)
+    transcript, cues, _ = load_subtitles(subs)
+    source = transcript.source if transcript else (cues.source if cues else "")
+    info = {"width": None, "fps": None, "duration": 0.0}
+    if source and Path(source).is_file() and not (args.size and args.fps and args.duration):
+        info = media.probe(Path(source), config)
+    size = args.size or ((info["width"], info["height"]) if info["width"] else (1920, 1080))
+    fps = args.fps or info["fps"] or 25.0
+    text, _ = ass_for(subs, config, style, size)
+    duration = args.duration or info["duration"]
+    if not duration:
+        ends = [c.end for c in cues.cues] if cues else []
+        if transcript:
+            ends = [s.end for s in transcript.segments]
+        duration = max(ends, default=0.0) + 0.5
+    output = (
+        Path(args.output).expanduser().resolve()
+        if args.output
+        else subs.parent / f"{subs.name.removesuffix('.json').removesuffix('.cues')}.overlay.mov"
+    )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    media.overlay(config, text, size, fps, duration, output, reporter)
+    reporter.emit("done", outputs=[str(output)], style=style, size=list(size), fps=fps)
+    return 0
+
+
 def cmd_models(args: argparse.Namespace, reporter: Reporter) -> int:
     """`flosub models list|download`."""
     from legendaria_engine import models
@@ -517,7 +647,7 @@ def build_parser() -> argparse.ArgumentParser:
     t.add_argument("--model", help="model name (see `flosub models list`) or a model folder")
     t.add_argument("--language", help="language code (pt, en, ...) or 'auto'")
     t.add_argument("--device", choices=["auto", "cuda", "cpu"])
-    t.add_argument("--format", type=parse_formats, help="comma-separated: json,cues,srt,vtt")
+    t.add_argument("--format", type=parse_formats, help="comma-separated: json,cues,srt,vtt,ass")
     t.add_argument(
         "--style", help="cue style: subtitles (default), captions, or one from your config"
     )
@@ -588,14 +718,33 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("--overwrite", action="store_true", help="import: replace an existing one")
     g.set_defaults(func=cmd_glossary)
 
-    e = sub.add_parser("export", help="turn a transcript JSON into cues/SRT/VTT")
-    e.add_argument("file")
+    e = sub.add_parser("export", help="turn a transcript (or cues) JSON into cues/SRT/VTT/ASS")
+    e.add_argument("file", help="transcript JSON, or a cues JSON (e.g. edited in Blender)")
     e.add_argument(
-        "--format", type=parse_formats, default=["srt"], help="comma-separated: cues,srt,vtt"
+        "--format", type=parse_formats, default=["srt"], help="comma-separated: cues,srt,vtt,ass"
     )
-    e.add_argument("--style", help="cue style: subtitles (default), captions, or your own")
+    e.add_argument("--style", help="cue style: subtitles (default), captions, pop, or your own")
     e.add_argument("--output", help="output path without extension (default: next to the JSON)")
+    e.add_argument("--size", type=parse_size, help="ass: canvas WIDTHxHEIGHT (default: video)")
     e.set_defaults(func=cmd_export)
+
+    b = sub.add_parser("burn", help="burn the subtitles into a copy of the video (needs FFmpeg)")
+    b.add_argument("file", help="the video")
+    b.add_argument("--subs", help="transcript, cues or .ass (default: VIDEO.json next to it)")
+    b.add_argument("--style", help="cue style and look (see `flosub config show`)")
+    b.add_argument("--output", help="new video (default: VIDEO.subtitled.mp4)")
+    b.set_defaults(func=cmd_burn)
+
+    o = sub.add_parser(
+        "overlay", help="render the subtitles alone on a transparent .mov (needs FFmpeg)"
+    )
+    o.add_argument("file", help="transcript, cues or .ass")
+    o.add_argument("--style", help="cue style and look")
+    o.add_argument("--size", type=parse_size, help="WIDTHxHEIGHT (default: the source video)")
+    o.add_argument("--fps", type=float, help="frame rate (default: the source video, else 25)")
+    o.add_argument("--duration", type=float, help="seconds (default: the source or last cue)")
+    o.add_argument("--output", help="the .mov to write (default: NAME.overlay.mov)")
+    o.set_defaults(func=cmd_overlay)
 
     m = sub.add_parser("models", help="list or download Whisper models")
     m_sub = m.add_subparsers(dest="action", required=True)

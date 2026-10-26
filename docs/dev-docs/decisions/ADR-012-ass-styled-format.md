@@ -1,6 +1,6 @@
 # ADR 012 — `.ass` as the styled subtitle format and the high-fidelity renderer
 
-**Status:** proposed (needs the owner's confirmation of the Blender preview default; see plan 04 §7)
+**Status:** accepted for the MVP subset (step 23): `.ass` export (`full` profile), `burn`, `overlay`, and the exact preview as an optional button in Blender, following the plan 04 §7.4 proposal. Still open: the `basic` (Kdenlive) profile, import, and whether the exact preview should become the default (the owner decides after the manual test).
 **Date:** 2026-10-26
 
 ## Context

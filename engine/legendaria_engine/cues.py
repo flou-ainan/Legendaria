@@ -45,6 +45,27 @@ class CueList:
         """Write as pretty UTF-8 JSON."""
         path.write_text(json.dumps(self.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
 
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CueList:
+        """Build from a cues JSON v1 dict (words are optional)."""
+        if data.get("version") != CUES_VERSION:
+            raise ValueError(f"Unsupported cues version {data.get('version')!r}")
+        cues = [
+            Cue(
+                float(c["start"]),
+                float(c["end"]),
+                str(c["text"]),
+                [Word(**w) for w in c.get("words", [])],
+            )
+            for c in data.get("cues", [])
+        ]
+        return cls(
+            style=data.get("style", "custom"),
+            source=data.get("source", ""),
+            language=data.get("language"),
+            cues=cues,
+        )
+
 
 def _join(words: list[Word]) -> str:
     """Concatenate words as Whisper spells them: a leading space marks a new word,

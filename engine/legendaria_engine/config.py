@@ -81,6 +81,12 @@ def validate(config: dict[str, Any], source: str = "config") -> None:
         for key, value in rules.items():
             if key in STYLE_NUMBERS and value is not None and not isinstance(value, (int, float)):
                 raise ConfigError(f"{source}: styles.{name}.{key} must be a number or null")
+        look = rules.get("ass", {})
+        if not isinstance(look, dict):
+            raise ConfigError(f"{source}: styles.{name}.ass must be an object")
+        animation = look.get("animation", {"type": "none"})
+        if not isinstance(animation, dict) or animation.get("type") not in ("none", "pop"):
+            raise ConfigError(f"{source}: styles.{name}.ass.animation.type must be 'none' or 'pop'")
     review = config.get("review", {})
     if not isinstance(review, dict) or review.get("mode", "suggest") not in ("suggest", "auto"):
         raise ConfigError(f"{source}: 'review.mode' must be 'suggest' or 'auto'")

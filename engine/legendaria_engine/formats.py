@@ -1,10 +1,10 @@
-"""Subtitle writers: cues → SRT / VTT text."""
+"""Subtitle writers: cues → SRT / VTT text (`.ass` lives in `ass.py`)."""
 
 from __future__ import annotations
 
 from legendaria_engine.cues import CueList, wrap_lines
 
-FORMATS = ("json", "cues", "srt", "vtt")
+FORMATS = ("json", "cues", "srt", "vtt", "ass")
 
 
 def format_timestamp(seconds: float, separator: str = ",") -> str:

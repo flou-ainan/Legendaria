@@ -1,6 +1,6 @@
 # Plan 04 — CapCut-style animations and style presets
 
-**Status:** proposed (draft — awaiting owner input on the look)
+**Status:** MVP look decided (§8, step 15); MVP subset done (§10, step 23); the rest is after the MVP.
 **Renumbered:** written by another agent as "plan 03" on 2026-10-26. It became plan 04 when the owner put the glossary/reviewer first (plan 03, ADR-010), and its content is kept as written. References below to "plan 03" mean this plan.
 **Date:** 2026-10-26
 **Builds on:** plan 02 (done, steps 09–12), ADR-002, ADR-005, ADR-006
@@ -165,3 +165,37 @@ Each is a preset (JSON) with an animation type, rendered by the engine to `.ass`
 | More | Fade, bounce, emphasis words in another color, uppercase/lowercase variants, box/no box |
 
 Adding a style must mean adding a preset plus, at most, one animation generator in the engine. The UI lists presets automatically.
+
+## 10. MVP subset (stage 4-MVP, 2026-10-26)
+
+What the MVP needs from this plan, before the owner's manual test and the alpha release. The rest of the plan (preset gallery, native animations in Blender, import, `align --srt`, the style catalog) stays for after the MVP.
+
+### 10.1 Scope
+
+- **Engine `.ass` export** (`--format ass` on `transcribe` and `export`):
+  - the look of each style lives in the engine config, in a new `styles.<name>.ass` block. It is hackable JSON: font, size at 1080 px, bold, colors as RGBA floats (like the add-on presets), outline, shadow, position `[x, y from the bottom]`, uppercase, and `animation` (`none` or `pop` with `from` / `peak` / `ms`);
+  - one `Dialogue` per cue, `\an5\pos(...)`, and the pop as `\fscx/\fscy` + `\t`, at the start only. No karaoke (owner, §8);
+  - the canvas (`PlayResX/Y`) is the video size from `ffprobe`, or `--size WxH`, or 1920×1080 for audio. Sizes scale with the shorter side, so vertical videos get the same proportions;
+  - the `full` profile only; `basic` (Kdenlive) after the MVP.
+- **`flosub export` accepts a cues JSON** besides a transcript, so clients can export what the user edited (the Blender strips).
+- **`flosub burn VIDEO`:**
+  - burns the subtitles into a new video with FFmpeg's `ass` filter: `<name>.subtitled.mp4`, with progress events;
+  - the subtitles come from `--subs FILE` (transcript, cues or `.ass`), by default `<name>.json` next to the video;
+  - the encoder arguments live in config (`burn.video_args`, `burn.audio_args`);
+  - FFmpeg comes from config `ffmpeg` or PATH, with a clear error when it is missing.
+- **`flosub overlay SUBS --size WxH --fps F --duration S`:** renders the subtitles alone to a transparent QuickTime Animation `.mov`.
+- **Blender:**
+  - "Export ASS" next to SRT/VTT, made from the current strips;
+  - **"Exact preview"**, an optional toggle following the §7.4 proposal:
+    - it renders the strips through `flosub overlay` and puts the `.mov` above the captions with `ALPHA_OVER`;
+    - it mutes the captions channel, so only the exact look shows; the strips stay editable;
+    - "Remove exact preview" undoes it. After edits, the user runs it again;
+    - Blender's normal render then gives the burned-in video.
+  - The add-on presets scale fonts by the shorter side too, matching the engine.
+
+### 10.2 Definition of done
+
+- [x] `flosub export video.json --style pop --format ass` gives the approved look (yellow, one word, pop 70 → 112 → 100 % over 170 ms) — step 23.
+- [x] `flosub burn` on the owner's clip; FFmpeg frame equals the Blender overlay frame — step 23 (18 of 336,000 caption-area pixels differ, all on chroma edges).
+- [x] Blender: Export ASS and Exact preview on 4.2.23 and 5.2.3 (smoke test), pt_BR — step 23.
+- [x] Tests (engine unit tests for the `.ass` writer, burn/overlay with FFmpeg when available; FFmpeg installed in Linux CI), docs — step 23.
