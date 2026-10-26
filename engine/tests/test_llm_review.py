@@ -131,6 +131,9 @@ def test_unreachable_server_in_auto_mode_degrades(tmp_path, capsys):
     source = tmp_path / "v.json"
     TRANSCRIPT.save(source)
     (tmp_path / "legendaria-glossary.txt").write_text("Poliéster\n", encoding="utf-8")
+    from legendaria_engine.config import update_user_config
+
+    update_user_config({"review": {"llm": {"enabled": "auto"}}})  # experimental: opt in
     code = cli.main(
         ["--progress", "json", "review", str(source), "--base-url", "http://127.0.0.1:9/v1"]
     )
@@ -168,3 +171,11 @@ def test_guard_rejects_invented_or_translated_words():
     assert reviewer.guard([reviewer.Unit(0, 1, "fake.", 0.2)], ["falso."], Glossary(), 0.5) is None
     assert reviewer.guard([reviewer.Unit(0, 1, "Nakley.", 0.2)], ["Enacles."], Glossary(), 0.5)
     assert reviewer.guard([reviewer.Unit(0, 1, "voce", 0.9)], ["você"], Glossary(), 0.5)
+
+
+def test_llm_is_off_by_default():
+    from legendaria_engine.config import load_config
+
+    config = load_config()
+    assert config["review"]["llm"]["enabled"] is False
+    assert cli.wants_llm(config, None) is False

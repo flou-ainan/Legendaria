@@ -193,15 +193,15 @@ As-built differences from the text below (see step 07):
 
 - [x] `flosub transcribe video.mp4` produces JSON, SRT and VTT on the GPU, with no manual `export`.
 - [x] Without a GPU, or with `--device cpu`, it runs on CPU.
-- [ ] On a machine with no engine, "Install engine" in Blender leaves a working engine with the `small` model, with no terminal use.
-- [ ] Portuguese and English clips both transcribe correctly with auto-detection and with a fixed language.
+- [x] On a machine with no engine, "Install engine" in Blender leaves a working engine with the `small` model, with no terminal use (step 11: isolated installs, GUI walkthrough).
+- [x] Portuguese and English clips both transcribe correctly with auto-detection and with a fixed language (steps 07, 15, 18).
 - [x] `flosub models download <name>` works and the model shows as installed (tested with `tiny`).
 - [x] The user config file overrides a default (for example the model) with no code change.
 - [x] Engine tests pass (`pytest engine/tests`): 32 tests, in CI on all three OSes.
-- [ ] Blender 4.2 and the latest stable: select a video → Generate → strips appear on the right channel, aligned with the audio; the progress bar moves; the UI does not freeze.
-- [ ] Editing a strip's text and timing, then exporting SRT, gives a file that reflects the edits.
-- [ ] With Blender set to Portuguese, the add-on UI is in Portuguese.
-- [ ] `PROJECT.md` lists every file with line counts and functions; there is one devlog step per stage.
+- [x] Blender 4.2 and the latest stable: select a video → Generate → strips appear on the right channel, aligned with the audio; the progress bar moves; the UI does not freeze. (steps 10, 15: smoke test and GUI walkthrough on 4.2.23 and 5.2.3; owner ran it on 5.2)
+- [ ] Editing a strip's text and timing, then exporting SRT, gives a file that reflects the edits. (Export path covered by the smoke test; **owner's manual test pending**.)
+- [x] With Blender set to Portuguese, the add-on UI is in Portuguese (step 10 screenshots; i18n test).
+- [x] `PROJECT.md` lists every file with line counts and functions; there is one devlog step per stage.
 
 ## 5. Constraints that the later phases impose on the MVP
 

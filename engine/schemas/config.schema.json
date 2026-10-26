@@ -214,7 +214,7 @@
         },
         "llm": {
           "type": "object",
-          "description": "LLM reviewer (layer 3): any OpenAI-compatible chat server.",
+          "description": "EXPERIMENTAL LLM reviewer (layer 3): any OpenAI-compatible chat server. Off by default; enable it here or with `flosub review --llm`.",
           "properties": {
             "enabled": {
               "enum": [
@@ -222,7 +222,7 @@
                 true,
                 false
               ],
-              "description": "auto: use it when the server answers."
+              "description": "false (default): off; true: always; auto: use it when the server answers. Experimental."
             },
             "provider": {
               "type": "string",

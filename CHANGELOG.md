@@ -19,7 +19,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Added
 - **Glossary** (plain text: terms and `wrong -> right` fixes) with a **library of named glossaries** and an active one (`flosub glossary list|new|use|import|export|delete|show|path|add`), a project glossary next to the media, and `--glossary FILE|NAME`.
 - Glossary terms steer Whisper while transcribing (`hotwords`); `--no-glossary` turns it off.
-- **LLM reviewer (optional):** `flosub review --llm` uses any OpenAI-compatible server (Ollama, LM Studio, llama.cpp; OpenAI, Gemini, Anthropic or OpenRouter with your key). The model only proposes changed lines; a guard rejects rewrites, deletions, translations and invented words. `flosub llm check|providers`; editable prompt; falls back to the glossary when no server answers.
+- **LLM reviewer (experimental, off by default):** `flosub review --llm` uses any OpenAI-compatible server (Ollama, LM Studio, llama.cpp; OpenAI, Gemini, Anthropic or OpenRouter with your key). The model only proposes changed lines; a guard rejects rewrites, deletions, translations and invented words. `flosub llm check|providers`; editable prompt; falls back to the glossary when no server answers.
 - **Review without AI:** `flosub review FILE.json` (or `transcribe --review`) suggests explicit fixes and close matches of uncertain words, written to `<name>.review.json` (or applied directly in `auto` mode); `flosub review apply` applies the chosen suggestions and re-times the words.
 
 ## [engine 0.1.0.dev3] - 2026-10-26

@@ -548,7 +548,11 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--no-glossary", action="store_true", help=argparse.SUPPRESS)
     r.add_argument("--mode", choices=["suggest", "auto"], help="default from config (suggest)")
     r.add_argument(
-        "--llm", dest="llm", action="store_true", default=None, help="use the LLM reviewer"
+        "--llm",
+        dest="llm",
+        action="store_true",
+        default=None,
+        help="EXPERIMENTAL: also use the LLM reviewer",
     )
     r.add_argument("--no-llm", dest="llm", action="store_false", help="glossary fixes only")
     r.add_argument("--provider", help="LLM provider (see `flosub llm providers`)")
@@ -561,7 +565,9 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--style", help="apply: cue style for the re-export")
     r.set_defaults(func=cmd_review)
 
-    llm_parser = sub.add_parser("llm", help="check the LLM reviewer's server, list providers")
+    llm_parser = sub.add_parser(
+        "llm", help="(experimental) check the LLM reviewer's server, list providers"
+    )
     llm_parser.add_argument("action", choices=["check", "providers"])
     llm_parser.add_argument("--provider")
     llm_parser.add_argument("--model", dest="llm_model")
