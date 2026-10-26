@@ -1,7 +1,7 @@
 # Plan 03 — CapCut-style animations and style presets
 
-**Status:** proposed (draft — awaiting owner input on the look)  
-**Date:** 2026-10-26  
+**Status:** proposed (draft — awaiting owner input on the look)
+**Date:** 2026-10-26
 **Builds on:** plan 02 (done, steps 09–12), ADR-002, ADR-005, ADR-006
 
 ## 1. Goal
