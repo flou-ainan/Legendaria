@@ -17,6 +17,7 @@ Real use showed Whisper getting names and domain terms wrong ("polieste", "Nakle
 - Output is a **review document** with suggestions (before → after, source, reason). Mode `suggest` is the default and `auto` is available. Both are configurable.
 - A **guard** rejects LLM rewrites that change too much: line count, edit distance, words outside the uncertain or glossary areas.
 - Word timings are re-aligned after a correction.
+- **The glossary never grows by itself.** Every interface offers an explicit "Add to glossary" action, from a suggestion or from a selected caption; the engine provides it (`flosub glossary add`, later the HTTP API). Owner decision, 2026-10-25.
 - **Device profiles** (light / standard / full) select the layers automatically; without an LLM the pipeline degrades to layers 1 and 2.
 
 ## Alternatives considered

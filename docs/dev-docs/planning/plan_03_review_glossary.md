@@ -123,6 +123,15 @@ The owner used `flosub` on a real video (a crochet class, Portuguese, `small` mo
   - "Apply" changes the text of the affected caption strips **in place**, keeping the user's manual timing edits.
 - **Preferences:** LLM provider and model (filled from `flosub llm check`), server URL, the name of the API key environment variable, a "Test connection" button, the review mode, and the profile.
 
+### 3.6 "Add to glossary" in every interface (owner decision, 2026-10-25)
+
+Accepted corrections are **not** added to the glossary automatically. Every client that talks to the engine (Blender now; the web GUI, Kdenlive and mobile later) must offer an explicit way to add a word to the dictionary:
+
+- **Engine first (ADR-011):** `flosub glossary add "Term" [--project FILE | --global]` and `flosub glossary add "wrong -> right"`; the same operation in the local HTTP API (plan 05). Duplicates are ignored, and the file keeps the user's comments and order.
+- **From a suggestion:** each suggestion has "Add to glossary", which adds the corrected term and optionally the `wrong -> right` pair.
+- **From a caption:** the user selects a caption and chooses "Add to glossary…". A small dialog shows the caption's text in an editable field (Blender cannot read a text selection inside a strip), the user keeps only the word or term, and picks the project or the global glossary.
+- **Feedback:** the UI says where the term was saved and that it applies from the next transcription or review onward.
+
 ## 4. Stages
 
 - **3a. Glossary (L1 + L2) in the engine and CLI.** Glossary files, hotwords/initial_prompt, deterministic fixes, the review document, `review apply`, re-alignment. Works offline on CPU.
@@ -134,12 +143,12 @@ The owner used `flosub` on a real video (a crochet class, Portuguese, `small` mo
 1. Default local model to recommend: compare quality and speed on real Portuguese and English clips in 3b.
 2. Applying suggestions to strips the user already edited by hand: match on time and on the "before" text. If the strip text no longer contains "before", skip it and report.
 3. Ollama keeps a model in VRAM for 5 minutes after a call. On 8 GB GPUs this can collide with the next Whisper run. Options: send `keep_alive: 0` through Ollama's native API, or document it.
-4. Should "Bet → Beth"-style fixes the user accepts be **added to the project glossary** automatically, so the next video starts better? Probably yes, with an opt-out.
+4. ~~Should accepted fixes be added to the glossary automatically?~~ **Decided (owner, 2026-10-25): no.** Nothing enters the glossary automatically. Every interface must instead offer an explicit **"Add to glossary"** action (see §3.6).
 
 ## 6. Definition of done
 
 - [ ] On the owner's crochet video: with the glossary, `transcribe` gets "Enacles", "Beth" and "Poliéster" right without an LLM (L1 + L2).
 - [ ] `flosub review` with Ollama proposes the remaining fixes, does not apply "perfeito → perfeita"-style rewrites in suggest mode unless accepted, and keeps word timings aligned.
 - [ ] A weak profile (CPU, no LLM server) still runs L1 + L2 and reports that the LLM is unavailable, without failing.
-- [ ] Blender: glossary editing, review with suggestions, accept/reject, apply in place, pt_BR UI.
+- [ ] Blender: glossary editing, review with suggestions, accept/reject, apply in place, "Add to glossary" from a suggestion and from a selected caption (§3.6), pt_BR UI.
 - [ ] Tests in CI (fake LLM server), docs (`PROJECT.md`, devlog, CHANGELOG), engine release.
