@@ -722,6 +722,7 @@ Generate the glowing Legendária key art (hero and banner) as SVG.
 - Plan 02 (Blender add-on): done (steps 09–12).
 - **Plan 03, accuracy:** done — 3a glossary (step 18), 3b LLM reviewer (step 19, experimental), glossary library (step 20), 3c Blender UI (step 22). Engine 0.1.0.dev4 is not on PyPI yet (needs the owner's tag), so "Install engine" gets it only after that release.
 - **Plan 04, MVP subset (§10):** done in step 23: `.ass` export with the approved pop look, `flosub burn`, `flosub overlay`, and in Blender "Export ASS" and "Exact preview".
+- **Pending owner decisions (agents: remind the owner after the MVP test round):** plan 04 §11.3. They are: the default preview in Blender (strips vs exact preview), and import `.ass`/`.srt` + `flosub align --srt`. Planned after the test feedback: the native pop on word strips (`font_size` keyframes).
 - **Next:** the owner's manual test of the whole MVP, then the README, an alpha release and PyPI (the tag needs the owner's approval).
 - Then plan 04 (CapCut animations — MVP look "one-word pop" decided, §8; style catalog §9 — `.ass` export / exact preview / burn-in / SRT alignment — §6), plan 05 (local API + `flosub gui` web interface).
 - Plan 06 (Blender UX, draft): the owner finds the VSE hard to reach; one-click setup and entry points.

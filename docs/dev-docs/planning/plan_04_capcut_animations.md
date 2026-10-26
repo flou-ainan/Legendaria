@@ -199,3 +199,46 @@ What the MVP needs from this plan, before the owner's manual test and the alpha 
 - [x] `flosub burn` on the owner's clip; FFmpeg frame equals the Blender overlay frame — step 23 (18 of 336,000 caption-area pixels differ, all on chroma edges).
 - [x] Blender: Export ASS and Exact preview on 4.2.23 and 5.2.3 (smoke test), pt_BR — step 23.
 - [x] Tests (engine unit tests for the `.ass` writer, burn/overlay with FFmpeg when available; FFmpeg installed in Linux CI), docs — step 23.
+
+## 11. Owner direction and Blender text capabilities (2026-10-26)
+
+### 11.1 Direction
+
+- **MVP focus (owner):** make what Blender itself can do work smoothly. A more robust Blender plugin, a fork of another program, or another editor is a decision for later.
+- **Kdenlive is not part of the subtitle pipeline** (owner: it is only the video editor). The `basic` `.ass` profile (the subset Kdenlive's subtitle renderer understands) is **dropped**.
+  - **Idea for after the MVP:** a Kdenlive fork dedicated to subtitles, with the full `.ass` feature set, because its interface beats Aegisub's and Blender's. Not evaluated yet. Kdenlive is a large C++/Qt code base, so the cost must be weighed against a dedicated UI (plan 05, a web GUI with a libass preview).
+
+### 11.2 Capability test (step 24, Blender 4.2.23 and 5.2.3, headless renders)
+
+| Capability | 4.2 | 5.2 | Note |
+|---|---|---|---|
+| Keyframes on `font_size`, `color`, `location`, `blend_alpha`, `transform.*`, `crop.*` | ✅ | ✅ | The `text` itself cannot be keyframed |
+| **Pop by animating `font_size`** | ✅ | ✅ | Grows around the text's anchor; the position stays exactly in place |
+| Pop by `transform.scale` | ✅ with `origin` = the text location | ⚠️ | The default origin (0.5, 0.5) moves the text toward the center. In 5.2 the origin is measured differently and no simple value kept the text in place, so `font_size` is the portable way |
+| Keyframes follow the strip when it moves | ✅ | ✅ | Moving the strip 20 frames moved its keys 10 → 30 |
+| `crop` on a text strip (karaoke-like reveal) | ✅ | ✅ | In pixels: needs the word's pixel bounds |
+| Gaussian blur effect strip on a text strip | ✅ | ✅ | |
+| Shadow offset, angle and blur | ✅ | ✅ | |
+| Box roundness, line spacing | — | ✅ | 5.x only |
+| Text measurement in the background (`blf.dimensions`) | ✅ | ✅ | Matching the strip's rendered size is not verified yet |
+
+**Conclusion for the MVP:**
+- These work natively and stay editable: one word at a time with a **pop** (`font_size` keyframes at each strip's start), fades (`blend_alpha`), slides (`location`), shadow blur and glow.
+- These are hard without the `.ass` overlay: the active word highlighted inside a phrase (one strip per word positioned inline, which needs exact text measurement), karaoke fills, and per-letter effects.
+
+### 11.3 Decisions on ADR-012's open questions
+
+1. **Default preview in Blender:** postponed. The owner decides after testing the add-on more.
+2. **Native animations in Blender:**
+   - Owner: the pop should happen on the word strips themselves, in the one-word mode.
+   - The test confirms this works with `font_size` keyframes: 70 → 112 → 100 % over 170 ms, which is about 4 frames at 24 fps.
+   - **Planned for the MVP, after the owner's manual test feedback.**
+3. **`basic` profile for Kdenlive:** dropped (§11.1).
+4. **Import `.ass`/`.srt` and `flosub align --srt`:** postponed until the owner has tested more. **Agents must remind the owner when the MVP test round is over.**
+5. **Duplicated look:**
+   - Today `presets/<style>.json` (add-on, Blender text-strip properties) and `styles.<name>.ass` (engine) describe the same look twice, in different units (outline as a fraction of the font vs pixels; Blender's font vs Arial).
+   - Fix after the MVP (stage 4a):
+     - the engine owns one preset format;
+     - the add-on reads it from the engine and translates it to strip properties, falling back to its bundled copy when the engine is missing;
+     - each part still works alone (ADR-011).
+   - Owner's view: the modular design (independent parts that work together or alone) is the right trade-off for an open, community-first, hackable project, and it will take shape gradually. The duplication was explained to the owner on 2026-10-26.

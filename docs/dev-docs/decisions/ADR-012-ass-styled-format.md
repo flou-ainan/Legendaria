@@ -3,6 +3,14 @@
 **Status:** accepted for the MVP subset (step 23): `.ass` export (`full` profile), `burn`, `overlay`, and the exact preview as an optional button in Blender, following the plan 04 §7.4 proposal. Still open: the `basic` (Kdenlive) profile, import, and whether the exact preview should become the default (the owner decides after the manual test).
 **Date:** 2026-10-26
 
+## Owner input (2026-10-26)
+
+See plan 04 §11:
+- for the MVP, what Blender does natively must work smoothly; the pop goes on the word strips with `font_size` keyframes (planned after the manual test);
+- the `basic` (Kdenlive) profile is dropped, because Kdenlive is not part of the subtitle pipeline;
+- the default preview and import / `align --srt` wait for the owner's tests;
+- the duplicated look is unified after the MVP (stage 4a).
+
 ## Context
 
 CapCut-style captions need per-word color fills and scale "pops". Blender's text strips have one style per strip, so they can only approximate this (one strip per word, keyframes). The owner also edits in Kdenlive, whose subtitle track is `.ass`-based, and dislikes Aegisub's UI. `.ass` plus libass already renders karaoke fills, `\t` animations, outlines and blur everywhere (FFmpeg, mpv, VLC, HandBrake). The checks are in `references/ass_brainstorm.md`.
