@@ -1,6 +1,6 @@
 [project]
 name = "legendaria"
-version = "0.1.0.dev3"
+version = "0.1.0.dev4"
 description = "Legendária transcription engine: local Whisper transcription with word timings (CLI: flosub)."
 readme = "README.md"
 license = "MIT"

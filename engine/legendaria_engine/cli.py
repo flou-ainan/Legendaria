@@ -101,6 +101,12 @@ def cmd_transcribe(args: argparse.Namespace, reporter: Reporter) -> int:
     from legendaria_engine.transcriber import Options, get_backend
 
     language = None if config["language"] == "auto" else config["language"]
+    glossary = load_glossary(args, media, reporter)
+    hotwords = None
+    if glossary and config["review"].get("glossary_bias", True):
+        from legendaria_engine.review.bias import hotwords as make_hotwords
+
+        hotwords = make_hotwords(glossary)
     options = Options(
         model=config["model"],
         model_path=models.resolve(config["model"], reporter),
@@ -111,6 +117,7 @@ def cmd_transcribe(args: argparse.Namespace, reporter: Reporter) -> int:
         vad_filter=config["vad_filter"],
         word_timestamps=config["word_timestamps"],
         clip=clip,
+        hotwords=hotwords,
     )
     transcript = get_backend(config.get("backend", "faster-whisper")).transcribe(
         media, options, reporter
@@ -119,11 +126,57 @@ def cmd_transcribe(args: argparse.Namespace, reporter: Reporter) -> int:
         base = Transcript.load(Path(args.update).expanduser())
         transcript = base.merged_with(transcript, *clip)
     out_dir = Path(args.output_dir).expanduser() if args.output_dir else media.parent
-    outputs = write_outputs(transcript, out_dir / media.stem, config["formats"], config, style)
+    stem = out_dir / media.stem
+    extra: dict = {}
+    if args.review and glossary:
+        transcript, extra = run_review(transcript, glossary, config, stem, reporter)
+    outputs = write_outputs(transcript, stem, config["formats"], config, style)
     reporter.emit(
-        "done", outputs=outputs, segments=len(transcript.segments), language=transcript.language
+        "done",
+        outputs=outputs + extra.get("outputs", []),
+        segments=len(transcript.segments),
+        language=transcript.language,
+        **{k: v for k, v in extra.items() if k != "outputs"},
     )
     return 0
+
+
+def load_glossary(args: argparse.Namespace, media: Path, reporter: Reporter):
+    """Global + project (next to `media`) + `--glossary` files, unless `--no-glossary`."""
+    from legendaria_engine.review import glossary
+
+    if getattr(args, "no_glossary", False):
+        return glossary.Glossary()
+    merged = glossary.load(getattr(args, "glossary", None) or [], media=media)
+    if merged:
+        names = ", ".join(str(p) for p in merged.sources)
+        reporter.log(f"Glossary: {len(merged.terms)} terms, {len(merged.fixes)} fixes ({names})")
+    return merged
+
+
+def run_review(transcript: Transcript, glossary, config: dict, stem: Path, reporter: Reporter):
+    """Layer 2 fixes: write `<stem>.review.json` (suggest) or apply them (auto)."""
+    from legendaria_engine.review import fix_rules
+    from legendaria_engine.review.suggestions import Review, apply
+
+    review_cfg = config["review"]
+    found = fix_rules.suggest(
+        transcript,
+        glossary,
+        threshold=review_cfg.get("fuzzy_threshold", 0.82),
+        low_confidence=review_cfg.get("low_confidence", 0.5),
+    )
+    for s in found:
+        reporter.emit(
+            "suggestion", id=s.id, start=s.start, before=s.before, after=s.after, source=s.source
+        )
+    if review_cfg.get("mode", "suggest") == "auto":
+        for s in found:
+            s.status = "accepted"
+        return apply(transcript, found), {"applied": len(found)}
+    path = stem.parent / f"{stem.name}.review.json"
+    Review(transcript=str(stem.parent / f"{stem.name}.json"), suggestions=found).save(path)
+    return transcript, {"outputs": [str(path)], "suggestions": len(found)}
 
 
 def cmd_export(args: argparse.Namespace, reporter: Reporter) -> int:
@@ -136,6 +189,102 @@ def cmd_export(args: argparse.Namespace, reporter: Reporter) -> int:
     stem = Path(args.output) if args.output else default_stem
     outputs = write_outputs(transcript, stem, args.format, config, style)
     reporter.emit("done", outputs=outputs, segments=len(transcript.segments), style=style)
+    return 0
+
+
+def cmd_review(args: argparse.Namespace, reporter: Reporter) -> int:
+    """`flosub review FILE.json` (suggest or auto) and `flosub review apply FILE.review.json`."""
+    if args.target[0] == "apply":
+        if len(args.target) != 2:
+            reporter.error("Usage: flosub review apply FILE.review.json [--ids 1,2 | --all]")
+            return 2
+        return review_apply(Path(args.target[1]).expanduser(), args, reporter)
+    source = Path(args.target[0]).expanduser()
+    transcript = Transcript.load(source)
+    config = load_config({"review": {"mode": args.mode} if args.mode else {}})
+    glossary = load_glossary(args, source, reporter)
+    if not glossary:
+        reporter.error(
+            "No glossary found. Create one with `flosub glossary add` or pass --glossary."
+        )
+        return 2
+    stem = source.parent / source.name.removesuffix(".json")
+    transcript, extra = run_review(transcript, glossary, config, stem, reporter)
+    outputs = extra.pop("outputs", [])
+    if "applied" in extra:
+        transcript.save(source)
+        outputs.append(str(source))
+    reporter.emit("done", outputs=outputs, **extra)
+    return 0
+
+
+def review_apply(path: Path, args: argparse.Namespace, reporter: Reporter) -> int:
+    """Apply accepted suggestions (`--ids`, or every pending one with `--all`) to the transcript."""
+    from legendaria_engine.review.suggestions import Review, apply
+
+    review = Review.load(path)
+    if args.ids:
+        wanted = {int(i) for i in args.ids.split(",") if i.strip()}
+    elif args.all:
+        wanted = {s.id for s in review.suggestions if s.status == "pending"}
+    else:
+        reporter.error("Choose suggestions with --ids 1,2 or --all")
+        return 2
+    chosen = [s for s in review.suggestions if s.id in wanted]
+    for s in review.suggestions:
+        if s.id in wanted:
+            s.status = "accepted"
+        elif args.reject_rest and s.status == "pending":
+            s.status = "rejected"
+    transcript_path = Path(review.transcript)
+    transcript = apply(Transcript.load(transcript_path), chosen)
+    transcript.save(transcript_path)
+    review.save(path)
+    outputs = [str(transcript_path), str(path)]
+    if args.format:
+        config = load_config()
+        style = check_style(config, args.style)
+        stem = transcript_path.parent / transcript_path.name.removesuffix(".json")
+        outputs += write_outputs(
+            transcript, stem, [f for f in args.format if f != "json"], config, style
+        )
+    reporter.emit("done", outputs=outputs, applied=len(chosen))
+    return 0
+
+
+def cmd_glossary(args: argparse.Namespace, reporter: Reporter) -> int:
+    """`flosub glossary path|show|add` (global by default, or the project of --media)."""
+    from legendaria_engine.review import glossary
+
+    if args.file:
+        target = Path(args.file).expanduser()
+    elif args.media:
+        target = glossary.project_file(Path(args.media).expanduser())
+    else:
+        target = glossary.global_file()
+    if args.action == "path":
+        print(target)
+    elif args.action == "add":
+        if not args.entry:
+            reporter.error('Usage: flosub glossary add "Term" or "wrong -> right"')
+            return 2
+        added = glossary.add_entry(target, args.entry)
+        reporter.emit("done", outputs=[str(target)], added=added, entry=args.entry)
+    else:
+        merged = glossary.load(
+            [args.file] if args.file else [], media=Path(args.media) if args.media else None
+        )
+        print(
+            json.dumps(
+                {
+                    "sources": [str(p) for p in merged.sources],
+                    "terms": merged.terms,
+                    "fixes": merged.fixes,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
     return 0
 
 
@@ -205,6 +354,38 @@ def build_parser() -> argparse.ArgumentParser:
         help="with --clip: transcript JSON to update; segments in the range are replaced",
     )
     t.set_defaults(func=cmd_transcribe)
+
+    t.add_argument(
+        "--glossary",
+        action="append",
+        metavar="FILE",
+        help="glossary file (repeatable); the global one and legendaria-glossary.txt next to the media are used too",
+    )
+    t.add_argument("--no-glossary", action="store_true", help="ignore every glossary")
+    t.add_argument(
+        "--review",
+        action="store_true",
+        help="after transcribing, suggest (or apply, in auto mode) glossary corrections",
+    )
+
+    r = sub.add_parser("review", help="suggest glossary corrections, or apply chosen ones")
+    r.add_argument("target", nargs="+", help="FILE.json, or: apply FILE.review.json")
+    r.add_argument("--glossary", action="append", metavar="FILE", help="extra glossary file")
+    r.add_argument("--no-glossary", action="store_true", help=argparse.SUPPRESS)
+    r.add_argument("--mode", choices=["suggest", "auto"], help="default from config (suggest)")
+    r.add_argument("--ids", help="apply: comma-separated suggestion ids")
+    r.add_argument("--all", action="store_true", help="apply: every pending suggestion")
+    r.add_argument("--reject-rest", action="store_true", help="apply: mark the others rejected")
+    r.add_argument("--format", type=parse_formats, help="apply: also re-export (cues,srt,vtt)")
+    r.add_argument("--style", help="apply: cue style for the re-export")
+    r.set_defaults(func=cmd_review)
+
+    g = sub.add_parser("glossary", help="show, locate or add to a glossary")
+    g.add_argument("action", choices=["show", "path", "add"])
+    g.add_argument("entry", nargs="?", help='add: "Term" or "wrong -> right"')
+    g.add_argument("--media", help="use the project glossary next to this media file")
+    g.add_argument("--file", help="use this glossary file")
+    g.set_defaults(func=cmd_glossary)
 
     e = sub.add_parser("export", help="turn a transcript JSON into cues/SRT/VTT")
     e.add_argument("file")

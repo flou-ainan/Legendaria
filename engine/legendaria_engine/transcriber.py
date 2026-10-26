@@ -23,6 +23,7 @@ class Options:
     vad_filter: bool = True
     word_timestamps: bool = True
     clip: tuple[float, float] | None = None  # transcribe only this time range (seconds)
+    hotwords: str | None = None  # glossary terms that steer recognition (plan 03, layer 1)
 
 
 class Backend(Protocol):
@@ -77,6 +78,8 @@ class FasterWhisperBackend:
         compute_type = options.compute_type.get(device, "default")
         model = WhisperModel(str(options.model_path), device=device, compute_type=compute_type)
         extra = {"clip_timestamps": list(options.clip)} if options.clip else {}
+        if options.hotwords:
+            extra["hotwords"] = options.hotwords
         segments_iter, info = model.transcribe(
             str(media),
             language=options.language,

@@ -3,7 +3,7 @@
 > A condensed map of the project, so agents and people can find what they need without rereading the code.
 > **Update this file with every change to the project** (files, functions, stack, structure). Conventions: `docs/dev-docs/README.md`.
 
-**Last updated:** 2026-10-26 — step 17 (known issue KI-001: freeze when loading the medium model).
+**Last updated:** 2026-10-26 — step 18 (plan 03 stage 3a: glossary, Whisper hotwords, deterministic fixes, review suggestions; engine 0.1.0.dev4).
 
 ---
 
@@ -95,7 +95,7 @@ Legendaria/
 │   ├── pyproject.toml       # deps; extras: cuda (NVIDIA libs), test (pytest, jsonschema); script flosub
 │   ├── uv.lock / .python-version (3.11)
 │   ├── README.md, LICENSE
-│   ├── legendaria_engine/   # the package (see file map)
+│   ├── legendaria_engine/   # the package (see file map); review/ = glossary, hotwords, fix rules, suggestions (plan 03)
 │   │   └── defaults/        # config.json (engine defaults), models.json (model catalog)
 │   ├── schemas/             # JSON Schemas: config, models, transcript (editor autocomplete)
 │   └── tests/               # pytest suite (no GPU or network needed)
@@ -134,10 +134,12 @@ User files at runtime (per OS, via `platformdirs`; overridable with `LEGENDARIA_
 Generated with `python3 tools/project_map.py <files>` and then reviewed. Regenerate it whenever code changes.
 
 **Data files:**
-- `engine/legendaria_engine/defaults/config.json`: engine defaults (model `small`, language `auto`, device `auto`, compute types, beam size, VAD, word timestamps, default `style`, cue `styles` (`pop`: one word at a time, two when the first has ≤ 3 letters, glued pieces like "-vindas" kept, gaps ≤ 0.35 s filled — the MVP default in Blender; `captions`: up to 4 words / 22 chars / 2.2 s; `subtitles`: film-style, up to 84 chars / 6 s, 2 lines of 42), output formats, UI language list).
+- `engine/legendaria_engine/defaults/config.json`: engine defaults (`review`: mode suggest/auto, glossary_bias, fuzzy_threshold 0.82, low_confidence 0.5; model `small`, language `auto`, device `auto`, compute types, beam size, VAD, word timestamps, default `style`, cue `styles` (`pop`: one word at a time, two when the first has ≤ 3 letters, glued pieces like "-vindas" kept, gaps ≤ 0.35 s filled — the MVP default in Blender; `captions`: up to 4 words / 22 chars / 2.2 s; `subtitles`: film-style, up to 84 chars / 6 s, 2 lines of 42), output formats, UI language list).
 - `engine/legendaria_engine/defaults/models.json`: model catalog (tiny, base, small, medium, large-v3, large-v3-turbo) with HF repo, size, VRAM, notes.
 - `engine/schemas/*.schema.json`: JSON Schemas for config (incl. styles), models, transcript v1 and cues v1.
-- `engine/tests/`: `conftest.py` (isolated dirs, sample transcript), `test_cues.py` (chunking rules), `test_formats.py`, `test_schema.py`, `test_config.py`, `test_cli.py`, `test_transcriber.py` (GPU→CPU fallback with a fake run). 51 tests.
+- `engine/tests/`: `conftest.py` (isolated dirs, sample transcript), `test_cues.py` (chunking rules), `test_formats.py`, `test_schema.py`, `test_config.py`, `test_cli.py`, `test_transcriber.py` (GPU→CPU fallback with a fake run), `test_glossary.py`, `test_fix_rules.py`. 76 tests.
+
+**Glossary and review (plan 03, stage 3a):** glossary files are plain text (`Term` or `wrong -> right`): global `<config dir>/glossary.txt`, project `legendaria-glossary.txt` next to the media or transcript, and `--glossary FILE`. `transcribe` passes the terms to Whisper as `hotwords` (layer 1). `flosub review FILE.json` (or `transcribe --review`) finds explicit fixes and fuzzy matches of uncertain words (layer 2) and writes `<name>.review.json` (mode `suggest`) or applies them (`auto`). `flosub review apply FILE.review.json --ids …|--all [--format srt]` applies the chosen ones, re-timing the words. `flosub glossary path|show|add` is the base of every UI's "Add to glossary".
 
 **Range regeneration:** `flosub transcribe media --clip START,END --update saved.json` transcribes only that range and merges it into the saved transcript word by word (`Transcript.merged_with`), so nothing is duplicated or lost at the boundaries.
 
@@ -158,7 +160,7 @@ Legendária transcription engine.
 ### engine/legendaria_engine/__main__.py — 5 lines
 Allow `python -m legendaria_engine`.
 
-### engine/legendaria_engine/cli.py — 252 lines
+### engine/legendaria_engine/cli.py — 433 lines
 `flosub` command line: transcribe, export, models, config.
 
 | Function / class | Line | What it does |
@@ -169,13 +171,18 @@ Allow `python -m legendaria_engine`.
 | `check_style(config, style)` | 58 | The style to use: `--style` if given, else the config default; must exist. |
 | `parse_formats(value)` | 66 | argparse type: comma-separated format list, validated against FORMATS. |
 | `cmd_transcribe(args, reporter)` | 77 | `flosub transcribe`: resolve config and model, transcribe, write the outputs. |
-| `cmd_export(args, reporter)` | 129 | `flosub export`: turn a transcript JSON into cues / SRT / VTT in a given style. |
-| `cmd_models(args, reporter)` | 142 | `flosub models list|download`. |
-| `cmd_config(args, reporter)` | 169 | `flosub config show|path`. |
-| `build_parser()` | 178 | The argparse tree for all subcommands. |
-| `main(argv)` | 232 | Entry point: run a subcommand and turn every failure into an `error` event. |
+| `load_glossary(args, media, reporter)` | 144 | Global + project (next to `media`) + `--glossary` files, unless `--no-glossary`. |
+| `run_review(transcript, glossary, config, stem, reporter)` | 157 | Layer 2 fixes: write `<stem>.review.json` (suggest) or apply them (auto). |
+| `cmd_export(args, reporter)` | 182 | `flosub export`: turn a transcript JSON into cues / SRT / VTT in a given style. |
+| `cmd_review(args, reporter)` | 195 | `flosub review FILE.json` (suggest or auto) and `flosub review apply FILE.review.json`. |
+| `review_apply(path, args, reporter)` | 221 | Apply accepted suggestions (`--ids`, or every pending one with `--all`) to the transcript. |
+| `cmd_glossary(args, reporter)` | 255 | `flosub glossary path|show|add` (global by default, or the project of --media). |
+| `cmd_models(args, reporter)` | 291 | `flosub models list|download`. |
+| `cmd_config(args, reporter)` | 318 | `flosub config show|path`. |
+| `build_parser()` | 327 | The argparse tree for all subcommands. |
+| `main(argv)` | 413 | Entry point: run a subcommand and turn every failure into an `error` event. |
 
-### engine/legendaria_engine/config.py — 111 lines
+### engine/legendaria_engine/config.py — 117 lines
 Layered JSON configuration: shipped defaults → user file → command-line values.
 
 | Function / class | Line | What it does |
@@ -184,8 +191,8 @@ Layered JSON configuration: shipped defaults → user file → command-line valu
 | `read_json(path)` | 28 | Read a JSON object from a file, dropping `$schema`; raise ConfigError on bad JSON. |
 | `deep_merge(base, override)` | 40 | Return `base` updated with `override`; nested objects are merged key by key. |
 | `validate(config, source)` | 51 | Check the values the engine relies on, with errors that name the bad key. |
-| `load_config(overrides)` | 90 | Defaults, then the user's `config.json` if present, then non-None `overrides`. |
-| `load_models()` | 102 | The model catalog: shipped `models.json` plus the user's additions or changes. |
+| `load_config(overrides)` | 96 | Defaults, then the user's `config.json` if present, then non-None `overrides`. |
+| `load_models()` | 108 | The model catalog: shipped `models.json` plus the user's additions or changes. |
 
 ### engine/legendaria_engine/cuda_libs.py — 56 lines
 Make the NVIDIA libraries installed by pip (cuBLAS, cuDNN) visible to CTranslate2.
@@ -272,18 +279,73 @@ Transcript format (JSON v1): the contract between the engine and the Blender add
 | `Transcript.save(path)` | 108 | Write as pretty UTF-8 JSON. |
 | `Transcript.load(path)` | 113 | Read a transcript JSON file. |
 
-### engine/legendaria_engine/transcriber.py — 142 lines
+### engine/legendaria_engine/transcriber.py — 145 lines
 Speech-to-text. A small backend interface keeps room for other engines (e.g. Apple Silicon).
 
 | Function / class | Line | What it does |
 |---|---|---|
 | `class Options` | 14 | Everything a backend needs to run one transcription. |
-| `class Backend` | 28 | Interface for speech-to-text engines (faster-whisper today; Apple Silicon later). |
-| `Backend.transcribe(media, options, reporter)` | 33 | Transcribe `media`, reporting progress, and return the transcript. |
-| `cuda_available()` | 38 | True when CTranslate2 sees at least one CUDA device. |
-| `class FasterWhisperBackend` | 48 | faster-whisper (CTranslate2): CUDA on NVIDIA GPUs, int8 on CPU. |
-| `FasterWhisperBackend.transcribe(media, options, reporter)` | 58 | Try each device in turn; in `auto` mode a GPU failure falls back to the CPU. |
-| `get_backend(name)` | 138 | Instantiate a backend by name. |
+| `class Backend` | 29 | Interface for speech-to-text engines (faster-whisper today; Apple Silicon later). |
+| `Backend.transcribe(media, options, reporter)` | 34 | Transcribe `media`, reporting progress, and return the transcript. |
+| `cuda_available()` | 39 | True when CTranslate2 sees at least one CUDA device. |
+| `class FasterWhisperBackend` | 49 | faster-whisper (CTranslate2): CUDA on NVIDIA GPUs, int8 on CPU. |
+| `FasterWhisperBackend.transcribe(media, options, reporter)` | 59 | Try each device in turn; in `auto` mode a GPU failure falls back to the CPU. |
+| `get_backend(name)` | 141 | Instantiate a backend by name. |
+
+### engine/legendaria_engine/review/__init__.py — 1 lines
+Accuracy tools: glossary, transcription bias, deterministic fixes, suggestions (plan 03).
+
+### engine/legendaria_engine/review/align.py — 41 lines
+Replace words in a transcript and give the new words sensible timings.
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `retime(old, new_text)` | 8 | Words for `new_text` spread over the time span of `old`, in proportion to length. |
+| `segment_text(words)` | 31 | Segment text rebuilt from its words (as Whisper spells them). |
+| `replace_words(segment, first, last, new_text)` | 36 | A copy of `segment` with words[first:last] replaced by `new_text`. |
+
+### engine/legendaria_engine/review/bias.py — 22 lines
+Layer 1: glossary terms as Whisper `hotwords`, which steer recognition toward them.
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `hotwords(glossary, max_chars)` | 12 | Comma-separated terms within the budget, or None when there are none. |
+
+### engine/legendaria_engine/review/fix_rules.py — 102 lines
+Layer 2: glossary-based corrections without AI.
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `match_case(original, replacement)` | 25 | Keep a capital first letter from the original ("Bolsa Bet" + "bolsa Beth" → "Bolsa Beth"). |
+| `similarity(a, b)` | 36 | Ratio of two strings after folding case, accents and edge punctuation. |
+| `suggest(transcript, glossary, threshold, low_confidence, start_id)` | 41 | Suggestions for every segment; explicit fixes first, then fuzzy matches. |
+
+### engine/legendaria_engine/review/glossary.py — 127 lines
+Glossary files: names and terms the transcription must get right.
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `fold(text)` | 28 | Lowercase without accents or surrounding punctuation, for comparisons. |
+| `split_entry(line)` | 35 | A parsed line: (wrong, right), a term, or None for blanks and comments. |
+| `class Glossary` | 48 | Merged terms (in order, unique) and explicit fixes keyed by folded wrong text. |
+| `Glossary.add_term(term)` | 55 | Add a term unless an equal one (ignoring case and accents) is there. |
+| `Glossary.merge_text(text)` | 60 | Add every entry of a glossary file's text. |
+| `global_file()` | 75 | The user's glossary for every project: `<config dir>/glossary.txt`. |
+| `project_file(media)` | 80 | The glossary next to a media file: `legendaria-glossary.txt`. |
+| `load(extra, media, use_global)` | 85 | Global glossary, then the project one next to `media`, then `extra` files. |
+| `add_entry(path, entry)` | 105 | Append a term or a 'wrong -> right' line; returns False if it was already there. |
+
+### engine/legendaria_engine/review/suggestions.py — 89 lines
+Review document (`<name>.review.json`, v1): suggested corrections to accept or reject.
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `class Suggestion` | 18 | Replace words[first:last] of one segment ("before") with "after". |
+| `class Review` | 35 | All suggestions for one transcript file. |
+| `Review.to_dict()` | 42 | Plain dict ready for JSON. |
+| `Review.save(path)` | 46 | Write as pretty UTF-8 JSON. |
+| `Review.load(path)` | 51 | Read a review JSON file. |
+| `apply(transcript, suggestions)` | 62 | A copy of the transcript with the given suggestions applied (word timings re-spread). |
 
 
 **Blender add-on data files:**
@@ -514,7 +576,7 @@ Generate the glowing Legendária key art (hero and banner) as SVG.
 ## 7. In progress
 
 - Plan 02 (Blender add-on): done (steps 09–12).
-- **Next: plan 03, accuracy** (glossary + LLM reviewer): stages 3a glossary, 3b LLM, 3c Blender UI.
+- **Plan 03, accuracy:** stage 3a (glossary, hotwords, deterministic fixes, suggestions) done (step 18). Next: 3b (LLM reviewer), 3c (Blender UI).
 - Then plan 04 (CapCut animations — MVP look "one-word pop" decided, §8; style catalog §9 — `.ass` export / exact preview / burn-in / SRT alignment — §6), plan 05 (local API + `flosub gui` web interface).
 - Plan 06 (Blender UX, draft): the owner finds the VSE hard to reach; one-click setup and entry points.
 - **Known issues:** `dev-docs/known-issues.md` (KI-001, high: desktop freeze when loading `medium` from Blender).

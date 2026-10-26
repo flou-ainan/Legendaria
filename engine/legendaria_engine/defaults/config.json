@@ -52,5 +52,11 @@
     "auto",
     "pt",
     "en"
-  ]
+  ],
+  "review": {
+    "mode": "suggest",
+    "glossary_bias": true,
+    "fuzzy_threshold": 0.82,
+    "low_confidence": 0.5
+  }
 }

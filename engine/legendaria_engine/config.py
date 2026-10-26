@@ -81,6 +81,12 @@ def validate(config: dict[str, Any], source: str = "config") -> None:
         for key, value in rules.items():
             if key in STYLE_NUMBERS and value is not None and not isinstance(value, (int, float)):
                 raise ConfigError(f"{source}: styles.{name}.{key} must be a number or null")
+    review = config.get("review", {})
+    if not isinstance(review, dict) or review.get("mode", "suggest") not in ("suggest", "auto"):
+        raise ConfigError(f"{source}: 'review.mode' must be 'suggest' or 'auto'")
+    for key in ("fuzzy_threshold", "low_confidence"):
+        if key in review and not isinstance(review[key], (int, float)):
+            raise ConfigError(f"{source}: 'review.{key}' must be a number")
     if config.get("style") not in styles:
         raise ConfigError(
             f"{source}: 'style' must be one of the defined styles: {', '.join(styles)}"

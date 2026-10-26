@@ -134,7 +134,7 @@ Accepted corrections are **not** added to the glossary automatically. Every clie
 
 ## 4. Stages
 
-- **3a. Glossary (L1 + L2) in the engine and CLI.** Glossary files, hotwords/initial_prompt, deterministic fixes, the review document, `review apply`, re-alignment. Works offline on CPU.
+- **3a. Glossary (L1 + L2) in the engine and CLI — done (step 18).** Glossary files, hotwords/initial_prompt, deterministic fixes, the review document, `review apply`, re-alignment. Works offline on CPU.
 - **3b. LLM reviewer (L3) in the engine and CLI.** OpenAI-compatible client, provider presets, guard, batching, `llm check`, profiles. Tested with the owner's Ollama (`llama3.1:8b`, `qwen2.5-coder:7b`; try a general instruct model such as `qwen2.5:7b-instruct` too) and with a fake server in CI.
 - **3c. Blender UI** for the glossary and the review (suggestions list, apply in place), with pt_BR, tests and a GUI walkthrough.
 
@@ -147,7 +147,7 @@ Accepted corrections are **not** added to the glossary automatically. Every clie
 
 ## 6. Definition of done
 
-- [ ] On the owner's crochet video: with the glossary, `transcribe` gets "Enacles", "Beth" and "Poliéster" right without an LLM (L1 + L2).
+- [x] On the owner's crochet video: with the glossary, `transcribe` gets "Enacles", "Beth" and "Poliéster" right without an LLM (L1 + L2) — step 18.
 - [ ] `flosub review` with Ollama proposes the remaining fixes, does not apply "perfeito → perfeita"-style rewrites in suggest mode unless accepted, and keeps word timings aligned.
 - [ ] A weak profile (CPU, no LLM server) still runs L1 + L2 and reports that the LLM is unavailable, without failing.
 - [ ] Blender: glossary editing, review with suggestions, accept/reject, apply in place, "Add to glossary" from a suggestion and from a selected caption (§3.6), pt_BR UI.

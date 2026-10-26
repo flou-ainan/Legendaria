@@ -103,3 +103,36 @@ def test_update_needs_clip(tmp_path, capsys):
     media.write_bytes(b"")
     code, events, _ = run(["transcribe", str(media), "--update", "x.json"], capsys)
     assert code == 2 and "--clip" in events[-1]["message"]
+
+
+def test_glossary_add_show_and_review_flow(tmp_path, capsys):
+    from legendaria_engine.schema import Segment, Transcript, Word
+
+    words = [Word(0, 0.4, " fio", 0.9), Word(0.4, 1.0, " polieste.", 0.4)]
+    t = Transcript("v.mp4", "pt", 2.0, "small", "cpu", [Segment(0, 1.0, "fio polieste.", words)])
+    source = tmp_path / "v.json"
+    t.save(source)
+    project = tmp_path / "legendaria-glossary.txt"
+    code, events, _ = run(["glossary", "add", "Poliéster", "--file", str(project)], capsys)
+    assert code == 0 and events[-1]["added"] is True
+
+    code, events, _ = run(
+        ["review", str(source)], capsys
+    )  # project glossary found next to the JSON
+    assert code == 0
+    suggestion = next(e for e in events if e["event"] == "suggestion")
+    assert suggestion["after"] == "Poliéster."
+    review_file = tmp_path / "v.review.json"
+    assert review_file.is_file()
+
+    code, events, _ = run(["review", "apply", str(review_file), "--all", "--format", "srt"], capsys)
+    assert code == 0 and events[-1]["applied"] == 1
+    assert "Poliéster." in (tmp_path / "v.srt").read_text(encoding="utf-8")
+    assert "Poliéster." in Transcript.load(source).segments[0].text
+
+
+def test_review_without_glossary_is_an_error(transcript, tmp_path, capsys):
+    source = tmp_path / "clip.json"
+    transcript.save(source)
+    code, events, _ = run(["review", str(source)], capsys)
+    assert code == 2 and "glossary" in events[-1]["message"].lower()
