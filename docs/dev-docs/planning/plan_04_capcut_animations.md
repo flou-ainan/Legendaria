@@ -242,3 +242,20 @@ What the MVP needs from this plan, before the owner's manual test and the alpha 
      - the add-on reads it from the engine and translates it to strip properties, falling back to its bundled copy when the engine is missing;
      - each part still works alone (ADR-011).
    - Owner's view: the modular design (independent parts that work together or alone) is the right trade-off for an open, community-first, hackable project, and it will take shape gradually. The duplication was explained to the owner on 2026-10-26.
+
+### 11.4 Pop by scale or by font size, with Blender 5.2 only (ADR-013)
+
+The owner reopened the choice once 5.2 LTS became the minimum. More tests on 5.2.3 (step 25):
+
+- **`transform.scale`:**
+  - The scaling is smooth (sub-pixel), but the text is rasterized first and then enlarged, so it gets slightly soft above 100 %.
+  - In 5.2 `transform.origin` is **not** in canvas coordinates. With the text at the canvas center, origin (0.5, 0.5) keeps it in place. Away from the center, no origin equal to the text location kept it in place: the pivot moved about 55 px per unit of origin around the canvas center.
+  - Using it means computing an origin (or an offset compensation) per strip, which is doable but fiddly.
+- **`font_size`:**
+  - The glyphs are re-rendered at each size, so they stay sharp, and the text grows around its anchor.
+  - Sizes are rendered in whole pixels: 40.0 to 40.75 look the same, then 41 jumps. The center moves by about 1 px between sizes.
+  - For the pop (96 px at 1080p, 70 → 112 → 100 % in about 4 frames) every frame changes the size by about 20 px, so the steps do not show.
+
+**Recommendation:** `font_size` for the pop: sharp text, no origin math, and it follows the strip's anchor. Use `transform.scale` and `rotation` for effects that need them (spin, smooth slow zooms), with the origin computed per strip.
+
+**Owner's decision:** pending, to be taken with the native-pop implementation after the manual test.
