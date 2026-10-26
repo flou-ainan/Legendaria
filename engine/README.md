@@ -6,6 +6,8 @@ The transcription engine of [Legendária](https://github.com/flou-ainan/Legendar
 flosub transcribe video.mp4                  # writes video.json, video.srt, video.vtt
 flosub transcribe talk.mp3 --language pt --model medium --format srt
 flosub export video.json --format vtt
+flosub export video.json --style pop --format ass   # styled subtitles (CapCut-like pop)
+flosub burn video.mp4 --style pop                     # video.subtitled.mp4 (needs FFmpeg)
 flosub models list
 flosub models download medium
 flosub config show

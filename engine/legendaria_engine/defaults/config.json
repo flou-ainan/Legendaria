@@ -22,7 +22,20 @@
       "pause_break": 0.6,
       "fill_gaps": 0.35,
       "break_after": ".,!?;:…",
-      "break_on_segment": true
+      "break_on_segment": true,
+      "ass": {
+        "font": "Arial",
+        "font_size": 96,
+        "bold": true,
+        "color": [1.0, 1.0, 0.0, 1.0],
+        "outline_color": [0.0, 0.0, 0.0, 1.0],
+        "outline": 6,
+        "shadow": 4,
+        "shadow_color": [0.0, 0.0, 0.0, 0.45],
+        "position": [0.5, 0.2],
+        "uppercase": true,
+        "animation": {"type": "pop", "from": 70, "peak": 112, "peak_ms": 90, "ms": 170}
+      }
     },
     "subtitles": {
       "max_chars": 84,
@@ -31,7 +44,19 @@
       "min_duration": 1.0,
       "pause_break": 1.0,
       "break_after": ".!?…",
-      "break_on_segment": true
+      "break_on_segment": true,
+      "ass": {
+        "font": "Arial",
+        "font_size": 48,
+        "bold": false,
+        "color": [1.0, 1.0, 1.0, 1.0],
+        "outline": 6,
+        "shadow": 0,
+        "box": true,
+        "box_color": [0.0, 0.0, 0.0, 0.55],
+        "position": [0.5, 0.08],
+        "animation": {"type": "none"}
+      }
     },
     "captions": {
       "max_words": 4,
@@ -40,7 +65,20 @@
       "min_duration": 0.3,
       "pause_break": 0.5,
       "break_after": ".,!?;:…",
-      "break_on_segment": true
+      "break_on_segment": true,
+      "ass": {
+        "font": "Arial",
+        "font_size": 76,
+        "bold": true,
+        "color": [1.0, 1.0, 1.0, 1.0],
+        "outline_color": [0.0, 0.0, 0.0, 1.0],
+        "outline": 5,
+        "shadow": 3,
+        "shadow_color": [0.0, 0.0, 0.0, 0.6],
+        "position": [0.5, 0.2],
+        "width": 0.8,
+        "animation": {"type": "none"}
+      }
     }
   },
   "formats": [
@@ -72,5 +110,10 @@
       "timeout_s": 180,
       "unload_after": true
     }
+  },
+  "ffmpeg": "",
+  "burn": {
+    "video_args": ["-c:v", "libx264", "-crf", "18", "-preset", "medium", "-pix_fmt", "yuv420p"],
+    "audio_args": ["-c:a", "copy"]
   }
 }

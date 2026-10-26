@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import bpy
 
-from . import operators, properties
+from . import operators, preview_ops, properties
 from .i18n import tr
 
 
@@ -145,8 +145,14 @@ class LEGENDARIA_PT_main(bpy.types.Panel):
 
         layout.separator()
         row = layout.row(align=True)
+        row.operator("legendaria.exact_preview", icon="RESTRICT_VIEW_OFF")
+        editor = context.scene.sequence_editor
+        if editor and preview_ops.overlay_strips(editor):
+            row.operator("legendaria.remove_preview", text="", icon="X")
+        row = layout.row(align=True)
         row.operator("legendaria.export", text="Export SRT").file_format = "srt"
         row.operator("legendaria.export", text="Export VTT").file_format = "vtt"
+        row.operator("legendaria.export", text="Export ASS").file_format = "ass"
 
         footer = layout.row(align=True)
         footer.label(text=engine["version"])

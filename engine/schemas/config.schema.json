@@ -171,6 +171,128 @@
             ],
             "minimum": 0,
             "description": "Extend a cue to the next one when the silence between them is at most this many seconds (avoids blinking)."
+          },
+          "ass": {
+            "type": "object",
+            "description": "Look of this style in .ass files (burn-in, overlay, exact preview in Blender). Sizes are for a 1080 px video (the shorter side) and scale with it. Colors are RGBA from 0 to 1.",
+            "additionalProperties": false,
+            "properties": {
+              "font": {
+                "type": "string",
+                "description": "Font family name (the system's fallback is used when it is missing)."
+              },
+              "font_size": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "bold": {
+                "type": "boolean"
+              },
+              "color": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "minItems": 3,
+                "maxItems": 4,
+                "description": "Text color."
+              },
+              "outline_color": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "minItems": 3,
+                "maxItems": 4
+              },
+              "outline": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Outline width in pixels (box padding when 'box' is true)."
+              },
+              "shadow": {
+                "type": "number",
+                "minimum": 0
+              },
+              "shadow_color": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "minItems": 3,
+                "maxItems": 4
+              },
+              "box": {
+                "type": "boolean",
+                "description": "Opaque box behind the text instead of an outline."
+              },
+              "box_color": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "minItems": 3,
+                "maxItems": 4
+              },
+              "position": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "minItems": 2,
+                "maxItems": 2,
+                "description": "Center of the text: [x from the left, y from the bottom], 0 to 1."
+              },
+              "width": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 1,
+                "description": "Widest a line may get, as a fraction of the video width."
+              },
+              "uppercase": {
+                "type": "boolean"
+              },
+              "animation": {
+                "type": "object",
+                "description": "Entrance animation: {'type': 'none'} or {'type': 'pop', 'from': 70, 'peak': 112, 'peak_ms': 90, 'ms': 170} (scale in %, times in ms).",
+                "properties": {
+                  "type": {
+                    "enum": [
+                      "none",
+                      "pop"
+                    ]
+                  },
+                  "from": {
+                    "type": "number"
+                  },
+                  "peak": {
+                    "type": "number"
+                  },
+                  "peak_ms": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "ms": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              }
+            }
           }
         },
         "additionalProperties": false
@@ -273,6 +395,31 @@
         }
       },
       "additionalProperties": false
+    },
+    "ffmpeg": {
+      "type": "string",
+      "description": "Path to ffmpeg (or its folder) for burn-in and overlays. Empty: look on PATH."
+    },
+    "burn": {
+      "type": "object",
+      "description": "FFmpeg arguments for `flosub burn`.",
+      "additionalProperties": false,
+      "properties": {
+        "video_args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Video encoder arguments (default: H.264, CRF 18)."
+        },
+        "audio_args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Audio arguments (default: copy)."
+        }
+      }
     }
   },
   "additionalProperties": false

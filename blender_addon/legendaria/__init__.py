@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import bpy
 
-from . import i18n, operators, panel, preferences, properties, review_ops
+from . import i18n, operators, panel, preferences, preview_ops, properties, review_ops
 
-MODULES = (properties, preferences, operators, review_ops, panel)
+MODULES = (properties, preferences, operators, review_ops, preview_ops, panel)
 
 
 def _initial_refresh():

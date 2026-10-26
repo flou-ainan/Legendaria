@@ -24,7 +24,7 @@ os.environ["LEGENDARIA_CONFIG_DIR"] = tempfile.mkdtemp(prefix="legendaria-config
 sys.path.insert(0, str(ROOT))
 
 import legendaria  # noqa: E402
-from legendaria import compat, operators, properties, review_ops, strips  # noqa: E402
+from legendaria import compat, operators, preview_ops, properties, review_ops, strips  # noqa: E402
 
 args = argparse.ArgumentParser()
 args.add_argument("--media", required=True)
@@ -220,6 +220,44 @@ try:
     )
     check("spans merge", review_ops.merged_ranges([(5, 9), (1, 3), (8, 12)]) == [(1, 3), (5, 12)])
     scene.legendaria.suggestions.clear()
+
+    # Export ASS and the exact preview (plan 04 §10) through the engine and FFmpeg.
+    scene.legendaria.style = "pop"
+    scene.legendaria.last_channel = 2
+    scene.frame_end = media_start + 60
+    out = Path(tempfile.mkdtemp()) / "look.ass"
+    result = bpy.ops.legendaria.export(filepath=str(out), file_format="ass")
+    text = out.read_text(encoding="utf-8") if out.exists() else ""
+    check(
+        "export ASS uses the render size and the pop look",
+        result == {"FINISHED"}
+        and f"PlayResX: {scene.render.resolution_x}" in text
+        and "\\fscx70" in text
+        and "OLÁ" in text,
+        text[:80] or "no file",
+    )
+    cues_file = strips.write_cues_file(
+        Path(tempfile.mkdtemp()) / "p.cues.json", strips.read_cues(scene, editor, 2), "pop", ""
+    )
+    movie = cues_file.parent / "smoke.overlay.mov"
+    args = ["overlay", str(cues_file), "--style", "pop", "--size", "320x180", "--fps", "24"]
+    args += ["--duration", "2.5", "--output", str(movie)]
+    job = operators.engine_bridge.EngineJob(properties.ENGINE["path"], args)
+    code = job.wait(timeout=120)
+    check("overlay rendered", code == 0 and movie.is_file(), job.stderr_tail())
+    strip = preview_ops.place_overlay(bpy.context, movie, 2)
+    check(
+        "overlay placed above the captions with Alpha Over",
+        strip.type == "MOVIE" and strip.blend_type == "ALPHA_OVER" and strip.channel > 2,
+        f"{strip.type} {strip.blend_type} {strip.channel}",
+    )
+    check("captions channel muted while previewing", editor.channels[2].mute)
+    removed = preview_ops.remove_overlay(bpy.context)
+    check(
+        "remove preview restores the strips",
+        removed == 1 and not editor.channels[2].mute and not movie.exists(),
+        f"{removed} {editor.channels[2].mute} {movie.exists()}",
+    )
 
     if opts.real:
         # Real transcription through the same pieces the modal operator uses.

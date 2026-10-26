@@ -414,19 +414,35 @@ class LEGENDARIA_OT_reapply_style(bpy.types.Operator):
         return {"FINISHED"}
 
 
+def render_size(scene) -> str:
+    """The render size as `WIDTHxHEIGHT` (the canvas of `.ass` files and overlays)."""
+    return f"{scene.render.resolution_x}x{scene.render.resolution_y}"
+
+
+def export_ass(context, cues: list[tuple[float, float, str]], path: Path) -> None:
+    """Write `.ass` from the edited captions through the engine (the look of the style)."""
+    settings = context.scene.legendaria
+    source = cache_dir() / "export.cues.json"
+    strips.write_cues_file(source, cues, settings.style, "")
+    args = ["export", str(source), "--format", "ass", "--style", settings.style]
+    args += ["--size", render_size(context.scene), "--output", str(path.with_suffix(""))]
+    engine_bridge.run_events(engine_or_error(), args)
+
+
 class LEGENDARIA_OT_export(bpy.types.Operator):
-    """Save the captions on the channel as an SRT or VTT file (with your edits)"""
+    """Save the captions on the channel as an SRT, VTT or ASS file (with your edits)"""
 
     bl_idname = "legendaria.export"
     bl_label = "Export subtitles"
 
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
-    filter_glob: bpy.props.StringProperty(default="*.srt;*.vtt", options={"HIDDEN"})
+    filter_glob: bpy.props.StringProperty(default="*.srt;*.vtt;*.ass", options={"HIDDEN"})
     file_format: bpy.props.EnumProperty(
         name="Format",
         items=[
             ("srt", "SRT", "SubRip (YouTube, most players)"),
             ("vtt", "VTT", "WebVTT (web players)"),
+            ("ass", "ASS", "Styled subtitles with the caption look (FFmpeg, Kdenlive, mpv, VLC)"),
         ],
     )
 
@@ -463,8 +479,15 @@ class LEGENDARIA_OT_export(bpy.types.Operator):
         path = Path(bpy.path.abspath(self.filepath))
         if path.suffix.lower() != f".{self.file_format}":
             path = path.with_name(path.name + f".{self.file_format}")
-        writer = timecode.to_vtt if self.file_format == "vtt" else timecode.to_srt
-        path.write_text(writer(cues), encoding="utf-8")
+        if self.file_format == "ass":
+            try:
+                export_ass(context, cues, path)
+            except (ValueError, RuntimeError, OSError) as exc:
+                self.report({"ERROR"}, str(exc))
+                return {"CANCELLED"}
+        else:
+            writer = timecode.to_vtt if self.file_format == "vtt" else timecode.to_srt
+            path.write_text(writer(cues), encoding="utf-8")
         self.report(
             {"INFO"}, tr("Saved {count} subtitles to {path}").format(count=len(cues), path=path)
         )
