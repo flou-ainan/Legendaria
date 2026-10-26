@@ -21,6 +21,10 @@
   - the plan 01 roadmap and backlog (Kdenlive integration, native window);
   - `PROJECT.md`.
 
+## Note: renumbered draft from another agent
+
+A detailed "Plan 03 — CapCut-style animations" draft written by another agent (file dated 2026-10-26, not yet committed) was found in the working tree. To keep that work, it was renamed to `plan_04_capcut_animations.md`, its title changed to plan 04, and it replaced the short placeholder written in this step.
+
 ## How it was tested
 
 Documentation only. The prototypes were ad-hoc scripts run outside the repository.
