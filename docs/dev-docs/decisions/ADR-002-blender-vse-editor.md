@@ -1,6 +1,6 @@
 # ADR 002 — Blender's VSE as the interactive subtitle editor
 
-**Status:** accepted
+**Status:** superseded by ADR-014 (web editor; the add-on is frozen)
 **Date:** 2026-10-23
 
 ## Context

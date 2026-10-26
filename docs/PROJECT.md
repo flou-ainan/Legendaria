@@ -3,7 +3,7 @@
 > A condensed map of the project, so agents and people can find what they need without rereading the code.
 > **Update this file with every change to the project** (files, functions, stack, structure). Conventions: `docs/dev-docs/README.md`.
 
-**Last updated:** 2026-10-26 — step 21 (LLM reviewer experimental and off by default).
+**Last updated:** 2026-10-26 — step 28 (pivot to a web editor; Blender add-on frozen).
 
 ---
 
@@ -19,7 +19,7 @@ What it does:
 
 Goals: a "next → next → finish" install for end users; a hackable setup driven by JSON configs; friendly to contributors; Linux, macOS and Windows 10+; UI and user docs in English and pt-BR (open to more languages).
 
-**Current state:** the engine (`flosub`, on PyPI as `legendaria`) and the Blender add-on core work end to end: select a video in the VSE, pick a model (auto-download), generate CapCut-style caption strips in the background, confirm before replacing, re-apply a style, export SRT/VTT, English/Portuguese UI. "Install engine" sets everything up from Blender (2b); "Regenerate range" redoes only the preview range or the selected captions (2c). The default style is "one word, pop" (yellow). Accuracy (plan 03): a glossary library steers Whisper and drives a review that suggests corrections; in Blender the panel picks the active glossary (new / import / export / edit), adds terms from a caption or a suggestion, reviews and applies ticked corrections in place. An LLM reviewer exists but is experimental and off by default. Styled output: `.ass` export with the pop look, `flosub burn` (FFmpeg) and, in Blender, an "Exact preview" overlay rendered by libass that the normal render burns in. Next: the owner's manual test, then the alpha release. Plans: `dev-docs/planning/`.
+**Current state:** the engine (`flosub`, on PyPI as `legendaria`) and the Blender add-on core work end to end: select a video in the VSE, pick a model (auto-download), generate CapCut-style caption strips in the background, confirm before replacing, re-apply a style, export SRT/VTT, English/Portuguese UI. "Install engine" sets everything up from Blender (2b); "Regenerate range" redoes only the preview range or the selected captions (2c). The default style is "one word, pop" (yellow). Accuracy (plan 03): a glossary library steers Whisper and drives a review that suggests corrections; in Blender the panel picks the active glossary (new / import / export / edit), adds terms from a caption or a suggestion, reviews and applies ticked corrections in place. An LLM reviewer exists but is experimental and off by default. Styled output: `.ass` export with the pop look, `flosub burn` (FFmpeg) and, in Blender, an "Exact preview" overlay rendered by libass that the normal render burns in. **Direction change (ADR-014):** the Blender add-on is frozen; a local web editor (cut, edit subtitles, export burned MP4 / SRT / VTT / ASS) is next (plan 07). Plans: `dev-docs/planning/`.
 
 ## 2. Architecture
 
@@ -63,7 +63,7 @@ engine/ (`flosub`) ── faster-whisper (GPU → CPU fallback) ──► transc
 | ADR | Decision | Status |
 |---|---|---|
 | [001](dev-docs/decisions/ADR-001-faster-whisper.md) | faster-whisper as the engine (Ollama cannot run Whisper) | accepted |
-| [002](dev-docs/decisions/ADR-002-blender-vse-editor.md) | Blender VSE (4.2+) as the interactive editor | accepted |
+| [002](dev-docs/decisions/ADR-002-blender-vse-editor.md) | Blender VSE (4.2+) as the interactive editor | superseded (ADR-014) |
 | [003](dev-docs/decisions/ADR-003-engine-external-process.md) | Engine as an external process in its own venv, JSON contract | accepted |
 | [004](dev-docs/decisions/ADR-004-dual-licensing.md) | Engine MIT, add-on GPL-3.0-or-later | accepted |
 | [005](dev-docs/decisions/ADR-005-language-policy.md) | English dev content; user content in en + pt_BR, open to more | accepted |
@@ -74,7 +74,8 @@ engine/ (`flosub`) ── faster-whisper (GPU → CPU fallback) ──► transc
 | [010](dev-docs/decisions/ADR-010-review-pipeline.md) | Glossary in 3 layers + LLM reviewer (OpenAI-compatible, suggestions), device profiles | accepted |
 | [011](dev-docs/decisions/ADR-011-modular-architecture.md) | Engine core → CLI/HTTP API → clients (Blender, web GUI, Kdenlive later) | accepted |
 | [012](dev-docs/decisions/ADR-012-ass-styled-format.md) | `.ass` as styled format: one preset → `.ass` (libass overlay/burn) and Blender strips | accepted (MVP subset, step 23) |
-| [013](dev-docs/decisions/ADR-013-blender-5-2-minimum.md) | Blender 5.2 LTS is the minimum (4.x support dropped; implementation after the manual test) | accepted |
+| [013](dev-docs/decisions/ADR-013-blender-5-2-minimum.md) | Blender 5.2 LTS is the minimum (4.x support dropped; implementation after the manual test) | suspended (ADR-014) |
+| [014](dev-docs/decisions/ADR-014-web-editor-blender-frozen.md) | Web editor (`flosub serve`) becomes the main UI; Blender add-on frozen | accepted |
 
 ## 5. Folder structure
 
@@ -720,6 +721,7 @@ Generate the glowing Legendária key art (hero and banner) as SVG.
 
 ## 7. In progress
 
+- **Now: plan 07 (web editor), phase 0 study spikes** (OpenReel, JASSUB, wavesurfer, FFmpeg cut + burn). ADR-014: the Blender add-on is frozen; plans 05, 06 and the Blender parts of plan 04 §11 are superseded. Owner questions before phase 2: plan 07, last section.
 - Plan 02 (Blender add-on): done (steps 09–12).
 - **Plan 03, accuracy:** done — 3a glossary (step 18), 3b LLM reviewer (step 19, experimental), glossary library (step 20), 3c Blender UI (step 22). Engine 0.1.0.dev4 is not on PyPI yet (needs the owner's tag), so "Install engine" gets it only after that release.
 - **Plan 04, MVP subset (§10):** done in step 23: `.ass` export with the approved pop look, `flosub burn`, `flosub overlay`, and in Blender "Export ASS" and "Exact preview".
