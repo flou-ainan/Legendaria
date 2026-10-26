@@ -1,6 +1,6 @@
 # Plan 03 — Accuracy: glossary and caption reviewer
 
-**Status:** approved in principle (owner, 2026-10-25); details below to be confirmed per stage
+**Status:** approved; 3a, 3b and the glossary library done; 3c (Blender UI) in progress. **The LLM reviewer (layer 3) is EXPERIMENTAL** (owner, 2026-10-26): off by default (`review.llm.enabled: false`), enabled with `--llm` or config.
 **Date:** 2026-10-25
 **Related decisions:** ADR-010 (review pipeline), ADR-011 (modular architecture: core / access / clients)
 **Comes before:** plan 04 (CapCut-style animations, formerly "plan 03"), plan 05 (local API + web GUI)
@@ -168,5 +168,6 @@ Accepted corrections are **not** added to the glossary automatically. Every clie
 - **Asking for all lines back failed:** the 8B model merged lines (21 of 24 returned) and whole batches were dropped. Now the model returns **only the changed lines, by number** (`{"fixes": {"7": "…"}}`); omitted lines are unchanged. No more count errors, and the answers are shorter.
 - **The model rewrites a lot:** 20 changes were rejected without the glossary and 47 with it. They included grammar changes, deleted filler words ("Mas", "Aí", "para"), a translation ("fake" → "falso") and an invention pulled from the glossary ("o cenoura" → "a bolsa Beth").
 - **Guard v2:** never accept deletions. The new text must resemble the old (similarity ≥ 0.5 after folding) unless only accents, case or punctuation change. The old words must be uncertain, or the new text a glossary term. With it, the final suggestions were exactly the 4 correct glossary ones.
+- **Owner decision (2026-10-26):** keep the LLM reviewer as an **experimental** feature: off by default, labelled experimental in the CLI and UI.
 - **Conclusion:** on this video the **glossary (L1 + L2) did all the useful work**; the 8B LLM added nothing that survived the guard. L3 stays optional (profile `full`). Open question 1 (§5) remains: try general instruct models (`qwen2.5:7b-instruct`, `gemma`), larger models, or cloud models, on more videos, before recommending L3.
 - **Speed:** about 60 s for the first run (model load), about 20 s afterwards, for 88 segments. Ollama models are unloaded from VRAM after the review (`keep_alive: 0`).

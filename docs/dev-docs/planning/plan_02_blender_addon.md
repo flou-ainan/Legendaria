@@ -1,6 +1,6 @@
 # Plan 02 — Blender add-on (MVP stage 2) and caption-style cues
 
-**Status:** done (steps 09–12). Plan 03 (CapCut-style animations and presets) is next.
+**Status:** done (steps 09–12). Follow-ups: plan 03 (accuracy), plan 04 (CapCut animations), plan 06 (Blender UX).
 **Date:** 2026-10-24
 **Builds on:** plan 01 (section 4.5), ADR-002, ADR-003, ADR-005, ADR-006
 

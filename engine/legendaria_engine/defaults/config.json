@@ -61,7 +61,7 @@
     "low_confidence": 0.5,
     "profile": "auto",
     "llm": {
-      "enabled": "auto",
+      "enabled": false,
       "provider": "ollama",
       "base_url": "",
       "model": "",

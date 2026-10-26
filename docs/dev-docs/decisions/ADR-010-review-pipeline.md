@@ -1,6 +1,6 @@
 # ADR 010 — Caption accuracy: glossary in three layers, LLM reviewer as suggestions
 
-**Status:** accepted
+**Status:** accepted; layer 3 (LLM) marked **experimental** and off by default (2026-10-26, after the step 19 findings)
 **Date:** 2026-10-25
 
 ## Context
