@@ -110,6 +110,26 @@ def run_text(engine: Path, args: list[str], timeout: float = 30) -> str:
     return result.stdout.strip()
 
 
+def run_events(engine: Path, args: list[str], timeout: float = 120) -> list[dict]:
+    """Run a quick command with JSON-lines events; raise RuntimeError on an `error` event."""
+    result = subprocess.run(
+        [str(engine), "--progress", "json", *args], timeout=timeout, check=False, **_popen_kwargs()
+    )
+    events = []
+    for line in result.stdout.splitlines():
+        if line.startswith("{"):
+            try:
+                events.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+    error = next((e.get("message", "") for e in events if e.get("event") == "error"), "")
+    if result.returncode != 0 or error:
+        raise RuntimeError(
+            error or result.stderr.strip() or f"flosub exited with code {result.returncode}"
+        )
+    return events
+
+
 class EngineJob:
     """A running `flosub --progress json ...` process whose events can be polled."""
 

@@ -1,6 +1,6 @@
 # Plan 03 — Accuracy: glossary and caption reviewer
 
-**Status:** approved; 3a, 3b and the glossary library done; 3c (Blender UI) in progress. **The LLM reviewer (layer 3) is EXPERIMENTAL** (owner, 2026-10-26): off by default (`review.llm.enabled: false`), enabled with `--llm` or config.
+**Status:** done (3a step 18, 3b step 19, library step 20, 3c step 22); the engine release (0.1.0.dev4 on PyPI) waits for the owner. **The LLM reviewer (layer 3) is EXPERIMENTAL** (owner, 2026-10-26): off by default (`review.llm.enabled: false`), enabled with `--llm` or config.
 **Date:** 2026-10-25
 **Related decisions:** ADR-010 (review pipeline), ADR-011 (modular architecture: core / access / clients)
 **Comes before:** plan 04 (CapCut-style animations, formerly "plan 03"), plan 05 (local API + web GUI)
@@ -146,12 +146,12 @@ Accepted corrections are **not** added to the glossary automatically. Every clie
 - **3a. Glossary (L1 + L2) in the engine and CLI — done (step 18).** Glossary files, hotwords/initial_prompt, deterministic fixes, the review document, `review apply`, re-alignment. Works offline on CPU.
 - **3b. LLM reviewer (L3) in the engine and CLI — done (step 19).** Findings below (§7). OpenAI-compatible client, provider presets, guard, batching, `llm check`, profiles. Tested with the owner's Ollama (`llama3.1:8b`, `qwen2.5-coder:7b`; try a general instruct model such as `qwen2.5:7b-instruct` too) and with a fake server in CI.
 - **3b+. Glossary library** (§3.1b) in the engine, before the UI, so that 3c can build on it — **done (step 20)**.
-- **3c. Blender UI** for the glossary and the review (suggestions list, apply in place), with pt_BR, tests and a GUI walkthrough.
+- **3c. Blender UI** for the glossary and the review (suggestions list, apply in place), with pt_BR, tests and a GUI walkthrough — **done (step 22).**
 
 ## 5. Open questions (to settle during the stages)
 
 1. Default local model to recommend: compare quality and speed on real Portuguese and English clips in 3b.
-2. Applying suggestions to strips the user already edited by hand: match on time and on the "before" text. If the strip text no longer contains "before", skip it and report.
+2. Applying suggestions to strips the user already edited by hand: match on time and on the "before" text. If the strip text no longer contains "before", skip it and report. **MVP (step 22):** applying rebuilds only the captions that touch a corrected word, from the corrected transcript; a hand edit to one of those few captions is lost, every other caption is untouched. Matching on the strip text stays a follow-up.
 3. Ollama keeps a model in VRAM for 5 minutes after a call. On 8 GB GPUs this can collide with the next Whisper run. Options: send `keep_alive: 0` through Ollama's native API, or document it.
 4. ~~Should accepted fixes be added to the glossary automatically?~~ **Decided (owner, 2026-10-25): no.** Nothing enters the glossary automatically. Every interface must instead offer an explicit **"Add to glossary"** action (see §3.6).
 
@@ -160,8 +160,9 @@ Accepted corrections are **not** added to the glossary automatically. Every clie
 - [x] On the owner's crochet video: with the glossary, `transcribe` gets "Enacles", "Beth" and "Poliéster" right without an LLM (L1 + L2) — step 18.
 - [x] `flosub review` with Ollama runs, rewrites like "perfeito → perfeita", translations and invented words are rejected by the guard, word timings stay aligned (step 19). On the test video the glossary already fixed everything; the LLM added nothing useful (§7).
 - [x] A weak profile (CPU, no LLM server) still runs L1 + L2 and reports that the LLM is unavailable, without failing (step 19, tested with an unreachable server).
-- [ ] Blender: glossary editing, review with suggestions, accept/reject, apply in place, "Add to glossary" from a suggestion and from a selected caption (§3.6), pt_BR UI.
-- [ ] Tests in CI (fake LLM server), docs (`PROJECT.md`, devlog, CHANGELOG), engine release.
+- [x] Blender: glossary editing, review with suggestions, accept/reject, apply in place, "Add to glossary" from a suggestion and from a selected caption (§3.6), pt_BR UI — step 22.
+- [x] Tests in CI (fake LLM server; Blender smoke with glossary/review), docs (`PROJECT.md`, devlog, CHANGELOG).
+- [ ] Engine release 0.1.0.dev4 on PyPI (needs the owner's approval for the tag).
 
 ## 7. Findings from stage 3b (2026-10-26, owner's crochet video, 88 segments, `llama3.1:8b` on the RTX 2070 Super)
 

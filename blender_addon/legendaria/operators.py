@@ -219,6 +219,8 @@ class LEGENDARIA_OT_generate(bpy.types.Operator):
         args = ["transcribe", self._plan.media_file, "--model", settings.model]
         args += ["--language", settings.language, "--style", settings.style]
         args += ["--format", "json,cues", "--output-dir", str(out_dir)]
+        if not settings.use_glossary:
+            args.append("--no-glossary")
         if self._plan.clip:
             args += ["--clip", "{:.3f},{:.3f}".format(*self._plan.clip)]
             saved = Path(settings.transcript_path) if settings.transcript_path else None

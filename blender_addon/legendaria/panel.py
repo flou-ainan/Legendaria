@@ -41,6 +41,45 @@ def draw_engine_box(layout) -> bool:
     return True
 
 
+def draw_review_box(layout, settings) -> None:
+    """Glossary picker (new / import / export / edit / add) and the review suggestions."""
+    box = layout.box()
+    box.enabled = not settings.running
+    row = box.row(align=True)
+    row.prop(settings, "use_glossary", text="")
+    sub = row.row(align=True)
+    sub.active = settings.use_glossary
+    sub.prop(settings, "glossary", text="")
+    sub.operator("legendaria.glossary_new", text="", icon="ADD")
+    sub.operator("legendaria.glossary_import", text="", icon="IMPORT")
+    sub.operator("legendaria.glossary_export", text="", icon="EXPORT")
+    sub.operator("legendaria.glossary_edit", text="", icon="TEXT")
+    box.operator("legendaria.glossary_add", icon="BOOKMARKS")
+
+    row = box.row(align=True)
+    row.operator("legendaria.review", icon="VIEWZOOM")
+    row.prop(settings, "use_ai_review", text="", icon="LIGHT")
+    if settings.use_ai_review:
+        box.label(text="AI review is experimental", icon="ERROR")
+    if len(settings.suggestions):
+        box.template_list(
+            "LEGENDARIA_UL_suggestions",
+            "",
+            settings,
+            "suggestions",
+            settings,
+            "suggestion_index",
+            rows=4,
+        )
+        index = settings.suggestion_index
+        if 0 <= index < len(settings.suggestions):
+            box.label(text=settings.suggestions[index].reason, icon="INFO")
+        row = box.row(align=True)
+        row.operator("legendaria.review_select", text="All").accept = True
+        row.operator("legendaria.review_select", text="None").accept = False
+        box.operator("legendaria.review_apply", icon="CHECKMARK")
+
+
 class LEGENDARIA_PT_main(bpy.types.Panel):
     """Generate, re-style and export captions"""
 
@@ -101,6 +140,8 @@ class LEGENDARIA_PT_main(bpy.types.Panel):
             row.operator("legendaria.reapply_style", icon="FILE_REFRESH")
             op = row.operator("legendaria.generate", text="Regenerate range", icon="PREVIEW_RANGE")
             op.range_only = True
+
+        draw_review_box(layout, settings)
 
         layout.separator()
         row = layout.row(align=True)

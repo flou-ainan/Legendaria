@@ -5,7 +5,8 @@
 
 The add-on must be installed and enabled as an extension, or importable from the
 repository (this script falls back to registering it from blender_addon/).
-Steps: idle panel → Generate (progress) → result → Generate again (replace warning).
+Steps: idle panel → Generate (progress) → result → Review (suggestions) → Generate again
+(replace warning). Glossaries go to a throwaway config folder.
 """
 
 from __future__ import annotations
@@ -17,6 +18,11 @@ import sys
 from pathlib import Path
 
 import bpy
+
+if "LEGENDARIA_CONFIG_DIR" not in os.environ:
+    import tempfile
+
+    os.environ["LEGENDARIA_CONFIG_DIR"] = tempfile.mkdtemp(prefix="legendaria-config-")
 
 args = argparse.ArgumentParser()
 args.add_argument("--media", required=True)
@@ -117,6 +123,21 @@ def generate():
     log(f"generate invoked: {result}")
 
 
+def review():
+    """Add a glossary fix for the first caption's first word, then run Review captions."""
+    from legendaria import engine_bridge, properties
+
+    editor = bpy.context.scene.sequence_editor
+    coll = editor.strips if hasattr(editor, "strips") else editor.sequences
+    first = min((s for s in coll if "legendaria_cue" in s), key=lambda s: s.frame_final_start)
+    wrong = first.text.split()[0].strip(".,!?")
+    engine_bridge.run_events(properties.ENGINE["path"], ["glossary", "add", f"{wrong} -> Zebrafix"])
+    window, area = sequencer_area()
+    region = next(r for r in area.regions if r.type == "WINDOW")
+    with bpy.context.temp_override(window=window, area=area, region=region):
+        log(f"review invoked: {bpy.ops.legendaria.review('INVOKE_DEFAULT')}")
+
+
 STEPS = []
 state = {"i": 0, "progress_shot": False}
 
@@ -208,6 +229,8 @@ STEPS[:] = [
     ("idle", lambda: shot("1-idle"), False),
     ("generate", generate, False),
     ("result", lambda: shot("3-result"), True),
+    ("review", review, False),
+    ("suggestions", lambda: shot("5-review"), True),
     ("again", generate, True),  # existing captions → confirmation dialog
     ("confirm", lambda: shot("4-replace-warning"), False),
     ("finish", finish, False),
