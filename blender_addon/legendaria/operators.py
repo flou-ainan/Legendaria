@@ -124,9 +124,30 @@ def engine_or_error() -> Path:
     return engine
 
 
+VIDEO_VIEW_TRANSFORM = "Standard"
+
+
+def colors_are_exact(scene) -> bool:
+    """True when the scene shows colors as they are (no Filmic/AgX tone mapping)."""
+    return scene.view_settings.view_transform == VIDEO_VIEW_TRANSFORM
+
+
+def use_exact_colors(scene) -> bool:
+    """Switch the scene to the Standard view transform; returns True if it changed.
+
+    Blender's default (Filmic in 4.x, AgX in 5.x) washes out caption colors: pure
+    yellow renders as a pale khaki that reads as white over video.
+    """
+    if colors_are_exact(scene):
+        return False
+    scene.view_settings.view_transform = VIDEO_VIEW_TRANSFORM
+    return True
+
+
 def finish_strips(context, plan: Plan, cues_path: Path, style: str) -> int:
     """Create the caption strips from a cues file and remember where they came from."""
     data = strips.load_cues(cues_path)
+    plan.colors_switched = use_exact_colors(context.scene)
     created = strips.create_strips(
         context.scene, plan.editor, data["cues"], plan.media, plan.channel, style, plan.range
     )
@@ -289,6 +310,10 @@ class LEGENDARIA_OT_generate(bpy.types.Operator):
             count=count, channel=self._plan.channel
         )
         self.report({"INFO"}, settings.status)
+        if getattr(self._plan, "colors_switched", False):
+            self.report(
+                {"INFO"}, tr("Color management set to Standard so caption colors look right.")
+            )
         return {"FINISHED"}
 
     def cleanup(self, context) -> None:
@@ -444,6 +469,20 @@ class LEGENDARIA_OT_export(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class LEGENDARIA_OT_exact_colors(bpy.types.Operator):
+    """Use the Standard view transform so captions keep their real colors"""
+
+    bl_idname = "legendaria.exact_colors"
+    bl_label = "Fix caption colors"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        """Switch the scene's view transform to Standard."""
+        use_exact_colors(context.scene)
+        self.report({"INFO"}, tr("Color management set to Standard so caption colors look right."))
+        return {"FINISHED"}
+
+
 class LEGENDARIA_OT_refresh_engine(bpy.types.Operator):
     """Look for the transcription engine again and reload its models"""
 
@@ -586,6 +625,7 @@ CLASSES = (
     LEGENDARIA_OT_reapply_style,
     LEGENDARIA_OT_export,
     LEGENDARIA_OT_refresh_engine,
+    LEGENDARIA_OT_exact_colors,
     LEGENDARIA_OT_install_engine,
     LEGENDARIA_OT_cancel_install,
     LEGENDARIA_OT_uninstall_engine,
