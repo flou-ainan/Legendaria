@@ -18,7 +18,7 @@ export type Project = {
 }
 
 /** `size` multiplies the style's font size; `y` is the text centre's height above the bottom (0 to 1). */
-export type Look = { font?: string; size?: number; y?: number }
+export type Look = { font?: string; size?: number; y?: number; color?: string; outline_color?: string; box?: boolean; uppercase?: boolean }
 
 export type FontEntry = { family: string; file: string; bold: boolean; category: string }
 
@@ -38,7 +38,7 @@ export type State = Options & {
   path?: string // full path of the open video (to reopen it after a restart)
   font: string // family name of the font in use, served by /api/font
   fonts: FontEntry[] // the bundled families, served by /api/fonts/<file>
-  base: { font: string; y: number } // what the style itself sets, for the Look menu
+  base: { font: string; y: number; color: string; outline_color: string; box: boolean; uppercase: boolean } // what the style itself sets, for the Look menu
   media: { width: number | null; height: number | null; fps: number | null; duration: number; has_audio: boolean }
   project: Project | null
 }

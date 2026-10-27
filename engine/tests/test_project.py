@@ -226,3 +226,26 @@ def test_with_look_scales_and_moves():
     )
     assert look["position"] == [0.5, 0.9]
     assert with_look(base, None)["font_size"] == 50
+
+
+def test_look_colours_box_and_uppercase():
+    from legendaria_engine.ass import rgb_hex, with_look
+
+    clean = Project.from_dict(
+        project().to_dict()
+        | {"look": {"color": "#FF0000", "outline_color": "red", "box": True, "uppercase": "x"}}
+    ).look
+    assert clean == {"color": "#ff0000", "box": True}
+    base = {"color": [1.0, 1.0, 0.0, 0.5], "outline_color": [0, 0, 0, 1], "box": False}
+    look = with_look(base, {"color": "#00ff00", "box": True, "uppercase": True})
+    assert look["color"] == [0.0, 1.0, 0.0, 0.5] and look["box"] and look["uppercase"]
+    assert rgb_hex([1.0, 1.0, 0.0]) == "#ffff00"
+
+
+def test_uppercase_override_can_turn_the_pop_caps_off():
+    from legendaria_engine.ass import to_ass, with_look
+
+    pop = {"uppercase": True}
+    on = to_ass(cues((0, 1)), with_look(pop, None))
+    off = to_ass(cues((0, 1)), with_look(pop, {"uppercase": False}))
+    assert "C0" in on and "c0" in off

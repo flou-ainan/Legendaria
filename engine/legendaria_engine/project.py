@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -185,11 +186,12 @@ class Project:
         os.replace(temp, path)
 
 
+HEX_COLOR = re.compile(r"#[0-9a-fA-F]{6}")
 LOOK_SIZE = (0.3, 3.0)  # allowed multiplier of the style's font size
 
 
 def clean_look(raw: Any) -> dict[str, Any]:
-    """The project's look overrides, validated: `font` (family), `size` (multiplier), `y` (0 bottom to 1 top)."""
+    """The project's look overrides, validated: `font` (family), `size` (multiplier), `y` (0 bottom to 1 top), `color` and `outline_color` (`#rrggbb`), `box` and `uppercase` (bool)."""
     if not isinstance(raw, dict):
         return {}
     look: dict[str, Any] = {}
@@ -199,6 +201,12 @@ def clean_look(raw: Any) -> dict[str, Any]:
         look["size"] = min(max(float(raw["size"]), LOOK_SIZE[0]), LOOK_SIZE[1])
     if isinstance(raw.get("y"), int | float):
         look["y"] = min(max(float(raw["y"]), 0.0), 1.0)
+    for key in ("color", "outline_color"):
+        if isinstance(raw.get(key), str) and HEX_COLOR.fullmatch(raw[key]):
+            look[key] = raw[key].lower()
+    for key in ("box", "uppercase"):
+        if isinstance(raw.get(key), bool):
+            look[key] = raw[key]
     return look
 
 

@@ -48,7 +48,7 @@
 <style>
   .pop { margin-top: 0.4rem; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 0.8rem; width: fit-content; max-width: 100%; }
   .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; margin-top: 0.5rem; }
-  .tool { display: grid; justify-items: center; gap: 0; min-width: 2.6rem; min-height: 2.4rem; padding: 0.2rem 0.5rem; }
+  .tool { display: inline-grid; place-items: center; width: 2.4rem; height: 2.4rem; min-width: 0; min-height: 0; padding: 0; }
   .tool.on { background: var(--accent); color: #15131c; }
   .cut:not(:disabled), .danger:hover:not(:disabled) { background: var(--cut); }
   .time { font-variant-numeric: tabular-nums; min-width: 5.2em; padding: 0 0.4rem; }
@@ -60,7 +60,7 @@
     .toolbar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 0.15rem; padding-bottom: 0.2rem; }
     .toolbar::-webkit-scrollbar { display: none; }
     .toolbar > * { flex: none; }
-    .tool { min-width: 2.3rem; min-height: 2.2rem; padding: 0.15rem 0.35rem; }
+    .tool { width: 2.1rem; height: 2.1rem; }
     .tool :global(svg) { width: 1.15rem; height: 1.15rem; }
     .length, .spacer { display: none; }
   }

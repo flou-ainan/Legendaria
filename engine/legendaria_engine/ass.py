@@ -33,7 +33,7 @@ DEFAULT_LOOK: dict[str, Any] = {
 
 
 def with_look(base: dict[str, Any] | None, override: dict[str, Any] | None) -> dict[str, Any]:
-    """The style's look with the project's overrides: `font`, `size` (multiplies font, outline and shadow) and `y`."""
+    """The style's look with the project's overrides: `font`, `size` (multiplies font, outline and shadow), `y`, `color`, `outline_color`, `box` and `uppercase`."""
     look = {**DEFAULT_LOOK, **(base or {})}
     override = override or {}
     if "font" in override:
@@ -43,7 +43,23 @@ def with_look(base: dict[str, Any] | None, override: dict[str, Any] | None) -> d
             look[key] = look[key] * override["size"]
     if "y" in override:
         look["position"] = [look["position"][0], override["y"]]
+    for key in ("color", "outline_color"):  # `#rrggbb` in the project; the style's alpha stays
+        if key in override:
+            look[key] = [*hex_rgb(override[key]), look[key][3] if len(look[key]) > 3 else 1.0]
+    for key in ("box", "uppercase"):
+        if key in override:
+            look[key] = bool(override[key])
     return look
+
+
+def hex_rgb(value: str) -> list[float]:
+    """`#rrggbb` → RGB floats (0 to 1)."""
+    return [int(value[i : i + 2], 16) / 255 for i in (1, 3, 5)]
+
+
+def rgb_hex(rgba: list[float]) -> str:
+    """RGB floats (0 to 1) → `#rrggbb`."""
+    return "#" + "".join(f"{round(max(0.0, min(1.0, c)) * 255):02x}" for c in rgba[:3])
 
 
 def ass_color(rgba: list[float]) -> str:

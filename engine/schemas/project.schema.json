@@ -123,6 +123,20 @@
           "minimum": 0.3,
           "maximum": 3
         },
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "outline_color": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "box": {
+          "type": "boolean"
+        },
+        "uppercase": {
+          "type": "boolean"
+        },
         "y": {
           "type": "number",
           "minimum": 0,

@@ -14,7 +14,7 @@ const HISTORY = settings.undoSteps
 class Editor {
   project = $state<Project | null>(null)
   fonts = $state<FontEntry[]>([]) // bundled families for the Look menu
-  base = $state({ font: '', y: 0.2 }) // the style's own font and height
+  base = $state({ font: '', y: 0.2, color: '#ffffff', outline_color: '#000000', box: false, uppercase: false }) // what the style itself sets
   video: VideoInfo | null = null // which video the project belongs to, for the local recovery copy
   current = $state(-1) // cue under the playhead
   selected = $state(-1) // cue picked on the timeline (shown in the inspector)

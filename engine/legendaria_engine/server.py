@@ -26,7 +26,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 from legendaria_engine import fonts, formats, media, workspace
-from legendaria_engine.ass import to_ass, with_look
+from legendaria_engine.ass import rgb_hex, to_ass, with_look
 from legendaria_engine.config import load_config
 from legendaria_engine.cues import CueList
 from legendaria_engine.events import Reporter
@@ -103,7 +103,14 @@ class Session:
             "path": str(self.video),
             "font": (project.look.get("font") if project else None) or base["font"],
             "fonts": fonts.catalog(),
-            "base": {"font": base["font"], "y": base["position"][1]},
+            "base": {
+                "font": base["font"],
+                "y": base["position"][1],
+                "color": rgb_hex(base["color"]),
+                "outline_color": rgb_hex(base["outline_color"]),
+                "box": bool(base["box"]),
+                "uppercase": bool(base["uppercase"]),
+            },
             "media": self.info,
             "project": project.to_dict() if project else None,
             **workspace.options(self.config),

@@ -1,6 +1,6 @@
 # Chat context (hand-off)
 
-**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 41.
+**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 42.
 **Policy:** `AGENTS.md` and `docs/dev-docs/README.md` ("chat-context.md"). This is a snapshot that gets replaced, never appended. It is public: no secrets and no private data.
 
 ## Summary of the conversation so far
@@ -73,6 +73,8 @@
 18. **Step 40:** orange subtitle blocks, grey-blue cuts, blue mark.
 
 19. **Step 41:** Generate captions sheet (File menu), keeps cuts and look when regenerating.
+
+20. **Step 42:** Look menu: text and outline colour, rectangle, ALL CAPS checkbox (pop stays caps by default); square toolbar buttons.
 
 **Open and next**
 - **Next:** plan 08 step 2 (orange subtitle track), then the generate-captions sheet and per-cue style; the owner keeps testing (`cd engine && uv run flosub serve`) and sends more corrections; mobile polish comes later.
