@@ -1,6 +1,6 @@
 # Chat context (hand-off)
 
-**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 38.
+**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 39.
 **Policy:** `AGENTS.md` and `docs/dev-docs/README.md` ("chat-context.md"). This is a snapshot that gets replaced, never appended. It is public: no secrets and no private data.
 
 ## Summary of the conversation so far
@@ -67,6 +67,8 @@
 15. **Step 37 (2026-10-27), same PR #29:** owner's corrections: touch scrolling on the timeline moved and resized blocks, so only the selected block can be dragged now; the snap stuck far from the pointer, so it is a real magnet now (keeps the pointer's position apart from the drawn one); Undo/Redo first in the toolbar; Solar Linear icons (ADR-020, CC BY 4.0).
 
 16. **Step 38 (2026-10-27), same PR #29:** `settings.json` (basic/advanced, snap 4 px), toolbar without labels and dark selected icons, draggable playhead arrow and a centred-playhead mode for touch screens (ADR-021).
+
+17. **Step 39:** playhead fixes: overlay arrow above the timeline, no jitter, blocks drawn left of the line (empty start by `transform`, not margins).
 
 **Open and next**
 - **Next:** plan 08 step 2 (orange subtitle track), then the generate-captions sheet and per-cue style; the owner keeps testing (`cd engine && uv run flosub serve`) and sends more corrections; mobile polish comes later.

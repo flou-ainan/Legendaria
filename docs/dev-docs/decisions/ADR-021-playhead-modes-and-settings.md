@@ -11,8 +11,9 @@ The owner wants a draggable arrow on the timeline like Kdenlive's, to place each
 ## Decision
 
 - **Both modes, same wavesurfer.js timeline.** `settings.playhead`: `auto` (default) picks the centred mode on touch screens (`pointer: coarse`) and the arrow elsewhere; `arrow` or `center` force one.
-  - *Arrow:* a yellow triangle on wavesurfer's cursor line; dragging it seeks, and near an edge it scrolls the timeline.
-  - *Centred:* half a screen of margin before and after the waveform (the regions sit inside the same wrapper, so they stay aligned); a per-frame loop keeps the scroll at `time × px/s` (read from the `<video>`, not from reactive state, ADR-015); a scroll that is not ours is a swipe and seeks. wavesurfer's own auto-centre is off in this mode.
+  - Both draw the playhead as an overlay **outside** wavesurfer's shadow DOM: an arrow in a strip above the waveform (so the mouse can reach it) and a line over the blocks, positioned every frame from the `<video>` time (ADR-015).
+  - *Arrow:* dragging it seeks; near an edge it scrolls the timeline.
+  - *Centred:* the line stays in the middle; the timeline scrolls under it, and when the playhead is in the first half screen the waveform is shifted right with `transform` (empty space before the start). An own pointer-drag pans the video time (native touch scrolling is off). Adding real margins to wavesurfer's wrapper was tried first and failed: wavesurfer only draws what its scroll position says is visible, so blocks and waveform on the left were not drawn.
 - **`web/src/lib/settings.json`** with `basic` and `advanced` groups, read by `settings.ts`: playhead mode, snap distance (default 4 px), autosave delay, undo grouping and depth, start and maximum zoom. Edited by hand today; the Settings screen will read and write the same shape (and can keep user values in localStorage).
 
 ## Alternatives considered

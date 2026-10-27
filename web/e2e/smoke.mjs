@@ -195,7 +195,7 @@ try {
   assert.equal(kept.name, 'clip.webm'); assert.ok(kept.cues > 0 && kept.dirty === false)
 
   // the arrow on the playhead: dragging it seeks
-  const arrow = page.locator('.cursor > div').first()
+  const arrow = page.locator('.arrow')
   const arrowBox = await arrow.boundingBox()
   const t0 = await page.evaluate(() => document.querySelector('video').currentTime)
   await page.mouse.move(arrowBox.x + 10, arrowBox.y + 6)
@@ -208,23 +208,23 @@ try {
   await touch.goto(base)
   await touch.locator('[part~="c3"]').first().waitFor({ timeout: 15000 })
   const geometry = () => touch.evaluate(() => {
-    const wrapper = document.querySelector('.wave > div').shadowRoot.querySelector('.wrapper')
-    const scroll = wrapper.parentElement
-    return { margin: parseFloat(wrapper.style.marginLeft), left: scroll.scrollLeft, view: scroll.clientWidth, time: document.querySelector('video').currentTime }
+    const scroll = document.querySelector('.wave > div').shadowRoot.querySelector('.wrapper').parentElement
+    const head = document.querySelector('.head').getBoundingClientRect()
+    return { left: scroll.scrollLeft, view: scroll.clientWidth, head: head.x, wave: document.querySelector('.wave').getBoundingClientRect(), time: document.querySelector('video').currentTime }
   })
-  let g = await geometry()
-  assert.ok(Math.abs(g.margin - g.view / 2) < 2, 'empty space before the start, half a screen')
   await touch.evaluate(() => (document.querySelector('video').currentTime = 3))
   await touch.waitForTimeout(300)
-  g = await geometry()
-  assert.ok(g.left > 100, `the timeline scrolls to keep the playhead centred (${g.left})`)
-  await touch.evaluate(() => {
-    const scroll = document.querySelector('.wave > div').shadowRoot.querySelector('.wrapper').parentElement
-    scroll.scrollLeft = 60
-  })
+  let g = await geometry()
+  assert.ok(g.left > 0, `the timeline scrolls to keep the playhead centred (${g.left})`)
+  assert.ok(Math.abs(g.head - (g.wave.x + g.view / 2)) < 3, 'the playhead stays in the middle')
+  await touch.evaluate(() => (document.querySelector('video').currentTime = 0))
   await touch.waitForTimeout(300)
   g = await geometry()
-  assert.ok(g.time < 2, `swiping the timeline seeks (${g.time})`)
+  assert.ok(Math.abs(g.head - (g.wave.x + g.view / 2)) < 3 && g.left === 0, 'at the start the playhead is still in the middle, over empty space')
+  const y = g.wave.y + g.wave.height / 2
+  await touch.mouse.move(g.wave.x + 250, y); await touch.mouse.down(); await touch.mouse.move(g.wave.x + 150, y, { steps: 5 }); await touch.mouse.up()
+  g = await geometry()
+  assert.ok(g.time > 0.2, `dragging the timeline seeks (${g.time})`)
   await touch.close()
 
   // export SRT

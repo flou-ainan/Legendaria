@@ -42,44 +42,64 @@
   const project = $derived(editor.project!)
 
   let frame = 0
-  let sizeWatch: ResizeObserver | undefined
+  let stage: HTMLDivElement
+  let head: HTMLDivElement // the playhead: an arrow above the waveform and a line over the blocks (outside wavesurfer's shadow DOM)
+  let arrow: HTMLDivElement
   let scroller: HTMLElement
-  let setScrollTo = 0 // the scroll position we set ourselves, to tell it from the user's swipe
+  let wrap: HTMLElement // wavesurfer's wide inner element
 
-  /** The arrow on the playhead (drag it to seek) or, on touch screens, the centred playhead that follows the swipe. */
-  function setupPlayhead() {
-    const wrapper = ws!.getWrapper()
-    scroller = wrapper.parentElement!
-    const cursor = wrapper.querySelector<HTMLElement>('.cursor')
-    const arrow = document.createElement('div')
-    arrow.style.cssText = 'position:absolute;top:0;left:-9px;width:20px;height:16px;background:#ffd23f;clip-path:polygon(0 0,100% 0,50% 100%);touch-action:none;' +
-      (center ? '' : 'pointer-events:auto;cursor:ew-resize;')
-    cursor?.appendChild(arrow)
+  /**
+   * Position the playhead every frame (the time is read from the <video>, ADR-015).
+   * Arrow mode: it sits where the time is and the arrow can be dragged.
+   * Centred mode: it stays in the middle; the timeline scrolls under it, and a shift to the right leaves
+   * empty space before the start (the waveform is only moved, never re-laid out, so wavesurfer still draws all of it).
+   */
+  function follow() {
+    const view = scroller.clientWidth
+    const at = player.time() * pxPerSec
+    let x = at - scroller.scrollLeft
     if (center) {
-      const layout = () => {
-        wrapper.style.marginLeft = wrapper.style.marginRight = `${container.clientWidth / 2}px`
-      }
-      layout()
-      sizeWatch = new ResizeObserver(layout)
-      sizeWatch.observe(container)
-      const follow = () => {
-        const want = Math.max(0, player.time() * pxPerSec)
-        if (Math.abs(scroller.scrollLeft - want) > 0.5) scroller.scrollLeft = setScrollTo = want
-        frame = requestAnimationFrame(follow)
-      }
-      follow()
-      scroller.addEventListener('scroll', () => {
-        if (Math.abs(scroller.scrollLeft - setScrollTo) > 1.5) player.seek(scroller.scrollLeft / pxPerSec) // the user swiped
+      scroller.scrollLeft = Math.max(0, at - view / 2)
+      const shift = Math.max(0, view / 2 - at)
+      wrap.style.transform = `translateX(${shift}px)`
+      x = view / 2
+    }
+    head.style.transform = `translateX(${x}px)`
+    head.style.visibility = x < -1 || x > view + 1 ? 'hidden' : 'visible'
+    frame = requestAnimationFrame(follow)
+  }
+
+  function setupPlayhead() {
+    wrap = ws!.getWrapper()
+    scroller = wrap.parentElement!
+    follow()
+    if (center) {
+      // our own pan: a drag on the timeline moves the video time (touch scrolling is off, so the playhead stays put)
+      scroller.style.touchAction = 'none'
+      container.addEventListener('pointerdown', (event) => {
+        const picked = `c${editor.selected}`
+        if (editor.selected >= 0 && event.composedPath().some((n) => (n as HTMLElement).getAttribute?.('part')?.split(' ').includes(picked))) return // dragging the selected block
+        let lastX = event.clientX
+        const move = (e: PointerEvent) => {
+          player.seek(Math.min(project.duration, Math.max(0, player.time() - (e.clientX - lastX) / pxPerSec)))
+          lastX = e.clientX
+        }
+        const stop = () => {
+          window.removeEventListener('pointermove', move)
+          window.removeEventListener('pointerup', stop)
+        }
+        window.addEventListener('pointermove', move)
+        window.addEventListener('pointerup', stop)
       })
     } else {
       arrow.addEventListener('pointerdown', (event) => {
         event.stopPropagation()
         arrow.setPointerCapture(event.pointerId)
         const move = (e: PointerEvent) => {
-          const box = scroller.getBoundingClientRect()
+          const box = container.getBoundingClientRect()
           if (e.clientX > box.right - 24) scroller.scrollLeft += 14 // near an edge: keep the timeline moving
           else if (e.clientX < box.left + 24) scroller.scrollLeft -= 14
-          const at = (e.clientX - wrapper.getBoundingClientRect().left) / pxPerSec
+          const at = (e.clientX - box.left + scroller.scrollLeft) / pxPerSec
           player.seek(Math.min(project.duration, Math.max(0, at)))
         }
         const stop = () => {
@@ -105,7 +125,7 @@
       waveColor: '#5fa57a',
       progressColor: '#8fd3a8',
       cursorColor: '#ffd23f',
-      cursorWidth: 2,
+      cursorWidth: 0,
       autoCenter: !center,
       autoScroll: !center,
       peaks: [peaks.peaks],
@@ -136,7 +156,6 @@
 
   onDestroy(() => {
     cancelAnimationFrame(frame)
-    sizeWatch?.disconnect()
     container?.removeEventListener('wheel', onWheel)
     ws?.destroy()
   })
@@ -294,7 +313,13 @@
     <button onclick={() => setZoom(minPx)}>{t('timeline.fit')}</button>
     <button onclick={() => setZoom(pxPerSec * 1.5)} title={t('timeline.zoom_in')}>+</button>
   </div>
-  <div class="wave" bind:this={container}></div>
+  <div class="stage" bind:this={stage}>
+    <div class="wave" bind:this={container}></div>
+    <div class="head" class:center bind:this={head}>
+      <div class="arrow" bind:this={arrow}></div>
+      <div class="line"></div>
+    </div>
+  </div>
   {#if !ready}<p class="muted">{t('loading')}</p>{/if}
 </section>
 
@@ -302,5 +327,10 @@
   .bar { display: flex; gap: 0.5rem; align-items: baseline; }
   .bar h2 { margin: 0 0.5rem 0.4rem 0; }
   .spacer { flex: 1; }
-  .wave { margin-top: 0.4rem; background: var(--bg); border-radius: 6px; }
+  .stage { position: relative; padding-top: 16px; margin-top: 0.2rem; }
+  .wave { background: var(--bg); border-radius: 6px; overflow: hidden; }
+  .head { position: absolute; top: 0; bottom: 0; left: 0; width: 0; z-index: 10; pointer-events: none; }
+  .arrow { position: absolute; top: 0; left: -10px; width: 20px; height: 17px; background: #ffd23f; clip-path: polygon(0 0, 100% 0, 50% 100%); pointer-events: auto; cursor: ew-resize; touch-action: none; }
+  .head.center .arrow { pointer-events: none; cursor: default; }
+  .line { position: absolute; top: 16px; bottom: 0; left: -1px; width: 2px; background: #ffd23f; }
 </style>
