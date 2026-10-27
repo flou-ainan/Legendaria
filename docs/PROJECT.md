@@ -183,12 +183,12 @@ Layout (step 33): a header, the video with a tool row under it (play, in, out, c
 | File | Lines | What it does |
 |---|---|---|
 | `main.ts` | 5 | Mounts `App.svelte`. `app.css`: theme tokens, base controls, and the style of wavesurfer's cue text (it draws in a shadow root). |
-| `App.svelte` | 151 | Loads `/api/state`; Welcome when no video is open, Transcribe until a project exists, then the editor layout and the header (menu, logo, save status, panel buttons, Export); Save now and Download a copy. |
+| `App.svelte` | 150 | Loads `/api/state`; Welcome when no video is open, Transcribe until a project exists, then the editor layout and the header (menu, logo, save status, panel buttons, Export); Save now and Download a copy. |
 | `components/Welcome.svelte` | 141 | Start screen: drop a video on the page (uploaded) or "Choose a file…" (opened in place); "Continue where you left off" from the browser's recovery copy, and relinking a moved video (same duration ±0.5 s and screen proportion ±1 %). |
 | `components/Menu.svelte` | 65 | File menu (open video/project, close, save, download a copy, export), panels on narrow screens and the interface language; a hamburger under 900 px. |
 | `components/Browse.svelte` | 77 | File browser dialog over the computer running the server (`/api/browse`), with an editable folder path. |
 | `components/Transcribe.svelte` | 80 | Drop-down lists for model (shows size and whether it is downloaded), language and style; runs the transcribe job with progress. |
-| `components/Player.svelte` | 124 | `<video>` + JASSUB (font preloaded, repaint on paused seeks); a `requestVideoFrameCallback` loop skips cut parts and tracks the current cue without reactive state at frame rate; keyboard shortcuts from `lib/shortcuts.json`. |
+| `components/Player.svelte` | 177 | `<video>` + JASSUB (font preloaded, repaint on paused seeks); a `requestVideoFrameCallback` loop skips cut parts and tracks the current cue without reactive state at frame rate; keyboard shortcuts from `lib/shortcuts.json`. |
 | `components/LookMenu.svelte` | 123 | Look menu: Top / Bottom, height, size, font, colours, outline, shadow, rounded rectangle, caps, reset; for the whole track or, with a block selected, \"This subtitle\" plus \"Apply to all\" (ADR-019, ADR-022). |
 | `components/Toolbar.svelte` | 75 | The tool row under the video: Undo, Redo first, then contextual tools (at most 5: Play, In, Out, Cut, Look; with a block selected: Play, Split, Merge, Delete, Look) and Snap; one sliding row on narrow screens; the Look menu is a bottom sheet there. |
 | `components/Icon.svelte`, `lib/icons.ts` | 8, 20 | Solar Linear icons (ADR-020): `icons.ts` holds the SVG paths, `Icon` draws one by name in the text colour. |

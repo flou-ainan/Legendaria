@@ -18,11 +18,18 @@ const ffmpeg = spawnSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'testsrc
   '-f', 'lavfi', '-i', 'sine=d=10', '-shortest', '-c:v', 'libvpx-vp9', '-b:v', '1M', '-deadline', 'realtime',
   '-c:a', 'libopus', video])
 assert.equal(ffmpeg.status, 0, 'ffmpeg could not make the test clip')
+const tall = join(dir, 'tall.webm') // a phone-shaped video, to check the bottom sheet crops it
+const tallClip = spawnSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'testsrc=s=360x640:r=25:d=4', '-c:v', 'libvpx-vp9', '-b:v', '1M', '-deadline', 'realtime', tall])
+assert.equal(tallClip.status, 0, 'ffmpeg could not make the tall clip')
 
 writeFileSync(`${video}.legendaria.json`, JSON.stringify({
   format: 'legendaria-project', version: 1, source: 'clip.webm', duration: 10, style: 'pop', language: 'pt',
   keep: [[0, 10]],
   cues: Array.from({ length: 10 }, (_, i) => ({ start: i + 0.1, end: i + 0.9, text: `palavra${i}` })),
+}))
+writeFileSync(`${tall}.legendaria.json`, JSON.stringify({
+  format: 'legendaria-project', version: 1, source: 'tall.webm', duration: 4, style: 'pop', language: 'pt',
+  keep: [[0, 4]], cues: [{ start: 0.1, end: 3.9, text: 'alta' }],
 }))
 writeFileSync(join(dir, 'legendaria-glossary.txt'), 'palavra7 -> Sétima\n')
 
@@ -294,6 +301,42 @@ try {
   await touch.waitForTimeout(300)
   const pxAfter = await touch.evaluate(() => document.querySelector('.wave > div').shadowRoot.querySelector('.wrapper').getBoundingClientRect().width)
   assert.ok(pxAfter > pxBefore * 1.5, `pinching out zooms the timeline (${pxBefore} -> ${pxAfter})`)
+  // a tall video with the Look sheet open: it is cropped to the part that holds the subtitles
+  await touch.evaluate((path) => fetch('/api/open', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path }) }), tall)
+  await touch.reload()
+  await touch.locator('[part~="c0"]').first().waitFor({ timeout: 15000 })
+  await touch.getByRole('button', { name: /Subtitle look/ }).click()
+  await touch.waitForTimeout(1200)
+  const shown = async () => touch.evaluate(() => {
+    const view = document.querySelector('.viewport').getBoundingClientRect()
+    const v = document.querySelector('video').getBoundingClientRect()
+    const sheet = document.querySelector('.pop').getBoundingClientRect()
+    return { view: [view.top, view.bottom], video: [v.top, v.bottom], sheetTop: sheet.top }
+  })
+  let tallBox = await shown()
+  assert.ok(tallBox.view[1] <= tallBox.sheetTop + 1 && tallBox.view[0] >= -1, `the cropped video fits above the sheet ${JSON.stringify(tallBox)}`)
+  assert.ok(tallBox.video[1] - tallBox.video[0] > tallBox.view[1] - tallBox.view[0] + 50, 'the tall video is cropped, not shrunk')
+  assert.ok(Math.abs(tallBox.video[1] - tallBox.view[1]) < 2, 'subtitles low (default): the bottom of the video is the part shown')
+  await touch.locator('button.pop-top, .pop button', { hasText: 'Top' }).first().click()
+  await touch.waitForTimeout(1000)
+  tallBox = await shown()
+  assert.ok(Math.abs(tallBox.video[0] - tallBox.view[0]) < 2, 'subtitles high: the top of the video is the part shown')
+  if (process.env.E2E_SHOTS) await touch.screenshot({ path: join(process.env.E2E_SHOTS, 'tall-top.png') })
+  await touch.locator('.grab').click()
+  await touch.waitForTimeout(400)
+
+  // full screen, then rotate the phone: the video and the subtitle canvas must follow the new size
+  await touch.getByRole('button', { name: /Full screen/ }).click()
+  await touch.waitForTimeout(600)
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: 800, height: 390, deviceScaleFactor: 1, mobile: true, screenOrientation: { type: 'landscapePrimary', angle: 90 } })
+  await touch.waitForTimeout(800)
+  const rotated = await touch.evaluate(() => {
+    const r = (el) => { const b = el.getBoundingClientRect(); return { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) } }
+    return { win: [innerWidth, innerHeight], video: r(document.querySelector('video')), canvas: r(document.querySelector('canvas.JASSUB')), full: !!document.fullscreenElement }
+  })
+  assert.deepEqual([rotated.video.w, rotated.video.h], [800, 390], 'the video fills the rotated full screen')
+  assert.ok(rotated.canvas.h === 390 && rotated.canvas.x >= 0 && rotated.canvas.x + rotated.canvas.w <= 800, 'the subtitle canvas follows it')
+  await touch.evaluate((path) => fetch('/api/open', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path }) }), video) // back to the main clip
   await touch.close()
 
   // full screen keeps the subtitles: the box with the video and JASSUB's canvas goes full screen, not the <video>

@@ -1,6 +1,6 @@
 # Chat context (hand-off)
 
-**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 48.
+**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 49.
 **Policy:** `AGENTS.md` and `docs/dev-docs/README.md` ("chat-context.md"). This is a snapshot that gets replaced, never appended. It is public: no secrets and no private data.
 
 ## Summary of the conversation so far
@@ -87,6 +87,8 @@
 25. **Step 47:** breakpoint 1024 px, bottom sheets that slide up (drawer, Look), pinch zoom on the timeline.
 
 26. **Step 48:** sheets take at most 44 % of the screen and the video stays pinned above them.
+
+27. **Step 49:** robust full-screen sizing after a rotation (to confirm on the phone); a tall video is cropped to the part with the subtitles when a sheet is open.
 
 **Open and next**
 - **Next:** plan 08 desktop extras (caption list always visible with search and replace, right-click menu, Ctrl+B split); the owner keeps testing (`cd engine && uv run flosub serve`, restart it after pulling).

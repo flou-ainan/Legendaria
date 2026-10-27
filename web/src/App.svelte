@@ -144,7 +144,6 @@
     /* a bottom sheet is open: keep room under the page for it, and the video (with its toolbar) pinned on top to see the subtitles change */
     main.sheet { padding-bottom: 46vh; }
     main.sheet .stage { position: sticky; top: 0; z-index: 15; background: var(--bg); padding-bottom: 0.3rem; }
-    main.sheet .stage :global(video) { max-height: 30vh; }
     main.drawer { grid-template-columns: minmax(0, 1fr); }
     main { padding: 0.5rem; }
   }

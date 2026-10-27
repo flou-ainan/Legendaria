@@ -23,6 +23,12 @@
   let { font, fonts }: { font: string; fonts: FontEntry[] } = $props()
 
   const project = $derived(editor.project!)
+  // where the selected subtitle (or the track) sits: above the middle of the picture or below it
+  const subtitlesHigh = $derived((project.cues[editor.selected]?.look?.y ?? project.look?.y ?? editor.base.y) > 0.5)
+  $effect(() => {
+    void ui.sheet, void subtitlesHigh // the box changes size: lay the subtitle canvas out again
+    refit()
+  })
 
   onMount(async () => {
     player.video = video
@@ -92,6 +98,18 @@
     else (video as HTMLVideoElement & { webkitEnterFullscreen?: () => void }).webkitEnterFullscreen?.()
   }
 
+  // The subtitle canvas is laid out from the video's size: redo it once the browser has settled after a
+  // full-screen switch or a rotation (it can report the old size for a few frames).
+  function refit() {
+    for (const wait of [0, 150, 500]) {
+      setTimeout(async () => {
+        if (!subs) return
+        await subs.ready
+        void subs.resize()
+      }, wait)
+    }
+  }
+
   function onKey(event: KeyboardEvent) {
     const target = event.target as HTMLElement
     if (target.closest('input, textarea, select')) return
@@ -119,13 +137,19 @@
   }
 </script>
 
-<svelte:window onkeydown={onKey} />
-<svelte:document onfullscreenchange={() => (full = document.fullscreenElement === screen)} />
+<svelte:window onkeydown={onKey} onresize={refit} onorientationchange={refit} />
+<svelte:document onfullscreenchange={() => { full = document.fullscreenElement === screen; refit() }} />
 
 <section class="player">
   <div class="screen" class:full bind:this={screen}>
-    <!-- svelte-ignore a11y_media_has_caption: the captions are drawn by JASSUB -->
-    <video bind:this={video} src="/api/media" controls controlslist="nofullscreen" preload="auto" ondblclick={toggleFullscreen}></video>
+    <!-- With a bottom sheet open on a narrow screen the viewport is short: a tall video is cropped there, keeping
+         the part where the subtitles are (the bottom, or the top when they sit high). JASSUB's canvas lives in .frame. -->
+    <div class="viewport" class:crop={ui.sheet} class:high={subtitlesHigh}>
+      <div class="frame">
+        <!-- svelte-ignore a11y_media_has_caption: the captions are drawn by JASSUB -->
+        <video bind:this={video} src="/api/media" controls controlslist="nofullscreen" preload="auto" ondblclick={toggleFullscreen}></video>
+      </div>
+    </div>
     <button class="fs" onclick={toggleFullscreen} title={t('tool.fullscreen')} aria-label={t('tool.fullscreen')}>
       <Icon name={full ? 'exitFullscreen' : 'fullscreen'} />
     </button>
@@ -137,8 +161,17 @@
 <style>
   .screen { position: relative; background: #000; border-radius: 8px; overflow: hidden; }
   video { display: block; width: 100%; max-height: 44vh; }
-  .screen.full { border-radius: 0; display: grid; place-items: center; }
-  .screen.full video { width: 100vw; height: 100vh; max-height: none; object-fit: contain; }
+  .frame { position: relative; }
+  @media (max-width: 1023px) {
+    .viewport.crop { display: flex; flex-direction: column; justify-content: flex-end; max-height: 34vh; overflow: hidden; }
+    .viewport.crop.high { justify-content: flex-start; }
+    .viewport.crop .frame { flex: none; }
+    .viewport.crop video { max-height: none; height: auto; }
+  }
+  /* full screen: sized by the full-screen box itself (not vw/vh, which are stale for a moment after a phone is rotated) */
+  .screen.full { border-radius: 0; position: fixed; inset: 0; width: 100%; height: 100%; }
+  .screen.full .viewport, .screen.full .frame { position: absolute; inset: 0; max-height: none; }
+  .screen.full video { position: absolute; inset: 0; width: 100%; height: 100%; max-height: none; object-fit: contain; }
   .fs { position: absolute; top: 0.5rem; right: 0.5rem; z-index: 5; display: grid; place-items: center; width: 2.2rem; height: 2.2rem; padding: 0; background: #000a; color: #fff; opacity: 0.7; }
   .fs:hover { opacity: 1; }
 </style>
