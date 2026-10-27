@@ -1,6 +1,6 @@
 # Chat context (hand-off)
 
-**Last updated:** 2026-10-27, by Claude Code (Opus 5.5), during step 30.
+**Last updated:** 2026-10-27, by Claude Code (Opus 5.5), after step 31.
 **Policy:** `AGENTS.md` and `docs/dev-docs/README.md` ("chat-context.md"). This is a snapshot that gets replaced, never appended. It is public: no secrets and no private data.
 
 ## Summary of the conversation so far
@@ -11,6 +11,7 @@
 - The owner tests manually and then gives feedback. They prefer lean MVPs with "later" notes, and want options plus a recommendation before a decision.
 - They avoid heavy frameworks and libraries.
 - Public actions need explicit approval every time: PyPI tags, releases, and anything published.
+- At the end of each task, the agent says which model tier and effort the next task needs (owner prefers low/medium; high only with a reason). Rule in `AGENTS.md`, "Recommending the model for the next task".
 - `main` is protected: every change goes through a branch, a PR, the `ci` check and a squash merge.
 
 **Project:** Legendária (repo `flou-ainan/Legendaria`).
@@ -46,72 +47,23 @@
    - OpenReel dissected (`references/openreel_dissection.md`): snapshot undo with auto-grouping, pixel-threshold snapping (plus word boundaries), a JSON shortcut table, zoom-at-cursor, a versioned and validated project file, property-based tests;
    - this hand-off file and its policy added.
 
+9. **Step 31 (2026-10-27), PR #29 (stacked on #28):**
+   - ADR-016: the project file `<video>.legendaria.json` (own JSON, kept ranges + cues in source time; `.ass`/SRT/VTT are exports). This answers the owner's earlier question about `.ass` vs extended `.ass`.
+   - engine: `project.py`, `media.render` (one-pass cut + burn), `flosub serve` (stdlib server);
+   - `web/`: transcribe, JASSUB live preview, cuts (I/O/X, restore), cue list, undo/redo, autosave, export MP4/SRT/VTT/ASS, en + pt-BR;
+   - tested: 120 pytest, Vitest, a local Playwright run, a real transcription through the server.
+   - New `AGENTS.md` rule for model recommendations.
+
 **Open and next**
-- **Next:**
-  - ADR-016: the project file `<video>.legendaria.json` (`"format": "legendaria-project"`, version 1, JSON Schema, kept ranges + cues + style; cues in source time);
-  - then the plan 07 phase 2 MVP build: `flosub serve`, the Svelte app in `web/`, the JASSUB player, the cue list, the timeline (cuts + cues + waveform), export, pt-BR.
+- **Next:** the owner's manual test: `cd engine && uv run flosub serve <video>`.
+- Then plan 07, step 32: waveform + draggable cues + snapping + zoom; review/glossary suggestions in the cue list; Playwright in CI (model recommendations are in plan 07, "Phase 2 progress").
 - **Pending owner decisions:** import `.ass`/`.srt` + `flosub align --srt` (plan 04 §11.3, item 4).
 - **Not published:** engine 0.1.0.dev4 is not on PyPI; the tag needs the owner's approval.
-- **Open PR:** #28 (the docs for steps 28–30).
+- **Open PRs:** #28 (docs for steps 28–30), #29 (step 31, stacked on #28).
 
 ## Last two complete replies (verbatim)
 
-### Reply 1 (2026-10-26): phase 0 results
-
-> Os quatro testes rodaram e funcionaram. Para o framework, recomendo **Svelte 5**, com o Vue 3 bem perto; a escolha é sua.
->
-> Tudo está em **`/mnt/work/Trabalhos/Projetos Flou/legendaria-spikes/`**, com um `LEIA-ME.md` explicando cada arquivo. A pasta fica fora do repositório porque usa o seu vídeo. O servidor dos testes está rodando agora em **http://localhost:5199**, então dá para abrir direto no navegador.
->
-> ### 1.1 OpenReel: aproveitamos as ideias, não o código
-> - São cerca de 460 mil linhas. Ele monta cada quadro em canvas porque mistura várias faixas e efeitos.
-> - Nós temos um vídeo só. Um `<video>` comum com a legenda do JASSUB por cima resolve.
-> - O motor dele, a forma de onda e a exportação são substituídos por coisas mais simples.
-> - Vale estudar como ele encaixa os blocos na timeline, o desfazer e os atalhos. Copiar o React dele traz pouco ganho.
->
-> ### 1.2 JASSUB, a prévia exata (`results/1.2-jassub/`)
-> - Comparei quadro a quadro com o FFmpeg, inclusive no meio da animação "pop".
-> - Sobram só diferenças de 1 pixel nas bordas: nos arquivos `side_*.png` a linha de baixo (a diferença) fica quase preta.
-> - Abre em 0,2 a 0,5 s.
-> - **O que precisa:** o servidor tem que entregar as fontes ao navegador, senão ele não enxerga as fontes do sistema. E o primeiro quadro só aparece depois que a fonte carrega.
->
-> ### 1.3 Forma de onda com 500 blocos (`results/1.3-wavesurfer/`)
->
-> | Caso | Abre em | Memória |
-> |---|---|---|
-> | Clipe de 20 s, 43 blocos | 35 ms | 2 MB |
-> | 10 min, 500 blocos, navegador decodifica o áudio | 1,2 s | 27 MB |
-> | 10 min, 500 blocos, **picos calculados no servidor** | **53 ms** | **9 MB** |
->
-> - Arrastar as bordas e dividir um bloco funcionam.
-> - **Decisão que sai daqui:** os picos da forma de onda vêm do servidor. Calcular 10 min leva 1,2 s.
-> - No modo de 10 min, o teste automático de arrastar não valeu, porque a tela rolou e o bloco saiu de vista. Por isso o arraste só foi conferido no clipe de 20 s.
->
-> ### 1.4 Cortar e gravar a legenda num comando só (`results/1.4-cut-burn/`)
-> - Tirei os trechos de 4–7 s e 12,5–15 s. Saiu exatamente 14,5 s, renderizado em 8 s.
-> - Dos 43 blocos sobraram 31, e o SRT e o VTT já saem no tempo novo.
-> - O `sync_check.png` mostra o original e o cortado no mesmo instante da fala. A legenda e a boca batem.
-> - Os 4 testes automáticos do ajuste de tempos passaram.
->
-> ### 2.1 Framework
-> O que pesa no editor (o vídeo, a legenda do JASSUB e a forma de onda) já funciona sem framework nenhum. O framework só cuida da lista de blocos, dos cortes, da seleção e do desfazer. A regra que vale em qualquer um: **o tempo do player não passa pelo estado a 60 quadros por segundo**. O que causa travamentos no React em projetos grandes é justamente o estado mudando a cada quadro.
->
-> - **Svelte 5 (recomendo):** é o mais leve. Os componentes ficam muito próximos de HTML/JS puro, o que combina com o seu jeito de evitar frameworks. A reatividade é precisa: atualiza só o que mudou.
-> - **Vue 3:** fica bem perto. É maduro e fácil para colaboradores.
-> - **React:** você conhece, mas não ganhamos nada copiando o OpenReel.
->
-> ### 2.2 MVP enxuto
-> Os cortes no MVP só removem trechos. Anotei no plano 07, na seção "Later", o que fica para depois:
-> - reordenar trechos e juntar vários vídeos;
-> - ajustes automáticos de tempo no estilo do Aegisub;
-> - timeline em canvas para milhares de blocos;
-> - uma versão para celular sem servidor (por enquanto o servidor local está sempre presente);
-> - escolha de fontes.
->
-> A nota técnica completa e o devlog (passo 29) foram para o **PR #28** (https://github.com/flou-ainan/Legendaria/pull/28), que segue aberto e só tem documentação.
->
-> **Svelte 5 ou Vue 3?** Com a sua escolha eu escrevo a ADR-015 e começo a fase 1.
-
-### Reply 2 (2026-10-27): Svelte chosen, OpenReel dissected, hand-off policy
+### Reply 1 (2026-10-27): Svelte chosen, OpenReel dissected, hand-off policy
 
 > Fechado: **Svelte 5 + Vite + TypeScript**, registrado na ADR-015.
 >
@@ -133,3 +85,43 @@
 > Tudo isso foi para o PR #28, que continua só com documentação.
 >
 > **Próximo passo:** a ADR-016 (formato do arquivo de projeto) e começar a construir o MVP (`flosub serve` + o app Svelte). Posso seguir?
+
+### Reply 2 (2026-10-27): web editor first slice
+
+> Feito. O editor já funciona de ponta a ponta: abrir → transcrever → editar → cortar → exportar.
+>
+> **Como testar**
+> ```bash
+> cd engine
+> uv run flosub serve /caminho/do/video.mp4
+> ```
+> O navegador abre sozinho. O app já está compilado na sua máquina; se aparecer "The editor is not built", rode `cd web && npm ci && npm run build`.
+>
+> **ADR-016, o arquivo de projeto:** `video.mp4.legendaria.json`, ao lado do vídeo. É um JSON nosso, com versão e validação. Guarda os trechos mantidos (os cortes), as legendas no tempo do vídeo original e o estilo. `.ass`, SRT e VTT viram exportações. Isso fecha a sua pergunta antiga sobre `.ass` ou `.ass` estendido: outros editores, como o Aegisub, apagam seções desconhecidas ao salvar, e perderíamos os cortes e os tempos das palavras.
+>
+> **O que o editor faz**
+> - Tela de transcrição: modelo, idioma, estilo e progresso.
+> - Prévia exata ao vivo com o JASSUB: cada edição aparece no vídeo em menos de 1 s, com o mesmo libass da exportação.
+> - Cortes: **I** marca o início, **O** marca o fim, **X** corta. A reprodução pula os trechos cortados. Na lista de cortes, "Restaurar" traz o trecho e as legendas de volta.
+> - Lista de legendas: texto, tempos, dividir no cursor, juntar, apagar, adicionar.
+> - Desfazer e refazer (Ctrl+Z / Ctrl+Shift+Z) e salvamento automático.
+> - Exporta MP4 com a legenda gravada, SRT, VTT ou ASS, como `video.edited.*` ao lado do original.
+> - Português e inglês. Os atalhos ficam num JSON editável.
+>
+> **Testes**
+> - 120 testes do motor, incluindo um corte + gravação real com FFmpeg e as rotas do servidor.
+> - 5 testes do app, um deles com 200 cortes aleatórios.
+> - Um teste no navegador (Playwright): cortar, editar, desfazer, tocar pulando o corte, exportar. Também transcrevi o seu clipe de 20 s pelo servidor: 41 blocos.
+>
+> Três problemas apareceram e já foram corrigidos:
+> - um corte menor que 10 ms deixava um buraco invisível;
+> - a fonte não carregava no primeiro quadro;
+> - com o vídeo pausado, a legenda não era redesenhada depois de um salto.
+>
+> **Ainda não tem:** forma de onda, arrastar blocos na timeline, encaixe (snap), zoom e as sugestões do glossário no editor. Essa é a próxima etapa. Por enquanto, a fonte da prévia só é encontrada automaticamente no Linux; nos outros sistemas o JASSUB usa uma fonte própria.
+>
+> **Recomendação de modelo:** a regra está no `AGENTS.md`, de forma neutra: nível **standard** (Sonnet e equivalentes) ou **top** (Opus e equivalentes), e esforço **low / medium / high**. Assim qualquer agente traduz para o próprio modelo. A recomendação também fica anotada no plano, para não se perder entre sessões.
+>
+> Tudo está no **PR #29** (https://github.com/flou-ainan/Legendaria/pull/29), que vem em cima do #28.
+>
+> **Next task:** o seu teste manual com `flosub serve`; depois, a timeline com forma de onda, arrastar e encaixe — tier: **standard** (Sonnet), effort: **medium** — o caminho já está definido pelos spikes e pelo plano 07.
