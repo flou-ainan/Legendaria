@@ -41,6 +41,7 @@ npm ci
 npm run build                 # then: cd ../engine && uv run flosub serve some-clip.mp4
 npm run check                 # type check (svelte-check)
 npm test                      # Vitest
+npm run e2e                   # browser smoke test: needs ffmpeg, uv and `npx playwright install chromium`
 npm run dev                   # live reload; first run `uv run flosub serve some-clip.mp4 --no-browser` (port 8765)
 ```
 

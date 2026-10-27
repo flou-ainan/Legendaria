@@ -124,6 +124,16 @@ jobs:
       - name: Build
         run: npm run build
 
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: "3.11"
+      - name: FFmpeg and Chromium for the browser test
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          npx playwright install --with-deps chromium
+      - name: Browser smoke test (Playwright)
+        run: npm run e2e
+
   ci:
     name: ci
     if: always()

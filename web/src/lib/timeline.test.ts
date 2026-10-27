@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clock, cutsOf, normalize, outputDuration, removeRange, restoreRange, skipTarget } from './timeline'
+import { clock, cutsOf, normalize, outputDuration, removeRange, restoreRange, skipTarget, snap, snapPoints } from './timeline'
 
 describe('kept ranges', () => {
   it('normalizes like the engine', () => {
@@ -45,5 +45,15 @@ describe('kept ranges', () => {
 
   it('formats a clock', () => {
     expect(clock(83.456)).toBe('1:23.46')
+  })
+
+  it('snaps to the nearest point inside the threshold only', () => {
+    const points = snapPoints([5, 1, 3])
+    expect(snap(1.04, points, 0.1)).toBe(1)
+    expect(snap(2.1, points, 0.1)).toBe(2.1)
+    expect(snap(2.95, points, 0.1)).toBe(3)
+    expect(snap(4.9, points, 0.2)).toBe(5)
+    expect(snap(0.5, [], 0.2)).toBe(0.5)
+    expect(snap(9, points, 0.2)).toBe(9)
   })
 })

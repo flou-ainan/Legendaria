@@ -34,7 +34,7 @@ def times(cl):
 
 def test_cue_inside_removed_range_disappears():
     out = remap(cues((0, 1), (5, 6), (8, 9)), [(0, 4), (7, 10)])
-    assert times(out) == [(0, 1, "c0"), (5, 6, "c2")]  # 8–9 shifts back by the 3 s removed
+    assert times(out) == [(0, 1, "c0"), (5, 6, "c2")]  # 8-9 shifts back by the 3 s removed
 
 
 def test_cue_across_a_cut_is_clipped():
@@ -79,7 +79,9 @@ def test_remap_random_cuts_keep_cues_inside_the_output():
         for _ in range(rng.randint(0, 6)):
             a = rng.uniform(0, duration)
             keep = remove_range(keep, a, a + rng.uniform(0, 5))
-        spans = sorted((s, s + rng.uniform(0.1, 3)) for s in (rng.uniform(0, duration) for _ in range(20)))
+        spans = sorted(
+            (s, s + rng.uniform(0.1, 3)) for s in (rng.uniform(0, duration) for _ in range(20))
+        )
         out = remap(cues(*spans), keep)
         total = output_duration(keep)
         for cue in out.cues:
@@ -112,7 +114,12 @@ def test_project_path():
 
 @pytest.mark.parametrize(
     "change",
-    [{"format": "other"}, {"version": 2}, {"duration": "x"}, {"cues": [{"start": 2, "end": 1, "text": ""}]}],
+    [
+        {"format": "other"},
+        {"version": 2},
+        {"duration": "x"},
+        {"cues": [{"start": 2, "end": 1, "text": ""}]},
+    ],
 )
 def test_invalid_projects_are_rejected(change):
     with pytest.raises(ProjectError):
@@ -126,15 +133,68 @@ def test_render_cuts_and_burns(tmp_path):
 
     video = tmp_path / "in.mp4"
     subprocess.run(
-        ["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc=s=320x240:r=25:d=6",
-         "-f", "lavfi", "-i", "sine=d=6", "-shortest", "-c:v", "libx264", "-pix_fmt", "yuv420p",
-         str(video)],
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc=s=320x240:r=25:d=6",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=d=6",
+            "-shortest",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            str(video),
+        ],
         check=True,
     )
     keep = remove_range([(0.0, 6.0)], 1, 3)
     edited = remap(cues((0.5, 2.5), (4, 5)), keep)
-    out = media.render({}, video, keep, to_ass(edited, size=(320, 240)), tmp_path / "out.mp4",
-                       JsonReporter(open(tmp_path / "log", "w")))
+    with (tmp_path / "log").open("w") as log:
+        out = media.render(
+            {},
+            video,
+            keep,
+            to_ass(edited, size=(320, 240)),
+            tmp_path / "out.mp4",
+            JsonReporter(log),
+        )
     info = media.probe(out, {})
     assert abs(info["duration"] - 4.0) < 0.15 and info["has_audio"]
     assert times(edited) == [(0.5, 1.0, "c0"), (2.0, 3.0, "c1")]
+
+
+@pytest.mark.skipif(not HAS_FFMPEG, reason="needs ffmpeg and ffprobe on PATH")
+def test_peaks_follow_the_loudness(tmp_path):
+    from legendaria_engine import media
+
+    audio = tmp_path / "a.wav"
+    # 1 s of a loud tone (lavfi sine is 1/8 scale, so volume=6 gives ~0.75), then 1 s of silence
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=f=440:d=1,volume=6",
+            "-f",
+            "lavfi",
+            "-i",
+            "anullsrc=r=8000:d=1",
+            "-filter_complex",
+            "[0][1]concat=n=2:v=0:a=1",
+            str(audio),
+        ],
+        check=True,
+    )
+    values = media.peaks({}, audio)
+    assert abs(len(values) - 200) <= 2
+    assert max(values[:100]) > 0.6 and max(values[110:]) < 0.01

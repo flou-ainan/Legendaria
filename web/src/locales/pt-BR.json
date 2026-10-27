@@ -32,5 +32,17 @@
   "export.mp4": "Vídeo com legenda (MP4)",
   "export.running": "Exportando… {pct}%",
   "export.done": "Salvo: {path}",
-  "error": "Erro: {message}"
+  "error": "Erro: {message}",
+  "timeline.title": "Linha do tempo",
+  "timeline.hint": "Arraste um bloco ou as bordas · duplo clique divide no cursor · Ctrl + roda dá zoom",
+  "timeline.zoom_in": "Aproximar",
+  "timeline.zoom_out": "Afastar",
+  "timeline.fit": "Ajustar",
+  "review.title": "Revisão do glossário",
+  "review.run": "Verificar",
+  "review.none": "Nenhuma sugestão.",
+  "review.apply": "Aplicar",
+  "review.ignore": "Ignorar",
+  "review.apply_all": "Aplicar todas ({n})",
+  "review.reason": "{reason}"
 }

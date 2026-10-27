@@ -3,7 +3,7 @@
 > A condensed map of the project, so agents and people can find what they need without rereading the code.
 > **Update this file with every change to the project** (files, functions, stack, structure). Conventions: `docs/dev-docs/README.md`.
 
-**Last updated:** 2026-10-27 — step 31 (web editor MVP slice: project file ADR-016, `flosub serve`, Svelte app).
+**Last updated:** 2026-10-27 — step 32 (web editor: timeline with waveform, drag, snap, zoom; glossary review; browser smoke test).
 
 ---
 
@@ -147,7 +147,7 @@ Generated with `python3 tools/project_map.py <files>` and then reviewed. Regener
 - `engine/legendaria_engine/defaults/config.json`: engine defaults (`review`: mode suggest/auto, profile, glossary_bias, fuzzy_threshold 0.82, low_confidence 0.5, `llm` {enabled false (experimental), provider ollama, model, batch/context lines, max_change_ratio, unload_after}; model `small`, language `auto`, device `auto`, compute types, beam size, VAD, word timestamps, default `style`, cue `styles` (`pop`: one word at a time, two when the first has ≤ 3 letters, glued pieces like "-vindas" kept, gaps ≤ 0.35 s filled — the MVP default in Blender; `captions`: up to 4 words / 22 chars / 2.2 s; `subtitles`: film-style, up to 84 chars / 6 s, 2 lines of 42), output formats, UI language list; each style has an `ass` look block: font, size at 1080 px on the short side, RGBA colors, outline, shadow, box, position, uppercase, `animation` none/pop; `ffmpeg` path and `burn` encoder arguments, incl. `render_audio_args` for cut exports).
 - `engine/legendaria_engine/defaults/models.json`: model catalog (tiny, base, small, medium, large-v3, large-v3-turbo) with HF repo, size, VRAM, notes.
 - `engine/schemas/*.schema.json`: JSON Schemas for config (incl. styles), models, transcript v1, cues v1 and project v1 (ADR-016).
-- `engine/tests/`: `conftest.py` (isolated dirs, sample transcript), `test_cues.py` (chunking rules), `test_formats.py`, `test_schema.py`, `test_config.py`, `test_cli.py`, `test_transcriber.py` (GPU→CPU fallback with a fake run), `test_glossary.py`, `test_fix_rules.py`, `test_llm_review.py` (fake OpenAI-compatible server), `test_glossary_library.py`, `test_ass.py` (the `.ass` writer, export from edited cues, burn and overlay when FFmpeg is on PATH), `test_project.py` (kept ranges, remap incl. a random property test, project file + schema, a real cut + burn), `test_server.py` (`flosub serve` routes: state, Range, local-only guard, save, export SRT, preview `.ass`). 120 tests, no network.
+- `engine/tests/`: `conftest.py` (isolated dirs, sample transcript), `test_cues.py` (chunking rules), `test_formats.py`, `test_schema.py`, `test_config.py`, `test_cli.py`, `test_transcriber.py` (GPU→CPU fallback with a fake run), `test_glossary.py`, `test_fix_rules.py`, `test_llm_review.py` (fake OpenAI-compatible server), `test_glossary_library.py`, `test_ass.py` (the `.ass` writer, export from edited cues, burn and overlay when FFmpeg is on PATH), `test_project.py` (kept ranges, remap incl. a random property test, project file + schema, a real cut + burn), `test_server.py` (`flosub serve` routes: state, Range, local-only guard, save, export SRT, preview `.ass`, peaks, review). 123 tests, no network.
 
 **Glossary and review (plan 03):** glossary files are plain text (`Term` or `wrong -> right`). Sources, merged in order: the **active glossary of the library** (`<config dir>/glossaries/<name>.txt`, config `review.glossary`, `flosub glossary list|new|use|import|export|delete`; an old `glossary.txt` migrates to "default"), the project file `legendaria-glossary.txt` next to the media or transcript, and `--glossary FILE|NAME`. `transcribe` passes the terms to Whisper as `hotwords` (layer 1). `flosub review FILE.json` (or `transcribe --review`) finds explicit fixes and fuzzy matches of uncertain words (layer 2) and writes `<name>.review.json` (mode `suggest`) or applies them (`auto`). `flosub review apply FILE.review.json --ids …|--all [--format srt]` applies the chosen ones, re-timing the words. `flosub glossary path|show|add` is the base of every UI's "Add to glossary". **Layer 3 (stage 3b, EXPERIMENTAL, off by default):** `review --llm` sends batches (with context, uncertain words marked `[[…]]`) to any OpenAI-compatible server (`defaults/providers.json`: ollama, lmstudio, llamacpp, openai, gemini, anthropic, openrouter; keys from env vars) using the editable prompt `defaults/review_prompt.txt` (user copy in the config dir wins); the model returns only changed lines, which are diffed word by word and kept only if the guard allows (accent-only fixes, or similar-sounding changes of uncertain words / to glossary terms; never deletions). `flosub llm check|providers`. Config `review.profile` (light/standard = no LLM) and `review.llm.enabled: auto` degrade gracefully when no server answers.
 
@@ -166,22 +166,25 @@ Generated with `python3 tools/project_map.py <files>` and then reviewed. Regener
 
 A `warning` followed by a new `start` means the run restarted on the CPU.
 
-**Web editor (`web/`, plan 07):** `flosub serve VIDEO [--port 8765] [--no-browser]` serves the built app on 127.0.0.1 with COOP/COEP headers. API: `GET /api/state` (video, probe, project, styles, font family), `GET /api/media` (HTTP Range), `GET /api/font` (fontconfig match of the style's font, so JASSUB draws like FFmpeg), `GET /api/preview.ass` (project cues in source time), `PUT /api/project` (validated, normalized, saved atomically), `POST /api/transcribe` and `POST /api/export` {format mp4|srt|vtt|ass} start a job; `GET /api/jobs/<id>/events` streams its events (SSE, same events as `--progress json`). Requests with a non-local Host or Origin get 403. Transcription runs `flosub transcribe` in a child process. Exports go next to the video as `<stem>.edited.<ext>`. Dev: `npm run dev` in `web/` proxies `/api` to a running `flosub serve … --no-browser`.
+**Web editor (`web/`, plan 07):** `flosub serve VIDEO [--port 8765] [--no-browser]` serves the built app on 127.0.0.1 with COOP/COEP headers. API: `GET /api/state` (video, probe, project, styles, font family), `GET /api/media` (HTTP Range), `GET /api/font` (fontconfig match of the style's font, so JASSUB draws like FFmpeg), `GET /api/preview.ass` (project cues in source time), `GET /api/peaks` (waveform peaks, 100 per second, streamed from FFmpeg once per session), `GET /api/review` (glossary suggestions for the saved cues: the engine's layer 2, no AI), `PUT /api/project` (validated, normalized, saved atomically), `POST /api/transcribe` and `POST /api/export` {format mp4|srt|vtt|ass} start a job; `GET /api/jobs/<id>/events` streams its events (SSE, same events as `--progress json`). Requests with a non-local Host or Origin get 403. Transcription runs `flosub transcribe` in a child process. Exports go next to the video as `<stem>.edited.<ext>`. Dev: `npm run dev` in `web/` proxies `/api` to a running `flosub serve … --no-browser`.
 
-### web/src (Svelte 5 + TypeScript, 807 lines + tests)
+### web/src (Svelte 5 + TypeScript, 1100 lines + tests)
 
 | File | Lines | What it does |
 |---|---|---|
 | `main.ts` | 5 | Mounts `App.svelte`. `app.css`: theme tokens and base controls. |
-| `App.svelte` | 69 | Loads `/api/state`; shows Transcribe until a project exists, then the editor layout and the save/undo bar. |
+| `App.svelte` | 73 | Loads `/api/state`; shows Transcribe until a project exists, then the editor layout and the save/undo bar. |
 | `components/Transcribe.svelte` | 55 | Model / language / style form; runs the transcribe job with progress. |
-| `components/Player.svelte` | 189 | `<video>` + JASSUB (font preloaded, repaint on paused seeks); a `requestVideoFrameCallback` loop skips cut parts, moves the playhead and tracks the current cue without reactive state at frame rate; the cue/cut strip; in/out marks and cut; keyboard shortcuts from `lib/shortcuts.json`. |
+| `components/Player.svelte` | 144 | `<video>` + JASSUB (font preloaded, repaint on paused seeks); a `requestVideoFrameCallback` loop skips cut parts and tracks the current cue without reactive state at frame rate; in/out marks and cut; keyboard shortcuts from `lib/shortcuts.json`. |
+| `components/Timeline.svelte` | 171 | wavesurfer.js waveform from the server's peaks, bound to the `<video>`; one draggable/resizable region per cue (diffed against the project, so edits redraw only what changed), cuts and the in/out mark as overlays; edges snap (8 px) to other cues' edges, the cue's own words, kept-range edges and the playhead; double-click splits at the playhead; Ctrl + wheel zooms around the pointer, plus −/Fit/+ buttons. |
+| `components/Review.svelte` | 57 | "Check" runs the glossary review on the current cues; apply or ignore each suggestion, or apply all (one undo step). |
 | `components/CueList.svelte` | 73 | Cue rows: seek, start/end, text, split at playhead, merge with next, delete, add at playhead; dims cues inside cuts. |
 | `components/Cuts.svelte` | 31 | Removed ranges with seek and restore. |
 | `components/Export.svelte` | 42 | MP4 / SRT / VTT / ASS export jobs with progress. |
-| `lib/editor.svelte.ts` | 164 | `editor`: the project in `$state`, snapshot undo/redo with grouping (800 ms per field), debounced autosave that then refreshes the preview `.ass`; commands `setText`, `setTimes`, `remove`, `split`, `mergeNext`, `addAt`, `cut`, `restore`. |
-| `lib/timeline.ts` | 78 | Kept-range math mirroring `project.py`: `normalize`, `removeRange`, `cutsOf`, `restoreRange`, `skipTarget`, `outputDuration`, `clock`. Tested in `timeline.test.ts` (Vitest, incl. a random property test). |
-| `lib/api.ts` | 71 | Types (`Project`, `State`, `Cue`) and calls: `loadState`, `saveProject`, `previewAss`, `runJob` (POST + EventSource). |
+| `lib/editor.svelte.ts` | 177 | `editor`: the project in `$state`, snapshot undo/redo with grouping (800 ms per field), debounced autosave that then refreshes the preview `.ass`; commands `setText`, `setTimes`, `remove`, `split` (uses the words only while they still spell the text), `mergeNext`, `addAt`, `cut`, `restore`, `applySuggestions`; the in/out marks. |
+| `lib/timeline.ts` | 103 | Kept-range math mirroring `project.py`: `normalize`, `removeRange`, `cutsOf`, `restoreRange`, `skipTarget`, `outputDuration`, `clock`; `snapPoints` / `snap` (binary search). Tested in `timeline.test.ts` (Vitest, incl. a random property test). |
+| `lib/api.ts` | 80 | Types (`Project`, `State`, `Cue`, `Peaks`, `Suggestion`) and calls: `loadState`, `loadPeaks`, `loadReview`, `saveProject`, `previewAss`, `runJob` (POST + EventSource). |
+| `e2e/smoke.mjs` | 89 | Playwright smoke test (`npm run e2e`, also in CI): makes a WebM clip and a project, starts `flosub serve`, then drags a block, cuts with I/O/X, edits, undoes, applies a glossary suggestion and exports SRT. |
 | `lib/player.ts` | 14 | Non-reactive handle on the `<video>`: `time()`, `seek()`. |
 | `lib/i18n.ts` | 16 | `t(key, vars)` over `locales/en.json` / `pt-BR.json` (picked from the browser language). |
 | `lib/shortcuts.json` | — | Editable key table: play, mark in/out, cut, seek ±1 s, undo, redo. |
@@ -298,20 +301,21 @@ Subtitle writers: cues → SRT / VTT text (`.ass` lives in `ass.py`).
 | `to_srt(cues, line_length)` | 19 | Numbered SRT blocks, one per cue; long cues wrap into two lines. |
 | `to_vtt(cues, line_length)` | 28 | WebVTT blocks, one per cue; long cues wrap into two lines. |
 
-### engine/legendaria_engine/media.py — 266 lines
+### engine/legendaria_engine/media.py — 304 lines
 FFmpeg: find it, read a video's size, burn subtitles in, cut + burn, render a transparent overlay.
 
 | Function / class | Line | What it does |
 |---|---|---|
-| `class MediaError` | 24 | FFmpeg is missing or failed. |
-| `find_tool(config, name)` | 28 | `ffmpeg` or `ffprobe`: next to the config's `ffmpeg` path (file or folder), else PATH. |
-| `probe(path, config)` | 46 | Width, height, fps, duration and has_audio of a media file (width/height are None for audio). |
-| `video_size(path, config)` | 86 | (width, height) of a video, or None for audio, a missing file or no ffprobe. |
-| `run_ffmpeg(config, args, duration, reporter, cwd)` | 95 | Run FFmpeg with `args`, reporting progress from `-progress`; raise MediaError on failure. |
-| `burn(config, video, ass_text, output, reporter)` | 143 | Burn the subtitles into a copy of `video` (encoder settings from config `burn`). |
-| `overlay(config, ass_text, size, fps, duration, output, reporter)` | 172 | Render the subtitles alone on a transparent canvas (QuickTime Animation, argb). |
-| `cut_graph(keep, audio, subs)` | 208 | Filter graph: trim each kept range, concat them, then burn `subs` (outputs [vo], [ao]). |
-| `render(config, video, keep, ass_text, output, reporter)` | 223 | One FFmpeg pass: keep only `keep` (source seconds), burn `ass_text` (output time) if given. |
+| `class MediaError` | 25 | FFmpeg is missing or failed. |
+| `find_tool(config, name)` | 29 | `ffmpeg` or `ffprobe`: next to the config's `ffmpeg` path (file or folder), else PATH. |
+| `probe(path, config)` | 47 | Width, height, fps, duration and has_audio of a media file (width/height are None for audio). |
+| `video_size(path, config)` | 87 | (width, height) of a video, or None for audio, a missing file or no ffprobe. |
+| `run_ffmpeg(config, args, duration, reporter, cwd)` | 96 | Run FFmpeg with `args`, reporting progress from `-progress`; raise MediaError on failure. |
+| `burn(config, video, ass_text, output, reporter)` | 144 | Burn the subtitles into a copy of `video` (encoder settings from config `burn`). |
+| `overlay(config, ass_text, size, fps, duration, output, reporter)` | 173 | Render the subtitles alone on a transparent canvas (QuickTime Animation, argb). |
+| `cut_graph(keep, audio, subs)` | 209 | Filter graph: trim each kept range, concat them, then burn `subs` (outputs [vo], [ao]). |
+| `render(config, video, keep, ass_text, output, reporter)` | 224 | One FFmpeg pass: keep only `keep` (source seconds), burn `ass_text` (output time) if given. |
+| `peaks(config, path, per_sec, rate)` | 270 | Waveform peaks: the largest |sample| (0 to 1) in each 1/`per_sec` s, decoded by FFmpeg. |
 
 ### engine/legendaria_engine/models.py — 105 lines
 List, download and locate Whisper models (stored in the per-OS data dir).
@@ -336,7 +340,7 @@ Per-OS locations for user config, data and models.
 | `models_dir()` | 35 | Where downloaded models live: `<data dir>/models`. |
 | `defaults_dir()` | 40 | Shipped default JSON files inside the package. |
 
-### engine/legendaria_engine/project.py — 194 lines
+### engine/legendaria_engine/project.py — 192 lines
 Project file: the web editor's document, `<video>.legendaria.json` (ADR-016).
 
 | Function / class | Line | What it does |
@@ -344,17 +348,17 @@ Project file: the web editor's document, `<video>.legendaria.json` (ADR-016).
 | `class ProjectError` | 28 | The project file is missing, unreadable or invalid. |
 | `project_path(video)` | 32 | `clip.mp4` → `clip.mp4.legendaria.json`, next to the video. |
 | `normalize(ranges, duration)` | 37 | Sort, clip to [0, duration], merge overlapping ranges and drop empty ones. |
-| `remove_range(keep, start, end)` | 53 | The kept ranges after cutting out [start, end] (source time); tiny cuts are ignored. |
-| `output_duration(keep)` | 69 | Length of the edited video: the sum of the kept ranges. |
-| `remap(cues, keep)` | 74 | Cues on the output timeline: removed parts disappear, cues across a cut are clipped. |
-| `class Project` | 89 | The editor document. `source` is relative to the project file when possible. |
-| `Project.new(video, duration, cues)` | 100 | A fresh project for `video`: nothing cut, the cues as transcribed. |
-| `Project.cue_list()` | 111 | The cues (source time) as a CueList. |
-| `Project.edited_cues()` | 115 | The cues on the output timeline (after the cuts). |
-| `Project.to_dict()` | 119 | Plain dict ready for JSON (see schemas/project.schema.json). |
-| `Project.from_dict(data)` | 133 | Validate and build; ranges are normalized, cues sorted by start. |
-| `Project.load(path)` | 171 | Read a project file. |
-| `Project.save(path)` | 179 | Write atomically (temp file + rename), so a crash never leaves half a project. |
+| `remove_range(keep, start, end)` | 51 | The kept ranges after cutting out [start, end] (source time); tiny cuts are ignored. |
+| `output_duration(keep)` | 67 | Length of the edited video: the sum of the kept ranges. |
+| `remap(cues, keep)` | 72 | Cues on the output timeline: removed parts disappear, cues across a cut are clipped. |
+| `class Project` | 87 | The editor document. `source` is relative to the project file when possible. |
+| `Project.new(video, duration, cues)` | 98 | A fresh project for `video`: nothing cut, the cues as transcribed. |
+| `Project.cue_list()` | 109 | The cues (source time) as a CueList. |
+| `Project.edited_cues()` | 113 | The cues on the output timeline (after the cuts). |
+| `Project.to_dict()` | 117 | Plain dict ready for JSON (see schemas/project.schema.json). |
+| `Project.from_dict(data)` | 131 | Validate and build; ranges are normalized, cues sorted by start. |
+| `Project.load(path)` | 169 | Read a project file. |
+| `Project.save(path)` | 177 | Write atomically (temp file + rename), so a crash never leaves half a project. |
 
 ### engine/legendaria_engine/schema.py — 115 lines
 Transcript format (JSON v1): the contract between the engine and the Blender add-on.
@@ -370,7 +374,7 @@ Transcript format (JSON v1): the contract between the engine and the Blender add
 | `Transcript.save(path)` | 108 | Write as pretty UTF-8 JSON. |
 | `Transcript.load(path)` | 113 | Read a transcript JSON file. |
 
-### engine/legendaria_engine/server.py — 419 lines
+### engine/legendaria_engine/server.py — 495 lines
 `flosub serve`: the local web editor's backend (plan 07, ADR-014).
 
 | Function / class | Line | What it does |
@@ -379,23 +383,25 @@ Transcript format (JSON v1): the contract between the engine and the Blender add
 | `Job.emit(event, **data)` | 59 | Record one event and wake the SSE readers. |
 | `Job.wait(seen, timeout)` | 67 | Events after the first `seen` ones; blocks up to `timeout` for new ones. |
 | `class Session` | 75 | One video being edited: its project file, config and running jobs. |
-| `Session.project()` | 86 | The saved project, or None before the first transcription. |
-| `Session.state()` | 90 | Everything the editor needs on load. |
-| `Session.look(style)` | 104 | The style's `.ass` look from the config (empty if unknown). |
-| `Session.size()` | 108 | The video's (width, height) for the `.ass` canvas. |
-| `Session.ass_text(cues, style)` | 112 | `.ass` for these cues in the style's look, on the video's canvas. |
-| `Session.start(kind, work)` | 117 | Run `work(job)` in a thread; only one job at a time. |
-| `Session.transcribe(job, options)` | 134 | Run `flosub transcribe` in a child process (it may re-exec for CUDA), relay events. |
-| `Session.export(job, fmt)` | 168 | Write the edited video (`mp4`) or subtitles (`srt`, `vtt`, `ass`) next to the source. |
-| `find_font(name, bold)` | 193 | The font file the system uses for `name` (fontconfig), so the preview matches FFmpeg. |
-| `class Handler` | 206 | Routes for the editor. `self.server.session` is the open video. |
-| `Handler.session()` | 213 | The open video's session. |
-| `Handler.log_message(format, *args)` | 217 | Quiet: only errors are printed. |
-| `Handler.do_GET()` | 252 | Static app, state, media, font, preview `.ass` and job events. |
-| `Handler.do_PUT()` | 278 | Save the project (validated and normalized); returns what was saved. |
-| `Handler.do_POST()` | 291 | Start a job: `/api/transcribe` {model, language, style} or `/api/export` {format}. |
-| `make_server(video, port, config)` | 400 | A server for `video` on 127.0.0.1 (`port` 0 picks a free one). |
-| `serve(video, port, open_browser, reporter)` | 408 | Run the editor until Ctrl+C. |
+| `Session.project()` | 87 | The saved project, or None before the first transcription. |
+| `Session.state()` | 91 | Everything the editor needs on load. |
+| `Session.peaks()` | 107 | Waveform peaks (100 per second), computed once per session. |
+| `Session.review()` | 117 | Glossary suggestions (layer 2, no AI) for the saved cues, as the editor shows them. |
+| `Session.look(style)` | 157 | The style's `.ass` look from the config (empty if unknown). |
+| `Session.size()` | 161 | The video's (width, height) for the `.ass` canvas. |
+| `Session.ass_text(cues, style)` | 165 | `.ass` for these cues in the style's look, on the video's canvas. |
+| `Session.start(kind, work)` | 170 | Run `work(job)` in a thread; only one job at a time. |
+| `Session.transcribe(job, options)` | 187 | Run `flosub transcribe` in a child process (it may re-exec for CUDA), relay events. |
+| `Session.export(job, fmt)` | 230 | Write the edited video (`mp4`) or subtitles (`srt`, `vtt`, `ass`) next to the source. |
+| `find_font(name, bold)` | 259 | The font file the system uses for `name` (fontconfig), so the preview matches FFmpeg. |
+| `class Handler` | 272 | Routes for the editor. `self.server.session` is the open video. |
+| `Handler.session()` | 279 | The open video's session. |
+| `Handler.log_message(format, *args)` | 283 | Quiet: only errors are printed. |
+| `Handler.do_GET()` | 318 | Static app, state, media, font, preview `.ass` and job events. |
+| `Handler.do_PUT()` | 348 | Save the project (validated and normalized); returns what was saved. |
+| `Handler.do_POST()` | 361 | Start a job: `/api/transcribe` {model, language, style} or `/api/export` {format}. |
+| `make_server(video, port, config)` | 474 | A server for `video` on 127.0.0.1 (`port` 0 picks a free one). |
+| `serve(video, port, open_browser, reporter)` | 484 | Run the editor until Ctrl+C. |
 
 ### engine/legendaria_engine/transcriber.py — 145 lines
 Speech-to-text. A small backend interface keeps room for other engines (e.g. Apple Silicon).
@@ -797,7 +803,7 @@ Generate the glowing Legendária key art (hero and banner) as SVG.
 
 ## 7. In progress
 
-- **Now: plan 07 (web editor), phase 2.** Step 31 delivered the first working slice: ADR-016 (project file), `project.py` (kept ranges, remap), `media.render` (one-pass cut + burn), `flosub serve`, and the Svelte app (transcribe, cue list, live JASSUB preview, cut by in/out marks, undo, autosave, export MP4/SRT/VTT/ASS, en + pt-BR). Next in phase 2: the timeline with waveform and draggable cues (wavesurfer, server peaks), snapping to word boundaries, zoom, review/glossary suggestions in the editor, the Playwright smoke test in CI, and the owner's manual test. Earlier: phase 0 spikes (step 29), Svelte (ADR-015), OpenReel dissection (step 30). ADR-014: the Blender add-on is frozen.
+- **Now: plan 07 (web editor), phase 2.** Steps 31–32 cover the whole MVP list: project file (ADR-016), cut + burn export, `flosub serve`, transcribe, JASSUB live preview, cue list, undo, autosave, timeline with waveform / drag / snap / zoom, glossary review, en + pt-BR, Playwright smoke in CI. **Next: the owner's manual test of the MVP**, then the owner's list of changes. Known gaps: font lookup is Linux-only (fontconfig), no "add term to glossary" in the editor, no `.ass`/`.srt` import, no waveform for very long videos beyond the 100 peaks/s default. Earlier: phase 0 spikes (step 29), Svelte (ADR-015), OpenReel dissection (step 30). ADR-014: the Blender add-on is frozen.
 - Plan 02 (Blender add-on): done (steps 09–12).
 - **Plan 03, accuracy:** done — 3a glossary (step 18), 3b LLM reviewer (step 19, experimental), glossary library (step 20), 3c Blender UI (step 22). Engine 0.1.0.dev4 is not on PyPI yet (needs the owner's tag), so "Install engine" gets it only after that release.
 - **Plan 04, MVP subset (§10):** done in step 23: `.ass` export with the approved pop look, `flosub burn`, `flosub overlay`, and in Blender "Export ASS" and "Exact preview".

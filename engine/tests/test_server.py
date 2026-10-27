@@ -22,10 +22,22 @@ def server(tmp_path):
 
     video = tmp_path / "clip.mp4"
     subprocess.run(
-        ["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc=s=160x120:r=10:d=4",
-         "-c:v", "libx264", "-pix_fmt", "yuv420p", str(video)],
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc=s=160x120:r=10:d=4",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            str(video),
+        ],
         check=True,
-    )  # fmt: skip
+    )
     cues = CueList("pop", video.name, "pt", [Cue(0.5, 1.5, "um"), Cue(2.5, 3.5, "dois")])
     Project.new(video, 4.0, cues).save(project_path(video))
     srv = make_server(video, 0, load_config())
@@ -72,10 +84,12 @@ def test_save_cut_and_export_srt(server, tmp_path):
     assert json.loads(saved)["keep"] == [[0, 2], [3, 4]]
     job = json.loads(call(base + "/api/export", "POST", {"format": "srt"})[2])["job"]
     _, _, stream = call(f"{base}/api/jobs/{job}/events")
-    events = [json.loads(line[6:]) for line in stream.decode().splitlines() if line.startswith("data:")]
+    events = [
+        json.loads(line[6:]) for line in stream.decode().splitlines() if line.startswith("data:")
+    ]
     assert events[-1]["event"] == "done", events
     srt = (tmp_path / "clip.edited.srt").read_text(encoding="utf-8")
-    # "dois" (2.5–3.5) loses 2.5–3 to the cut and moves back by 1 s: 2.0–2.5
+    # "dois" (2.5-3.5) loses 2.5-3 to the cut and moves back by 1 s: 2.0-2.5
     assert "00:00:02,000 --> 00:00:02,500\ndois" in srt
 
 
@@ -90,3 +104,17 @@ def test_preview_ass_is_in_source_time(server):
     _, base = server
     text = call(base + "/api/preview.ass")[2].decode()
     assert "Dialogue: 0,0:00:02.50,0:00:03.50" in text
+
+
+def test_peaks_are_a_curve_per_100th_of_a_second(server):
+    _, base = server
+    data = json.loads(call(base + "/api/peaks")[2])
+    assert data["per_sec"] == 100 and abs(len(data["peaks"]) - 400) <= 2
+    assert all(0 <= v <= 1 for v in data["peaks"])
+
+
+def test_review_suggests_glossary_fixes_in_the_saved_cues(server, tmp_path):
+    _, base = server
+    (tmp_path / "legendaria-glossary.txt").write_text("um -> UM!\n", encoding="utf-8")
+    suggestions = json.loads(call(base + "/api/review")[2])["suggestions"]
+    assert [(s["cue"], s["before"], s["after"]) for s in suggestions] == [(0, "um", "UM!")]

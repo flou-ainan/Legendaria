@@ -4,7 +4,9 @@
   import CueList from './components/CueList.svelte'
   import Cuts from './components/Cuts.svelte'
   import Export from './components/Export.svelte'
+  import Review from './components/Review.svelte'
   import Player from './components/Player.svelte'
+  import Timeline from './components/Timeline.svelte'
   import Transcribe from './components/Transcribe.svelte'
   import { loadState, type State } from './lib/api'
   import { editor } from './lib/editor.svelte'
@@ -47,12 +49,13 @@
   <main>
     <div class="left">
       <Player font={info.font} />
+      <Timeline />
       <div class="row">
         <Cuts />
         <Export />
       </div>
     </div>
-    <div class="right"><CueList /></div>
+    <div class="right"><Review /><CueList /></div>
   </main>
 {/if}
 
@@ -60,8 +63,9 @@
   header { display: flex; gap: 0.75rem; align-items: center; padding: 0.6rem 1rem; border-bottom: 1px solid var(--line); }
   .spacer { flex: 1; }
   main { display: grid; grid-template-columns: minmax(0, 3fr) minmax(20rem, 2fr); gap: 1rem; padding: 1rem; }
+  .left > :global(section:not(.player)) { background: var(--panel); border-radius: 10px; padding: 0.8rem; margin-top: 1rem; }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
-  .row > :global(section), .right > :global(section) { background: var(--panel); border-radius: 10px; padding: 0.8rem; }
+  .row > :global(section), .right > :global(section) { background: var(--panel); border-radius: 10px; padding: 0.8rem; margin-bottom: 1rem; }
   .center { text-align: center; margin-top: 30vh; }
   @media (max-width: 900px) {
     main, .row { grid-template-columns: 1fr; }

@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+from array import array
 from pathlib import Path
 from typing import Any
 
@@ -264,3 +265,40 @@ def render(
     finally:
         shutil.rmtree(folder, ignore_errors=True)
     return output
+
+
+def peaks(config: dict[str, Any], path: Path, per_sec: int = 100, rate: int = 8000) -> list[float]:
+    """Waveform peaks: the largest |sample| (0 to 1) in each 1/`per_sec` s, decoded by FFmpeg.
+
+    Streams 8 kHz mono PCM through a pipe, so a long video never sits in memory. Empty when
+    the media has no audio.
+    """
+    step = rate // per_sec
+    process = subprocess.Popen(
+        [
+            str(find_tool(config)),
+            "-v",
+            "error",
+            "-i",
+            str(path),
+            "-vn",
+            "-ac",
+            "1",
+            "-ar",
+            str(rate),
+            "-f",
+            "s16le",
+            "-",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    )
+    out: list[float] = []
+    while chunk := process.stdout.read(step * 2 * 2000):
+        samples = array("h")
+        samples.frombytes(chunk[: len(chunk) // 2 * 2])
+        for i in range(0, len(samples), step):
+            window = samples[i : i + step]
+            out.append(round(max(max(window), -min(window)) / 32768, 3))
+    process.wait()
+    return out

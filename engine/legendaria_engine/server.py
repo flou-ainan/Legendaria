@@ -81,6 +81,7 @@ class Session:
         self.project_file = project_path(video)
         self.info = media.probe(video, config)
         self.jobs: dict[str, Job] = {}
+        self._peaks: dict[str, Any] | None = None
         self.lock = threading.Lock()
 
     def project(self) -> Project | None:
@@ -92,7 +93,9 @@ class Session:
         project = self.project()
         return {
             "video": self.video.name,
-            "font": self.look(project.style if project else self.config["style"]).get("font", "Arial"),
+            "font": self.look(project.style if project else self.config["style"]).get(
+                "font", "Arial"
+            ),
             "media": self.info,
             "project": project.to_dict() if project else None,
             "styles": sorted(self.config["styles"]),
@@ -100,6 +103,56 @@ class Session:
             "model": self.config["model"],
             "language": self.config["language"],
         }
+
+    def peaks(self) -> dict[str, Any]:
+        """Waveform peaks (100 per second), computed once per session."""
+        with self.lock:
+            if self._peaks is None:
+                values = media.peaks(self.config, self.video)
+                if not values:  # no audio: a flat line the length of the video
+                    values = [0.0] * round(self.info["duration"] * 100)
+                self._peaks = {"per_sec": 100, "duration": self.info["duration"], "peaks": values}
+            return self._peaks
+
+    def review(self) -> list[dict[str, Any]]:
+        """Glossary suggestions (layer 2, no AI) for the saved cues, as the editor shows them.
+
+        Each cue is a segment. Its words are used when they still match its text; after a manual
+        edit the text is split into words with full confidence, so only explicit fixes apply.
+        """
+        from legendaria_engine.review import fix_rules, glossary
+        from legendaria_engine.schema import Segment, Transcript, Word
+
+        project = self.project()
+        if project is None:
+            raise ProjectError("Nothing to review yet: transcribe first.")
+        segments = []
+        for cue in project.cues:
+            words = cue.words
+            if " ".join("".join(w.word for w in words).split()) != cue.text:
+                words = [Word(cue.start, cue.end, f" {token}") for token in cue.text.split()]
+            segments.append(Segment(cue.start, cue.end, cue.text, words))
+        transcript = Transcript(
+            self.video.name, project.language, project.duration, "", "", segments
+        )
+        rules = self.config["review"]
+        found = fix_rules.suggest(
+            transcript,
+            glossary.load([], media=self.video),
+            threshold=rules.get("fuzzy_threshold", 0.82),
+            low_confidence=rules.get("low_confidence", 0.5),
+        )
+        return [
+            {
+                "id": f.id,
+                "cue": f.segment,
+                "start": f.start,
+                "before": f.before,
+                "after": f.after,
+                "reason": f.reason,
+            }
+            for f in found
+        ]
 
     def look(self, style: str) -> dict[str, Any]:
         """The style's `.ass` look from the config (empty if unknown)."""
@@ -135,9 +188,18 @@ class Session:
         """Run `flosub transcribe` in a child process (it may re-exec for CUDA), relay events."""
         style = options.get("style") or self.config["style"]
         command = [
-            sys.executable, "-m", "legendaria_engine", "--progress", "json", "transcribe",
-            str(self.video), "--format", "json,cues", "--style", style,
-        ]  # fmt: skip
+            sys.executable,
+            "-m",
+            "legendaria_engine",
+            "--progress",
+            "json",
+            "transcribe",
+            str(self.video),
+            "--format",
+            "json,cues",
+            "--style",
+            style,
+        ]
         for key in ("model", "language"):
             if options.get(key):
                 command += [f"--{key}", str(options[key])]
@@ -177,9 +239,13 @@ class Session:
             if target.resolve() == self.video.resolve():
                 raise media.MediaError("The output would overwrite the input video.")
             media.render(
-                self.config, self.video, project.keep, self.ass_text(edited, project.style),
-                target, job,
-            )  # fmt: skip
+                self.config,
+                self.video,
+                project.keep,
+                self.ass_text(edited, project.style),
+                target,
+                job,
+            )
         elif fmt == "ass":
             target.write_text(self.ass_text(edited, project.style), encoding="utf-8")
         elif fmt in formats.WRITERS:
@@ -214,7 +280,7 @@ class Handler(BaseHTTPRequestHandler):
         """The open video's session."""
         return self.server.session  # type: ignore[attr-defined]
 
-    def log_message(self, format: str, *args: Any) -> None:  # noqa: A002 - stdlib signature
+    def log_message(self, format: str, *args: Any) -> None:
         """Quiet: only errors are printed."""
 
     # --- helpers -------------------------------------------------------------
@@ -249,7 +315,7 @@ class Handler(BaseHTTPRequestHandler):
 
     # --- routes --------------------------------------------------------------
 
-    def do_GET(self) -> None:  # noqa: N802 - stdlib name
+    def do_GET(self) -> None:
         """Static app, state, media, font, preview `.ass` and job events."""
         if not self._local():
             return self._error(HTTPStatus.FORBIDDEN, "Only local requests are allowed.")
@@ -259,6 +325,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(self.session.state())
             if path == "/api/media":
                 return self._file(self.session.video)
+            if path == "/api/review":
+                return self._json({"suggestions": self.session.review()})
+            if path == "/api/peaks":
+                return self._json(self.session.peaks())
             if path == "/api/font":
                 return self._font()
             if path == "/api/preview.ass":
@@ -275,7 +345,7 @@ class Handler(BaseHTTPRequestHandler):
 
     do_HEAD = do_GET
 
-    def do_PUT(self) -> None:  # noqa: N802 - stdlib name
+    def do_PUT(self) -> None:
         """Save the project (validated and normalized); returns what was saved."""
         if not self._local():
             return self._error(HTTPStatus.FORBIDDEN, "Only local requests are allowed.")
@@ -288,7 +358,7 @@ class Handler(BaseHTTPRequestHandler):
         project.save(self.session.project_file)
         self._json(project.to_dict())
 
-    def do_POST(self) -> None:  # noqa: N802 - stdlib name
+    def do_POST(self) -> None:
         """Start a job: `/api/transcribe` {model, language, style} or `/api/export` {format}."""
         if not self._local():
             return self._error(HTTPStatus.FORBIDDEN, "Only local requests are allowed.")
@@ -296,7 +366,9 @@ class Handler(BaseHTTPRequestHandler):
         try:
             options = self._body() or {}
             if path == "/api/transcribe":
-                job = self.session.start("transcribe", lambda j: self.session.transcribe(j, options))
+                job = self.session.start(
+                    "transcribe", lambda j: self.session.transcribe(j, options)
+                )
             elif path == "/api/export":
                 fmt = str(options.get("format", ""))
                 job = self.session.start("export", lambda j: self.session.export(j, fmt))
@@ -340,7 +412,9 @@ class Handler(BaseHTTPRequestHandler):
         look = self.session.look(project.style if project else self.session.config["style"])
         font = find_font(look.get("font", "Arial"), look.get("bold", True))
         if font is None:
-            return self._error(HTTPStatus.NOT_FOUND, "Font not found (the preview uses a fallback).")
+            return self._error(
+                HTTPStatus.NOT_FOUND, "Font not found (the preview uses a fallback)."
+            )
         return self._file(font)
 
     def _static(self, path: str) -> None:
@@ -397,7 +471,9 @@ class Handler(BaseHTTPRequestHandler):
             pass  # the browser cancels range requests while seeking
 
 
-def make_server(video: Path, port: int = 0, config: dict[str, Any] | None = None) -> ThreadingHTTPServer:
+def make_server(
+    video: Path, port: int = 0, config: dict[str, Any] | None = None
+) -> ThreadingHTTPServer:
     """A server for `video` on 127.0.0.1 (`port` 0 picks a free one)."""
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     server.daemon_threads = True

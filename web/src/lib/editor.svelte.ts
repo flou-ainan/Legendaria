@@ -2,7 +2,7 @@
 // `$state` makes a value reactive: components that read it update when it changes
 // (https://svelte.dev/docs/svelte/$state). The video's current time is NOT kept here
 // (ADR-015 player rule); only the index of the cue under the playhead is.
-import { previewAss, saveProject, type Cue, type Project } from './api'
+import { previewAss, saveProject, type Cue, type Project, type Suggestion } from './api'
 import { removeRange, restoreRange, type Range } from './timeline'
 
 const GROUP_MS = 800 // edits of the same thing within this window undo together (OpenReel pattern)
@@ -12,6 +12,8 @@ const HISTORY = 200
 class Editor {
   project = $state<Project | null>(null)
   current = $state(-1) // cue under the playhead
+  markIn = $state<number | null>(null) // the range being marked for a cut
+  markOut = $state<number | null>(null)
   saveStatus = $state<'saved' | 'saving' | 'error'>('saved')
   saveError = $state('')
   canUndo = $state(false)
@@ -118,8 +120,9 @@ class Editor {
       let second: Cue
       const words = cue.words ?? []
       const cutAt = words.findIndex((w) => w.start >= time)
-      if (cutAt > 0) {
-        const join = (ws: typeof words) => ws.map((w) => w.word).join('').trim()
+      const join = (ws: typeof words) => ws.map((w) => w.word).join('').trim().replace(/\s+/g, ' ')
+      // Words are only used while they still spell the cue's text (a manual edit makes them stale).
+      if (cutAt > 0 && join(words) === cue.text) {
         first = { start: cue.start, end: time, text: join(words.slice(0, cutAt)), words: words.slice(0, cutAt) }
         second = { start: time, end: cue.end, text: join(words.slice(cutAt)), words: words.slice(cutAt) }
       } else {
@@ -129,6 +132,16 @@ class Editor {
         second = { start: time, end: cue.end, text: parts.slice(half).join(' ') }
       }
       p.cues.splice(i, 1, first, second)
+    })
+  }
+
+  /** Apply glossary suggestions as one undo step; each goes to the cue that holds its time and text. */
+  applySuggestions(items: Suggestion[]) {
+    this.edit((p) => {
+      for (const item of items) {
+        const cue = p.cues.find((c) => c.start <= item.start + 1e-6 && item.start < c.end && c.text.includes(item.before))
+        if (cue) cue.text = cue.text.replace(item.before, () => item.after)
+      }
     })
   }
 

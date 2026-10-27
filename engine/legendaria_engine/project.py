@@ -36,9 +36,7 @@ def project_path(video: Path) -> Path:
 
 def normalize(ranges: list[Range], duration: float) -> list[Range]:
     """Sort, clip to [0, duration], merge overlapping ranges and drop empty ones."""
-    clipped = sorted(
-        (max(0.0, float(a)), min(float(duration), float(b))) for a, b in ranges
-    )
+    clipped = sorted((max(0.0, float(a)), min(float(duration), float(b))) for a, b in ranges)
     merged: list[list[float]] = []
     for start, end in clipped:
         if end - start < MIN_RANGE:
@@ -133,7 +131,7 @@ class Project:
     def from_dict(cls, data: dict[str, Any]) -> Project:
         """Validate and build; ranges are normalized, cues sorted by start."""
         if not isinstance(data, dict) or data.get("format") != PROJECT_FORMAT:
-            raise ProjectError("Not a Legendária project (missing \"format\": \"legendaria-project\")")
+            raise ProjectError('Not a Legendária project (missing "format": "legendaria-project")')
         if data.get("version") != PROJECT_VERSION:
             raise ProjectError(f"Unsupported project version {data.get('version')!r}")
         try:

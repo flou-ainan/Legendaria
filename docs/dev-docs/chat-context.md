@@ -1,6 +1,6 @@
 # Chat context (hand-off)
 
-**Last updated:** 2026-10-27, by Claude Code (Opus 5.5), after step 31.
+**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 32.
 **Policy:** `AGENTS.md` and `docs/dev-docs/README.md` ("chat-context.md"). This is a snapshot that gets replaced, never appended. It is public: no secrets and no private data.
 
 ## Summary of the conversation so far
@@ -54,39 +54,18 @@
    - tested: 120 pytest, Vitest, a local Playwright run, a real transcription through the server.
    - New `AGENTS.md` rule for model recommendations.
 
+10. **Step 32 (2026-10-27), same PR #29:** timeline with waveform from server peaks, draggable cue blocks, snapping, zoom; glossary review panel; Playwright smoke test in CI; fixed the ruff errors that made `checks` fail on step 31. The owner switched to Sonnet for this step and asked for the command to open their real video; they have notes and will start requesting edits once the MVP is finished.
+
 **Open and next**
-- **Next:** the owner's manual test: `cd engine && uv run flosub serve <video>`.
-- Then plan 07, step 32: waveform + draggable cues + snapping + zoom; review/glossary suggestions in the cue list; Playwright in CI (model recommendations are in plan 07, "Phase 2 progress").
+- **Next:** the owner's manual test of the MVP (`cd engine && uv run flosub serve <video>`), then their list of changes.
+- **Known gaps:** "add term to glossary" in the editor, `.ass`/`.srt` import, fonts on Windows/macOS, an LLM pass in the review panel.
 - **Pending owner decisions:** import `.ass`/`.srt` + `flosub align --srt` (plan 04 §11.3, item 4).
 - **Not published:** engine 0.1.0.dev4 is not on PyPI; the tag needs the owner's approval.
-- **Open PRs:** #28 (docs for steps 28–30), #29 (step 31, stacked on #28).
+- **Open PRs:** #28 (docs for steps 28–30), #29 (steps 31–32, stacked on #28).
 
 ## Last two complete replies (verbatim)
 
-### Reply 1 (2026-10-27): Svelte chosen, OpenReel dissected, hand-off policy
-
-> Fechado: **Svelte 5 + Vite + TypeScript**, registrado na ADR-015.
->
-> Sobre a sua intuição: o Vue é simples, sim, e nasceu de uma ideia parecida com a do AngularJS. Mas o Svelte 5 é ainda mais próximo de HTML/JS puro, porque um componente é basicamente HTML com um `<script>` e um `<style>`. Para quem vem do React, o principal é aprender três "runes": `$state` (o estado), `$derived` (valores calculados) e `$effect` (efeitos). Vou manter os componentes simples e comentar onde usar cada um.
->
-> **O que fiz**
-> - **README** (inglês e pt-BR): fala do editor no navegador. Parti da edição que você tinha começado no README em inglês e espelhei no português. O Blender aparece como "congelado".
-> - **ADR-015 e docs:** `PROJECT.md` (tabela de tecnologias e decisões) e plano 07 atualizados.
-> - **Dissecação do OpenReel** (`docs/dev-docs/references/openreel_dissection.md`). Vamos aproveitar as ideias, sem copiar código:
->   - **Desfazer** que junta numa só etapa as mudanças rápidas no mesmo bloco, como um arraste.
->   - **Encaixe (snap)** com limite em pixels, que funciona igual em qualquer zoom. A gente ganha um extra que ele não tem: encaixar no início e no fim de cada **palavra** da transcrição.
->   - **Atalhos** numa tabela, que no nosso caso fica num JSON editável: espaço, setas, I/O para marcar o corte, S para dividir, Q/W, Delete, Ctrl+Z, N, Ctrl+=/−, `?`.
->   - **Zoom com Ctrl+roda** mantendo fixo o ponto sob o mouse, e a timeline seguindo o playhead.
->   - **Arquivo de projeto com versão e validação**, que vira a base da ADR-016.
->   - **Testes com entradas aleatórias** para os cortes.
->   - Ficam de fora: decodificação própria, exportação no navegador, React e multitrilhas.
-> - **Nova regra no AGENTS.md:** o `docs/dev-docs/chat-context.md`, com um resumo enxuto da conversa e as minhas duas últimas respostas completas. Ele é atualizado quando você pedir, ou a cada algumas horas de trabalho, e é substituído a cada vez (o git guarda o histórico). Como o repositório é público, nada de segredos nem dados pessoais. O primeiro já está escrito.
->
-> Tudo isso foi para o PR #28, que continua só com documentação.
->
-> **Próximo passo:** a ADR-016 (formato do arquivo de projeto) e começar a construir o MVP (`flosub serve` + o app Svelte). Posso seguir?
-
-### Reply 2 (2026-10-27): web editor first slice
+### Reply 1 (2026-10-27): web editor first slice
 
 > Feito. O editor já funciona de ponta a ponta: abrir → transcrever → editar → cortar → exportar.
 >
@@ -125,3 +104,22 @@
 > Tudo está no **PR #29** (https://github.com/flou-ainan/Legendaria/pull/29), que vem em cima do #28.
 >
 > **Next task:** o seu teste manual com `flosub serve`; depois, a timeline com forma de onda, arrastar e encaixe — tier: **standard** (Sonnet), effort: **medium** — o caminho já está definido pelos spikes e pelo plano 07.
+
+### Reply 2 (2026-10-27): timeline, review, browser test
+
+> O MVP está completo: a lista do plano 07 inteira está feita. Falta o seu teste manual.
+>
+> **Novo nesta etapa**
+> - **Timeline com forma de onda:** os picos vêm do servidor. Cada legenda é um bloco que se arrasta e se redimensiona. Duplo clique divide no cursor. Ctrl + roda dá zoom em volta do mouse, e há botões −, Ajustar e +.
+> - **Encaixe:** as bordas grudam (8 px) nas bordas de outros blocos, nas palavras da própria legenda, nos cortes e no cursor.
+> - **Revisão do glossário no editor:** "Verificar" usa o glossário ativo e sugere correções. Aplica uma, ignora, ou aplica todas num só passo de desfazer.
+> - **Corrigi** o "dividir" depois de editar o texto: ele trazia o texto antigo de volta.
+> - **Teste automático no navegador**, que também roda no CI.
+>
+> **O CI do PR #29 tinha falhado** por erros do ruff (um comentário inválido, travessões e um arquivo aberto sem fechar). Eu tinha rodado o pre-commit antes das últimas edições. Está corrigido.
+>
+> **Testes:** 123 do motor, 6 do app, o teste de navegador e o pre-commit passaram. O encaixe só tem teste unitário, e um vídeo de 10 minutos com ~500 legendas não foi testado no app real.
+>
+> **Para testar:** `cd engine && uv run flosub serve "<caminho do vídeo>"`. Quando tiver a sua lista, mande que eu aplico.
+>
+> **Next task:** as mudanças da sua lista — tier: **standard** (Sonnet), effort: **low** a **medium**. Se alguma pedir uma decisão de formato ou arquitetura, aviso e subo para **top**.

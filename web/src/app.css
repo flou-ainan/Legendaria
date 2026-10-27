@@ -37,3 +37,6 @@ input, textarea, select {
 h2 { font-size: 0.95rem; margin: 0 0 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
 .muted { color: var(--muted); font-size: 0.85rem; }
 .error { color: var(--cut); }
+
+/* Timeline: wavesurfer draws inside a shadow root, so its parts are styled from here. */
+.wave > div::part(region-content) { font-size: 11px; padding: 2px 4px; overflow: hidden; white-space: nowrap; }

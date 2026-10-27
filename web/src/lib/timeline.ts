@@ -76,3 +76,28 @@ export function clock(t: number): string {
   const s = Math.floor((cs % 6000) / 100)
   return `${sign}${m}:${String(s).padStart(2, '0')}.${String(cs % 100).padStart(2, '0')}`
 }
+
+/** Sorted snap targets: the edges of the cues, the kept ranges and any extra times (playhead, words). */
+export function snapPoints(times: number[]): number[] {
+  return [...times].sort((a, b) => a - b)
+}
+
+/** `t` moved onto the nearest of the sorted `points` when it is within `threshold` seconds, else `t`. */
+export function snap(t: number, points: number[], threshold: number): number {
+  let lo = 0
+  let hi = points.length
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1
+    if (points[mid] < t) lo = mid + 1
+    else hi = mid
+  }
+  let best = t
+  let distance = threshold
+  for (const point of [points[lo - 1], points[lo]]) {
+    if (point !== undefined && Math.abs(point - t) <= distance) {
+      best = point
+      distance = Math.abs(point - t)
+    }
+  }
+  return best
+}

@@ -42,6 +42,15 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
 
 export const loadState = () => request<State>('GET', '/api/state')
 
+/** A glossary correction for the cue that contains `start` (source seconds). */
+export type Suggestion = { id: number; cue: number; start: number; before: string; after: string; reason: string }
+
+export type Peaks = { per_sec: number; duration: number; peaks: number[] }
+
+export const loadPeaks = () => request<Peaks>('GET', '/api/peaks')
+
+export const loadReview = () => request<{ suggestions: Suggestion[] }>('GET', '/api/review').then((r) => r.suggestions)
+
 export const saveProject = (project: Project) => request<Project>('PUT', '/api/project', project)
 
 export async function previewAss(): Promise<string> {

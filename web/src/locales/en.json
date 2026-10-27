@@ -32,5 +32,17 @@
   "export.mp4": "Video with subtitles (MP4)",
   "export.running": "Exporting… {pct}%",
   "export.done": "Saved: {path}",
-  "error": "Error: {message}"
+  "error": "Error: {message}",
+  "timeline.title": "Timeline",
+  "timeline.hint": "Drag a block or its edges · double-click splits at the playhead · Ctrl + wheel zooms",
+  "timeline.zoom_in": "Zoom in",
+  "timeline.zoom_out": "Zoom out",
+  "timeline.fit": "Fit",
+  "review.title": "Glossary check",
+  "review.run": "Check",
+  "review.none": "No suggestions.",
+  "review.apply": "Apply",
+  "review.ignore": "Ignore",
+  "review.apply_all": "Apply all ({n})",
+  "review.reason": "{reason}"
 }
