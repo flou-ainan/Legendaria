@@ -122,7 +122,7 @@ Legendaria/
         ├── devlog/          # executed steps
         ├── decisions/       # ADRs
         ├── known-issues.md  # problems seen in real use, with evidence and how to investigate
-        └── references/      # origin_brainstorm.md, ass_brainstorm.md
+        └── references/      # origin_brainstorm.md, ass_brainstorm.md, plan07_phase0_spikes.md
 ```
 
 Build the add-on package: `blender --command extension build --source-dir blender_addon/legendaria --output-dir dist` (gives `legendaria-<version>.zip`, installed with Edit → Preferences → Get Extensions → Install from Disk).
@@ -721,7 +721,7 @@ Generate the glowing Legendária key art (hero and banner) as SVG.
 
 ## 7. In progress
 
-- **Now: plan 07 (web editor), phase 0 study spikes** (OpenReel, JASSUB, wavesurfer, FFmpeg cut + burn). ADR-014: the Blender add-on is frozen; plans 05, 06 and the Blender parts of plan 04 §11 are superseded. Owner questions before phase 2: plan 07, last section.
+- **Now: plan 07 (web editor).** Phase 0 study spikes done (step 29, `dev-docs/references/plan07_phase0_spikes.md`): JASSUB matches FFmpeg's libass, wavesurfer handles 500 cues with server peaks, one-pass FFmpeg cut + burn works; OpenReel gives patterns, not code. Waiting for the owner's framework choice (ADR-015). ADR-014: the Blender add-on is frozen; plans 05, 06 and the Blender parts of plan 04 §11 are superseded. Owner questions before phase 2: plan 07, last section.
 - Plan 02 (Blender add-on): done (steps 09–12).
 - **Plan 03, accuracy:** done — 3a glossary (step 18), 3b LLM reviewer (step 19, experimental), glossary library (step 20), 3c Blender UI (step 22). Engine 0.1.0.dev4 is not on PyPI yet (needs the owner's tag), so "Install engine" gets it only after that release.
 - **Plan 04, MVP subset (§10):** done in step 23: `.ass` export with the approved pop look, `flosub burn`, `flosub overlay`, and in Blender "Export ASS" and "Exact preview".

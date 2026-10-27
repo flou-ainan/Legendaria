@@ -1,6 +1,6 @@
 # Plan 07 — Web editor (replaces the Blender add-on as the main UI)
 
-**Status:** approved (owner, 2026-10-26). Phase 0 (study spikes) is next.
+**Status:** approved (owner, 2026-10-26). Phase 0 done (step 29); phase 1 waits for the owner's framework choice.
 **Date:** 2026-10-26
 **Related decisions:** ADR-014 (pivot), ADR-012 (`.ass` + libass). ADR-015 and ADR-016 are written in phase 1.
 **Supersedes:** plan 05 (local API + `flosub gui`), plan 06 (Blender UX) and the Blender parts of plan 04 §11.
@@ -54,7 +54,7 @@ browser (TS + React + Vite)  ⇄  flosub serve (Python, 127.0.0.1)  →  engine 
 
 ### 0. Study spikes
 
-Each spike ends with a short note in `docs/dev-docs/research/`.
+Results: `docs/dev-docs/references/plan07_phase0_spikes.md` (step 29).
 
 1. **OpenReel:**
    - clone it outside the repo;
@@ -107,8 +107,21 @@ Each spike ends with a short note in `docs/dev-docs/research/`.
 - [ ] Web: Vitest for the timeline and remap logic; a Playwright smoke test (open → transcribe fixture → edit → export SRT).
 - [ ] Docs: ADR-015/016, `PROJECT.md`, a devlog step for each phase, en + pt-BR UI.
 
+## Owner answers (2026-10-26)
+
+- **Framework:** the owner finds React heavy and prefers something lighter (at most Vue). React only if copying OpenReel's stack is clearly best. The spikes showed it is not (OpenReel gives patterns, not code), so the recommendation is Svelte 5 + Vite + TS, with Vue 3 second. Pending the owner's pick → ADR-015.
+- **Backend:** export and cuts always call the local server. A standalone mobile PWA without a backend is out of scope for now.
+- **MVP cuts:** lean. Remove ranges only.
+
+## Later (after the MVP)
+
+- Reorder and duplicate ranges, multiple source clips.
+- Aegisub-style timing helpers: snap to scene changes, close small gaps, lead-in/out.
+- Canvas-drawn cue track for videos with thousands of cues.
+- A standalone PWA (whisper.cpp/WASM), and the web editor on a phone through the desktop server.
+- Font picker and bundled free fonts (libass in the browser only sees the fonts we serve).
+
 ## Open questions for the owner (before phase 2)
 
-1. The stack: TS + React + Vite (the recommendation).
-2. MVP cuts: remove ranges only, with no reordering and no multiple clips (the recommendation).
+1. The framework: Svelte 5 (recommended) or Vue 3.
 3. Still pending from earlier: import `.ass`/`.srt` + `flosub align --srt` (plan 04 §11.3, item 4).
