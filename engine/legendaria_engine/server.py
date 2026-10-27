@@ -25,8 +25,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
-from legendaria_engine import formats, media, workspace
-from legendaria_engine.ass import to_ass
+from legendaria_engine import fonts, formats, media, workspace
+from legendaria_engine.ass import to_ass, with_look
 from legendaria_engine.config import load_config
 from legendaria_engine.cues import CueList
 from legendaria_engine.events import Reporter
@@ -97,12 +97,13 @@ class Session:
     def state(self) -> dict[str, Any]:
         """Everything the editor needs on load."""
         project = self.project()
+        base = with_look(self.look(project.style if project else self.config["style"]), None)
         return {
             "video": self.video.name,
             "path": str(self.video),
-            "font": self.look(project.style if project else self.config["style"]).get(
-                "font", "Arial"
-            ),
+            "font": (project.look.get("font") if project else None) or base["font"],
+            "fonts": fonts.catalog(),
+            "base": {"font": base["font"], "y": base["position"][1]},
             "media": self.info,
             "project": project.to_dict() if project else None,
             **workspace.options(self.config),
@@ -166,10 +167,11 @@ class Session:
         """The video's (width, height) for the `.ass` canvas."""
         return (self.info["width"], self.info["height"]) if self.info["width"] else None
 
-    def ass_text(self, cues: CueList, style: str) -> str:
-        """`.ass` for these cues in the style's look, on the video's canvas."""
+    def ass_text(self, cues: CueList, style: str, override: dict[str, Any] | None = None) -> str:
+        """`.ass` for these cues in the style's look (plus the project's `look` overrides), on the video's canvas."""
         rules = self.config["styles"].get(style) or self.config["styles"][self.config["style"]]
-        return to_ass(cues, rules.get("ass"), self.size(), rules.get("line_length"))
+        look = with_look(rules.get("ass"), override)
+        return to_ass(cues, look, self.size(), rules.get("line_length"))
 
     def start(self, kind: str, work) -> Job:
         """Run `work(job)` in a thread; only one job at a time."""
@@ -246,12 +248,12 @@ class Session:
                 self.config,
                 self.video,
                 project.keep,
-                self.ass_text(edited, project.style),
+                self.ass_text(edited, project.style, project.look),
                 target,
                 job,
             )
         elif fmt == "ass":
-            target.write_text(self.ass_text(edited, project.style), encoding="utf-8")
+            target.write_text(self.ass_text(edited, project.style, project.look), encoding="utf-8")
         elif fmt in formats.WRITERS:
             text = formats.WRITERS[fmt](edited, rules.get("line_length"))
             target.write_text(text, encoding="utf-8")
@@ -358,11 +360,16 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(self.session.peaks())
             if path == "/api/font":
                 return self._font()
+            if match := re.fullmatch(r"/api/fonts/([\w.-]+\.ttf)", path):
+                bundled = fonts.FONTS_DIR / match.group(1)
+                if match.group(1) not in {e["file"] for e in fonts.catalog()}:
+                    return self._error(HTTPStatus.NOT_FOUND, "Unknown font.")
+                return self._file(bundled)
             if path == "/api/preview.ass":
                 project = self.session.project()
                 if project is None:
                     return self._error(HTTPStatus.NOT_FOUND, "No project yet.")
-                text = self.session.ass_text(project.cue_list(), project.style)
+                text = self.session.ass_text(project.cue_list(), project.style, project.look)
                 return self._send(200, text.encode("utf-8"), "text/plain; charset=utf-8")
             if match := re.fullmatch(r"/api/jobs/(\w+)/events", path):
                 return self._events(match.group(1))
@@ -488,7 +495,8 @@ class Handler(BaseHTTPRequestHandler):
     def _font(self) -> None:
         project = self.session.project()
         look = self.session.look(project.style if project else self.session.config["style"])
-        font = find_font(look.get("font", "Arial"), look.get("bold", True))
+        family = (project.look.get("font") if project else None) or look.get("font", "Arial")
+        font = fonts.file_for(family) or find_font(family, look.get("bold", True))
         if font is None:
             return self._error(
                 HTTPStatus.NOT_FOUND, "Font not found (the preview uses a fallback)."

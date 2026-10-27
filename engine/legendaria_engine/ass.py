@@ -32,6 +32,20 @@ DEFAULT_LOOK: dict[str, Any] = {
 }
 
 
+def with_look(base: dict[str, Any] | None, override: dict[str, Any] | None) -> dict[str, Any]:
+    """The style's look with the project's overrides: `font`, `size` (multiplies font, outline and shadow) and `y`."""
+    look = {**DEFAULT_LOOK, **(base or {})}
+    override = override or {}
+    if "font" in override:
+        look["font"] = override["font"]
+    if "size" in override:
+        for key in ("font_size", "outline", "shadow"):
+            look[key] = look[key] * override["size"]
+    if "y" in override:
+        look["position"] = [look["position"][0], override["y"]]
+    return look
+
+
 def ass_color(rgba: list[float]) -> str:
     """RGBA floats (0 to 1) → `&HAABBGGRR` (ASS alpha 00 is opaque)."""
     r, g, b, *rest = (max(0.0, min(1.0, float(c))) for c in rgba)

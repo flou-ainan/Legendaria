@@ -2,7 +2,7 @@
 // `$state` makes a value reactive: components that read it update when it changes
 // (https://svelte.dev/docs/svelte/$state). The video's current time is NOT kept here
 // (ADR-015 player rule); only the index of the cue under the playhead is.
-import { previewAss, saveProject, type Cue, type Project, type Suggestion } from './api'
+import { previewAss, saveProject, type Cue, type FontEntry, type Look, type Project, type Suggestion } from './api'
 import { remember, type VideoInfo } from './recovery'
 import { removeRange, restoreRange, type Range } from './timeline'
 
@@ -12,6 +12,8 @@ const HISTORY = 200
 
 class Editor {
   project = $state<Project | null>(null)
+  fonts = $state<FontEntry[]>([]) // bundled families for the Look menu
+  base = $state({ font: '', y: 0.2 }) // the style's own font and height
   video: VideoInfo | null = null // which video the project belongs to, for the local recovery copy
   current = $state(-1) // cue under the playhead
   selected = $state(-1) // cue picked on the timeline (shown in the inspector)
@@ -169,6 +171,18 @@ class Editor {
         if (cue) cue.text = cue.text.replace(item.before, () => item.after)
       }
     })
+  }
+
+  /** Change the subtitle look (font, size, height) for the whole project; `null` removes an override. */
+  setLook(patch: { [K in keyof Look]?: Look[K] | null }) {
+    this.edit((p) => {
+      const look: Look = { ...p.look }
+      for (const [key, value] of Object.entries(patch)) {
+        if (value === null) delete look[key as keyof Look]
+        else (look as Record<string, unknown>)[key] = value
+      }
+      p.look = look
+    }, 'look')
   }
 
   mergeNext(i: number) {

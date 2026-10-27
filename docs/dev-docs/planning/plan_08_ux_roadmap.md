@@ -28,7 +28,14 @@
 | 7. Export top right | Done. |
 | 8. 30-second test | Close: open or drop a video, press Transcribe, edit, export. Needs a real-use check. |
 
-## Proposed order (each its own step, lean)
+## Priority round 3 (owner request, 2026-10-27; before the items below)
+
+1. **Subtitle look quick menu:** a "Look" button under the video opens a small panel with a size slider, a vertical-position slider, two presets (Top, Bottom) and a font drop-down. Stored in the project as an optional `look` object (`font`, `size` multiplier, `y`), so it is undoable, autosaved and applied by the preview and by the export alike (ADR-019).
+2. **More fonts:** a curated set of ~19 open-licence families (SIL OFL) from the owner's font folder, bundled in `engine/legendaria_engine/fonts/` with a catalogue (`fonts.json`: family, file, category). The server serves them to the preview and passes them to FFmpeg's libass (`fontsdir`), so the burned video matches without installing anything.
+3. **Easy translations:** every language is one JSON file in `web/src/locales/`, found automatically (no code to register), with its own name inside (`_name`), missing keys falling back to English, a guide for translators, and a test that reports missing and unknown keys.
+4. **Mobile toolbar and spacing:** the tool row scrolls sideways in one line (like mobile editors), smaller icons and tighter spacing under 900 px.
+
+## Then, proposed order (each its own step, lean)
 
 1. **Contextual toolbar:** nothing selected → Play, In/Out, Cut, Snap, Undo; a subtitle selected → Split, Merge, Delete, Edit text, Style. Max 5 visible, the rest in "more".
 2. **Orange subtitle track** and a separate colour for the cut and the mark.

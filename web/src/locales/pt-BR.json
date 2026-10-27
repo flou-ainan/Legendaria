@@ -1,4 +1,5 @@
 {
+  "_name": "Português (Brasil)",
   "loading": "Carregando…",
   "server_error": "Não foi possível falar com o servidor: {message}",
   "transcribe.title": "Transcrever {video}",
@@ -109,5 +110,24 @@
   "relink.duration": "Esse vídeo tem outra duração ({found} contra {expected}). Escolha o original ou uma cópia com a mesma duração.",
   "relink.shape": "Esse vídeo tem outro formato de tela ({found} contra {expected}). Escolha uma cópia com a mesma proporção (16:9, 9:16…).",
   "relink.forget": "Esquecer este projeto",
-  "saved_as": "Salvo ao lado do vídeo"
+  "saved_as": "Salvo ao lado do vídeo",
+  "look.title": "Aparência da legenda",
+  "look.short": "Estilo",
+  "look.top": "Topo",
+  "look.bottom": "Fundo",
+  "look.reset": "Restaurar",
+  "look.height": "Altura",
+  "look.size": "Tamanho",
+  "look.font": "Fonte",
+  "look.font_style": "Fonte do estilo ({font})",
+  "font.sans": "sem serifa",
+  "font.rounded": "arredondada",
+  "font.condensed": "condensada",
+  "font.heavy": "pesada",
+  "font.display": "destaque",
+  "font.comic": "quadrinhos",
+  "font.tech": "tecnológica",
+  "font.pixel": "pixel",
+  "font.serif": "com serifa",
+  "font.script": "manuscrita"
 }

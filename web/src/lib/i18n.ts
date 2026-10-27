@@ -1,12 +1,16 @@
 // UI strings: English is the source, pt-BR is always maintained (ADR-005).
-// To add a language, copy locales/en.json and register it below.
+// Every language is one file in `locales/`, found automatically: see locales/README.md.
 import en from '../locales/en.json'
-import ptBR from '../locales/pt-BR.json'
 
-const locales: Record<string, Record<string, string>> = { en, 'pt-BR': ptBR }
+const files = import.meta.glob<Record<string, string>>('../locales/*.json', { eager: true, import: 'default' })
+const locales: Record<string, Record<string, string>> = Object.fromEntries(
+  Object.entries(files).map(([path, strings]) => [path.replace(/^.*\/(.*)\.json$/, '$1'), strings]),
+)
 
-/** The interface languages, as `[code, name]` (each name in its own language). */
-export const interfaceLanguages: [string, string][] = [['en', 'English'], ['pt-BR', 'Português (Brasil)']]
+/** The interface languages, as `[code, name]` (each name in its own language, from the file's `_name`). */
+export const interfaceLanguages: [string, string][] = Object.entries(locales)
+  .map(([code, strings]): [string, string] => [code, strings._name ?? code])
+  .sort((a, b) => (a[0] === 'en' ? -1 : b[0] === 'en' ? 1 : a[1].localeCompare(b[1])))
 
 const KEY = 'legendaria.lang'
 const saved = (() => {
@@ -16,7 +20,9 @@ const saved = (() => {
     return null
   }
 })()
-export const lang = saved && saved in locales ? saved : navigator.language.toLowerCase().startsWith('pt') ? 'pt-BR' : 'en'
+const browser = navigator.language.toLowerCase()
+const guess = Object.keys(locales).find((code) => code.toLowerCase() === browser) ?? Object.keys(locales).find((code) => code.toLowerCase().split('-')[0] === browser.split('-')[0]) ?? 'en'
+export const lang = saved && saved in locales ? saved : guess
 
 /** Switch the interface language (remembered; the page reloads so every string updates). */
 export function setLang(code: string) {

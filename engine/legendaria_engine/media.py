@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from legendaria_engine.events import Reporter
+from legendaria_engine.fonts import FONTS_DIR
 
 EXE = ".exe" if sys.platform == "win32" else ""
 
@@ -138,7 +139,8 @@ def _staged(ass_text: str) -> tuple[Path, str]:
     """Write the subtitles to a temp folder; returns (folder, file name for the filter)."""
     folder = Path(tempfile.mkdtemp(prefix="legendaria-"))
     (folder / "subs.ass").write_text(ass_text, encoding="utf-8")
-    return folder, "subs.ass"
+    shutil.copytree(FONTS_DIR, folder / "fonts", ignore=shutil.ignore_patterns("*.json", "*.md"))
+    return folder, "subs.ass:fontsdir=fonts"  # the bundled fonts, next to the subtitles
 
 
 def burn(

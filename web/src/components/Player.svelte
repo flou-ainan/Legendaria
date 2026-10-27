@@ -3,7 +3,7 @@
   // renderer FFmpeg uses on export), cut skipping and the in/out marks.
   import JASSUB from 'jassub'
   import { onDestroy, onMount } from 'svelte'
-  import { previewAss } from '../lib/api'
+  import { previewAss, type FontEntry } from '../lib/api'
   import { editor } from '../lib/editor.svelte'
   import { t } from '../lib/i18n'
   import { player } from '../lib/player'
@@ -17,20 +17,22 @@
   let subs: JASSUB | undefined
   let frame = 0
 
-  let { font }: { font: string } = $props()
+  let { font, fonts }: { font: string; fonts: FontEntry[] } = $props()
 
   const project = $derived(editor.project!)
 
   onMount(async () => {
     player.video = video
     // libass finds fonts by lowercase family name; without the file it uses JASSUB's bundled font.
+    // The bundled families are all loaded up front, so changing the font in the Look menu is instant.
+    const available: Record<string, string> = Object.fromEntries(fonts.map((f) => [f.family.toLowerCase(), `/api/fonts/${f.file}`]))
     const family = font.toLowerCase()
-    const hasFont = (await fetch('/api/font', { method: 'HEAD' })).ok
+    if (!(family in available) && (await fetch('/api/font', { method: 'HEAD' })).ok) available[family] = '/api/font'
     subs = new JASSUB({
       video,
       subContent: await previewAss(),
       // `fonts` loads it up front, so the very first frame is drawn with it.
-      ...(hasFont ? { fonts: ['/api/font'], availableFonts: { [family]: '/api/font' }, defaultFont: family } : {}),
+      ...(family in available ? { fonts: Object.values(available), availableFonts: available, defaultFont: family } : { fonts: Object.values(available), availableFonts: available }),
       queryFonts: false,
     })
     editor.onPreview = async (ass) => {

@@ -93,6 +93,7 @@ class Project:
     language: str | None = None
     keep: list[Range] = field(default_factory=list)
     cues: list[Cue] = field(default_factory=list)
+    look: dict[str, Any] = field(default_factory=dict)  # overrides of the style: font, size, y
 
     @classmethod
     def new(cls, video: Path, duration: float, cues: CueList) -> Project:
@@ -125,6 +126,7 @@ class Project:
             "language": self.language,
             "keep": [[a, b] for a, b in self.keep],
             "cues": [_cue_dict(c) for c in self.cues],
+            "look": self.look,
         }
 
     @classmethod
@@ -159,6 +161,7 @@ class Project:
                 language=data.get("language"),
                 keep=keep,
                 cues=cues,
+                look=clean_look(data.get("look")),
             )
         except (KeyError, TypeError, ValueError) as exc:
             if isinstance(exc, ProjectError):
@@ -180,6 +183,23 @@ class Project:
         temp = path.with_name(path.name + ".tmp")
         temp.write_text(json.dumps(self.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
         os.replace(temp, path)
+
+
+LOOK_SIZE = (0.3, 3.0)  # allowed multiplier of the style's font size
+
+
+def clean_look(raw: Any) -> dict[str, Any]:
+    """The project's look overrides, validated: `font` (family), `size` (multiplier), `y` (0 bottom to 1 top)."""
+    if not isinstance(raw, dict):
+        return {}
+    look: dict[str, Any] = {}
+    if isinstance(raw.get("font"), str) and raw["font"].strip():
+        look["font"] = raw["font"].strip()
+    if isinstance(raw.get("size"), int | float):
+        look["size"] = min(max(float(raw["size"]), LOOK_SIZE[0]), LOOK_SIZE[1])
+    if isinstance(raw.get("y"), int | float):
+        look["y"] = min(max(float(raw["y"]), 0.0), 1.0)
+    return look
 
 
 def _cue_dict(cue: Cue) -> dict[str, Any]:

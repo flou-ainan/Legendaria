@@ -113,6 +113,16 @@ try {
   const reviewed = await project()
   assert.equal(reviewed.cues[5].text, 'Quinta'); assert.equal(reviewed.cues[7].text, 'Sétima')
 
+  // the Look menu: Top preset, a bundled font; both reach the project and the preview `.ass`
+  await page.getByRole('button', { name: /Look/ }).click()
+  await page.getByRole('button', { name: /Top/ }).click()
+  await page.getByLabel('Font').selectOption('Anton')
+  await page.waitForTimeout(1000)
+  const looked = await project()
+  assert.deepEqual(looked.look, { y: 0.88, font: 'Anton' })
+  assert.match(await page.evaluate(() => fetch('/api/preview.ass').then((r) => r.text())), /Style: Default,Anton,/)
+  await page.getByRole('button', { name: /Look/ }).click()
+
   // the timeline must not flicker while a drawer tab is open and the video plays (it once re-rendered forever)
   await page.getByRole('button', { name: 'Subtitles' }).first().click()
   await page.locator('body').click({ position: { x: 5, y: 5 } }) // Space on a focused button would click it
@@ -133,9 +143,14 @@ try {
     await page.screenshot({ path: join(process.env.E2E_SHOTS, 'wide.png') })
     await page.keyboard.press('Escape')
     await page.setViewportSize({ width: 390, height: 800 })
+    await page.locator('body').click({ position: { x: 5, y: 5 } })
     await page.getByRole('button', { name: 'Menu' }).click()
     await page.screenshot({ path: join(process.env.E2E_SHOTS, 'narrow.png') })
     await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: '✕' }).click() // the drawer is a bottom sheet here
+    await page.getByRole('button', { name: /Look/ }).click()
+    await page.screenshot({ path: join(process.env.E2E_SHOTS, 'narrow-look.png') })
+    await page.getByRole('button', { name: /Look/ }).click()
     await page.setViewportSize({ width: 1400, height: 1000 })
   }
 

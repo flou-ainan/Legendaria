@@ -198,3 +198,31 @@ def test_peaks_follow_the_loudness(tmp_path):
     values = media.peaks({}, audio)
     assert abs(len(values) - 200) <= 2
     assert max(values[:100]) > 0.6 and max(values[110:]) < 0.01
+
+
+def test_look_overrides_are_cleaned_and_round_trip():
+    p = project()
+    p.look = {"font": "Anton", "size": 1.4, "y": 0.9}
+    data = p.to_dict()
+    jsonschema.validate(
+        data, json.loads((SCHEMAS / "project.schema.json").read_text(encoding="utf-8"))
+    )
+    assert Project.from_dict(data).look == p.look
+    messy = Project.from_dict(data | {"look": {"size": 99, "y": -2, "font": " ", "x": 1}})
+    assert messy.look == {"size": 3.0, "y": 0.0}
+    assert Project.from_dict(data | {"look": "nope"}).look == {}
+
+
+def test_with_look_scales_and_moves():
+    from legendaria_engine.ass import with_look
+
+    base = {"font": "Arial", "font_size": 50, "outline": 4, "shadow": 2, "position": [0.5, 0.2]}
+    look = with_look(base, {"font": "Anton", "size": 2, "y": 0.9})
+    assert (look["font"], look["font_size"], look["outline"], look["shadow"]) == (
+        "Anton",
+        100,
+        8,
+        4,
+    )
+    assert look["position"] == [0.5, 0.9]
+    assert with_look(base, None)["font_size"] == 50

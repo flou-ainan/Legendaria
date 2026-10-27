@@ -14,7 +14,13 @@ export type Project = {
   language: string | null
   keep: Range[]
   cues: Cue[]
+  look?: Look // optional overrides of the style (ADR-019)
 }
+
+/** `size` multiplies the style's font size; `y` is the text centre's height above the bottom (0 to 1). */
+export type Look = { font?: string; size?: number; y?: number }
+
+export type FontEntry = { family: string; file: string; bold: boolean; category: string }
 
 export type ModelOption = { name: string; size_mb?: number; notes?: string; installed: boolean }
 export type Options = {
@@ -30,7 +36,9 @@ export type Options = {
 export type State = Options & {
   video: string | null
   path?: string // full path of the open video (to reopen it after a restart)
-  font: string // family name of the style's font, served by /api/font
+  font: string // family name of the font in use, served by /api/font
+  fonts: FontEntry[] // the bundled families, served by /api/fonts/<file>
+  base: { font: string; y: number } // what the style itself sets, for the Look menu
   media: { width: number | null; height: number | null; fps: number | null; duration: number; has_audio: boolean }
   project: Project | null
 }

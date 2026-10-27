@@ -29,6 +29,8 @@
   // `restored`: the project came from the copy in this browser, so it is saved to the server again.
   function show(next: State, restored = false) {
     info = next
+    editor.fonts = next.fonts
+    editor.base = next.base
     const video = next.video
       ? { path: next.path ?? '', name: next.video, duration: next.media.duration, width: next.media.width, height: next.media.height }
       : null
@@ -91,7 +93,7 @@
     <button class="primary export" onclick={() => ui.toggle('export')}>{t('panel.export')}</button>
   </header>
   <main class:drawer={ui.panel}>
-    <div class="stage"><Player font={info.font} /></div>
+    <div class="stage"><Player font={info.font} fonts={info.fonts} /></div>
     <Drawer />
     <div class="lower">
       <Inspector />

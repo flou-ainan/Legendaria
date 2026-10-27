@@ -1,4 +1,5 @@
 {
+  "_name": "English",
   "loading": "Loading…",
   "server_error": "Could not reach the server: {message}",
   "transcribe.title": "Transcribe {video}",
@@ -109,5 +110,24 @@
   "relink.duration": "That video has another length ({found} vs {expected}). Choose the original, or a copy of the same length.",
   "relink.shape": "That video has another screen shape ({found} vs {expected}). Choose a copy with the same proportion (16:9, 9:16…).",
   "relink.forget": "Forget this project",
-  "saved_as": "Saved next to the video"
+  "saved_as": "Saved next to the video",
+  "look.title": "Subtitle look",
+  "look.short": "Look",
+  "look.top": "Top",
+  "look.bottom": "Bottom",
+  "look.reset": "Reset",
+  "look.height": "Height",
+  "look.size": "Size",
+  "look.font": "Font",
+  "look.font_style": "Style's font ({font})",
+  "font.sans": "sans",
+  "font.rounded": "rounded",
+  "font.condensed": "condensed",
+  "font.heavy": "heavy",
+  "font.display": "display",
+  "font.comic": "comic",
+  "font.tech": "tech",
+  "font.pixel": "pixel",
+  "font.serif": "serif",
+  "font.script": "script"
 }

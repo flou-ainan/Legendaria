@@ -106,6 +106,24 @@ def test_preview_ass_is_in_source_time(server):
     assert "Dialogue: 0,0:00:02.50,0:00:03.50" in text
 
 
+def test_look_changes_the_preview_and_bundled_fonts_are_served(server):
+    _, base = server
+    state = json.loads(call(base + "/api/state")[2])
+    assert "Anton" in [f["family"] for f in state["fonts"]] and state["base"]["y"] > 0
+    project = state["project"] | {"look": {"font": "Anton", "size": 2.0, "y": 0.9}}
+    call(base + "/api/project", "PUT", project)
+    text = call(base + "/api/preview.ass")[2].decode()
+    assert (
+        "Style: Default,Anton," in text and "\\pos(80,12)" in text
+    )  # 160x120: x centre, y near the top
+    status, _, body = call(base + "/api/font")
+    assert status == 200 and len(body) > 10000
+    assert call(base + "/api/fonts/Anton.ttf")[0] == 200
+    with pytest.raises(urllib.error.HTTPError) as err:
+        call(base + "/api/fonts/passwd.ttf")
+    assert err.value.code == 404
+
+
 def test_peaks_are_a_curve_per_100th_of_a_second(server):
     _, base = server
     data = json.loads(call(base + "/api/peaks")[2])

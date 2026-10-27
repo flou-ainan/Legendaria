@@ -109,6 +109,27 @@
         },
         "additionalProperties": false
       }
+    },
+    "look": {
+      "type": "object",
+      "description": "Optional overrides of the style's look: font family, size multiplier and vertical position.",
+      "additionalProperties": false,
+      "properties": {
+        "font": {
+          "type": "string"
+        },
+        "size": {
+          "type": "number",
+          "minimum": 0.3,
+          "maximum": 3
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Height of the text centre above the bottom edge, as a fraction of the video height (0 bottom, 1 top)."
+        }
+      }
     }
   },
   "additionalProperties": false
