@@ -186,7 +186,7 @@ Layout (step 33): a header, the video with a tool row under it (play, in, out, c
 | `components/Welcome.svelte` | 141 | Start screen: drop a video on the page (uploaded) or "Choose a file…" (opened in place); "Continue where you left off" from the browser's recovery copy, and relinking a moved video (same duration ±0.5 s and screen proportion ±1 %). |
 | `components/Menu.svelte` | 65 | File menu (open video/project, close, save, download a copy, export), panels on narrow screens and the interface language; a hamburger under 900 px. |
 | `components/Browse.svelte` | 77 | File browser dialog over the computer running the server (`/api/browse`), with an editable folder path. |
-| `components/Transcribe.svelte` | 74 | Drop-down lists for model (shows size and whether it is downloaded), language and style; runs the transcribe job with progress. |
+| `components/Transcribe.svelte` | 80 | Drop-down lists for model (shows size and whether it is downloaded), language and style; runs the transcribe job with progress. |
 | `components/Player.svelte` | 124 | `<video>` + JASSUB (font preloaded, repaint on paused seeks); a `requestVideoFrameCallback` loop skips cut parts and tracks the current cue without reactive state at frame rate; keyboard shortcuts from `lib/shortcuts.json`. |
 | `components/LookMenu.svelte` | 43 | Quick menu for the whole subtitle look: Top / Bottom presets, height and size sliders, font drop-down, reset (stored as the project's `look`, ADR-019). |
 | `components/Toolbar.svelte` | 67 | The tool row under the video: Undo, Redo first, then contextual tools (at most 5: Play, In, Out, Cut, Look; with a block selected: Play, Split, Merge, Delete, Look) and Snap; one sliding row on narrow screens. |

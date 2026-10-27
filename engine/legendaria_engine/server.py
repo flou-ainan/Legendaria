@@ -229,7 +229,10 @@ class Session:
             return
         cues_file = self.video.parent / f"{self.video.stem}.cues.json"
         cues = CueList.from_dict(json.loads(cues_file.read_text(encoding="utf-8")))
+        previous = self.project()  # generating again keeps the cuts and the look, only the cues are new
         project = Project.new(self.video, self.info["duration"], cues)
+        if previous is not None:
+            project.keep, project.look = previous.keep, previous.look
         project.save(self.project_file)
         job.emit("done", project=project.to_dict())
 

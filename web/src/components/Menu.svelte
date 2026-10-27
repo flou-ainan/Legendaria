@@ -4,8 +4,8 @@
   import { ui, type Panel } from '../lib/ui.svelte'
 
   let {
-    onOpenVideo, onOpenProject, onNew, onSave, onDownload,
-  }: { onOpenVideo: () => void; onOpenProject: () => void; onNew: () => void; onSave: () => void; onDownload: () => void } = $props()
+    onOpenVideo, onOpenProject, onNew, onGenerate, onSave, onDownload,
+  }: { onGenerate: () => void; onOpenVideo: () => void; onOpenProject: () => void; onNew: () => void; onSave: () => void; onDownload: () => void } = $props()
 
   let open = $state(false)
   const panels: Panel[] = ['subtitles', 'glossary', 'cuts', 'export']
@@ -29,6 +29,7 @@
       <button role="menuitem" onclick={run(onOpenProject)}>{t('menu.open_project')}</button>
       <button role="menuitem" onclick={run(onNew)}>{t('menu.new')}</button>
       <hr />
+      <button role="menuitem" onclick={run(onGenerate)}>{t('menu.generate')}</button>
       <button role="menuitem" onclick={run(onSave)}>{t('menu.save')}</button>
       <button role="menuitem" onclick={run(onDownload)}>{t('menu.download')}</button>
       <button role="menuitem" onclick={run(() => (ui.panel = 'export'))}>{t('menu.export')}</button>

@@ -41,6 +41,7 @@
   // Back to the start screen (the project stays saved next to the video).
   const closeVideo = () => info && show({ ...info, video: null, project: null })
 
+  let generating = $state(false) // the Generate captions sheet over the editor
   let browsing = $state(false) // the file browser opened from the menu
 
   async function openFromMenu(path: string) {
@@ -81,7 +82,7 @@
   <Transcribe {info} onDone={(project) => editor.load(project)} onChange={closeVideo} />
 {:else}
   <header>
-    <Menu onOpenVideo={() => (browsing = true)} onOpenProject={() => (browsing = true)} onNew={closeVideo} onSave={() => editor.saveNow()} onDownload={download} />
+    <Menu onOpenVideo={() => (browsing = true)} onOpenProject={() => (browsing = true)} onNew={closeVideo} onGenerate={() => (generating = true)} onSave={() => editor.saveNow()} onDownload={download} />
     <img class="logo" src="/logo.svg" alt="" />
     <strong class="brand">Legendária</strong>
     <button class="link" onclick={closeVideo} title={t('header.open')}>{info.video}</button>
@@ -100,6 +101,10 @@
       <Inspector />
     </div>
   </main>
+{/if}
+
+{#if generating && info}
+  <Transcribe {info} sheet onDone={(project) => { generating = false; editor.load(project) }} onChange={() => (generating = false)} />
 {/if}
 
 {#if browsing}

@@ -1,10 +1,11 @@
 <script lang="ts">
-  // After a video is open and before it has subtitles: pick model and language, then transcribe.
+  // Generate captions: pick model, language and style, then transcribe. A full page before the first run,
+  // a sheet over the editor afterwards (`sheet`), where it keeps the cuts and the look and replaces the cues.
   import { untrack } from 'svelte'
   import { runJob, type Project, type State } from '../lib/api'
   import { t } from '../lib/i18n'
 
-  let { info, onDone, onChange }: { info: State; onDone: (project: Project) => void; onChange: () => void } = $props()
+  let { info, onDone, onChange, sheet = false }: { info: State; onDone: (project: Project) => void; onChange: () => void; sheet?: boolean } = $props()
 
   let model = $state(untrack(() => info.model)) // initial values only; the user picks from here
   let language = $state(untrack(() => info.language))
@@ -34,9 +35,10 @@
   }
 </script>
 
-<section class="card">
-  <h1>{t('transcribe.title', { video: info.video ?? '' })}</h1>
-  <p class="muted">{t('transcribe.intro')}</p>
+<div class:shade={sheet}>
+<section class="card" class:sheet>
+  <h1>{sheet ? t('transcribe.sheet_title') : t('transcribe.title', { video: info.video ?? '' })}</h1>
+  {#if !sheet}<p class="muted">{t('transcribe.intro')}</p>{/if}
   <label>
     {t('transcribe.model')}
     <select bind:value={model} disabled={busy}>
@@ -58,17 +60,21 @@
   </label>
   <div class="row">
     <button class="primary" onclick={start} disabled={busy}>{t('transcribe.start')}</button>
-    <button onclick={onChange} disabled={busy}>{t('header.open')}</button>
+    <button onclick={onChange} disabled={busy}>{sheet ? t('cancel') : t('header.open')}</button>
   </div>
   {#if busy}<p>{status || t('loading')}</p>{/if}
   {#if error}<p class="error">{error}</p>{/if}
+  {#if sheet}<p class="muted small">{t('transcribe.replaces')}</p>{/if}
 </section>
+</div>
 
 <style>
   .card { max-width: 32rem; margin: 10vh auto; padding: 1.5rem; background: var(--panel); border-radius: 12px; }
   h1 { font-size: 1.3rem; margin-top: 0; overflow-wrap: anywhere; }
   label { display: grid; gap: 0.25rem; margin-bottom: 0.8rem; color: var(--muted); }
   select { padding: 0.5rem; }
+  .shade { position: fixed; inset: 0; background: #000a; z-index: 60; display: grid; place-items: center; }
+  .sheet { margin: 0; width: min(32rem, 94vw); max-height: 92vh; overflow-y: auto; }
   .small { font-size: 0.8rem; }
   .row { display: flex; gap: 0.5rem; }
 </style>
