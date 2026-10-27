@@ -19,11 +19,12 @@
   const SNAP_PX = settings.snapPx
   // touch screens: the playhead stays in the centre and the timeline slides under it (like mobile editors)
   const center = settings.playhead === 'center' || (settings.playhead === 'auto' && matchMedia('(pointer: coarse)').matches)
-  const COLOR = 'rgba(110, 86, 207, 0.55)'
-  const CURRENT = 'rgba(255, 210, 63, 0.6)'
-  const SELECTED = 'rgba(160, 135, 255, 0.85)'
-  const CUT = 'rgba(229, 72, 77, 0.5)'
-  const MARK = 'rgba(255, 210, 63, 0.25)'
+  // subtitles are orange (as in CapCut); cuts are grey-blue and the in/out mark is blue, so none is mistaken for a subtitle
+  const COLOR = 'rgba(232, 118, 30, 0.6)'
+  const CURRENT = 'rgba(255, 190, 60, 0.85)'
+  const SELECTED = 'rgba(255, 150, 70, 0.95)'
+  const CUT = 'rgba(70, 80, 110, 0.75)'
+  const MARK = 'rgba(70, 160, 255, 0.35)'
 
   let container: HTMLDivElement
   let ws: WaveSurfer | undefined

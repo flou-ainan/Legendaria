@@ -22,7 +22,7 @@
 | 1. Three zones | Done: video, then timeline, then the toolbar under the video. The toolbar sits between player and timeline, not at the very bottom. |
 | Owner corrections after step 36 | Done (step 37): only the selected block moves/resizes (touch scrolling), a magnet that follows the pointer, Undo/Redo first, Solar icons. |
 | 2. Contextual toolbar ≤ 5 | Done (step 36): nothing selected = Play, In, Out, Cut, Look; a block selected = Play, Split, Merge, Delete, Look. Snap, Undo and Redo stay as a small utility group. Esc or a click on the empty waveform deselects. |
-| 3. Orange cue track | Not yet: cue blocks are purple, the current one yellow. |
+| 3. Orange cue track | Done (step 40): cues orange (current brighter, selected lighter), cuts grey-blue, in/out mark blue. The separate row above the video track waits for a multi-track timeline. |
 | 4. Batch vs one style | Not yet: one style per project. Needs per-cue style overrides in the project file (ADR-016 bump). |
 | 5. Double-click + list | Done (step 33). |
 | 6. Two layouts | Partly: one layout that reflows (drawer becomes a bottom sheet under 900 px). The menu is a hamburger on narrow screens. No separate mobile layout yet. |
