@@ -167,14 +167,15 @@
     const cues = project.cues
     cues.forEach((cue, i) => {
       const picked = i === editor.selected // only the selected block can be dragged or resized, so scrolling by touch never moves one
-      const options = { start: cue.start, end: cue.end, content: cue.text, color: picked ? SELECTED : i === editor.current ? CURRENT : COLOR }
+      const label = cue.look ? `✦ ${cue.text}` : cue.text // ✦: this block has its own style
+      const options = { start: cue.start, end: cue.end, content: label, color: picked ? SELECTED : i === editor.current ? CURRENT : COLOR }
       const region = cueRegions[i]
       if (!region) {
         cueRegions[i] = regions!.addRegion({ id: `c${i}`, ...options, drag: picked, resize: picked })
         grip(cueRegions[i], picked)
       } else if (
         region.start !== options.start || region.end !== options.end ||
-        region.content?.textContent !== cue.text || region.color !== options.color ||
+        region.content?.textContent !== label || region.color !== options.color ||
         region.drag !== picked || region.resize !== picked
       ) {
         region.setOptions({ ...options, drag: picked, resize: picked })

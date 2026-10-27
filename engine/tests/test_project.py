@@ -265,3 +265,25 @@ def test_box_and_outline_numbers_are_clamped():
         }
     ).look
     assert look == {"outline": 20.0, "box_opacity": 1.0, "box_radius": 0.0, "box_color": "#00ff00"}
+
+
+def test_a_cue_can_have_its_own_look():
+    from legendaria_engine.ass import to_ass, with_look
+
+    data = project().to_dict()
+    data["cues"].append(
+        {"start": 1, "end": 2, "text": "Tchau", "look": {"color": "#FF0000", "size": 2, "x": 1}}
+    )
+    p = Project.from_dict(data)
+    assert p.cues[1].look == {"color": "#ff0000", "size": 2.0}
+    saved = p.to_dict()
+    jsonschema.validate(
+        saved, json.loads((SCHEMAS / "project.schema.json").read_text(encoding="utf-8"))
+    )
+    assert "look" not in saved["cues"][0] and saved["cues"][1]["look"]["size"] == 2.0
+    assert remap(p.cue_list(), [(0.0, 12.3)]).cues[1].look == p.cues[1].look  # cuts keep it
+
+    text = to_ass(p.cue_list(), with_look({"font_size": 50, "color": [1, 1, 1, 1]}, None))
+    styles = [line for line in text.splitlines() if line.startswith("Style:")]
+    assert [s.split(",")[0] for s in styles] == ["Style: Default", "Style: Cue1"]
+    assert ",100,&H000000FF," in styles[1] and ",Default,," in text and ",Cue1,," in text

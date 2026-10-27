@@ -172,6 +172,26 @@ try {
   assert.match(preview, /}palavra0/, 'caps off keeps the text as typed')
   await page.getByRole('button', { name: /Subtitle look/ }).click()
 
+  // one subtitle's own style: select a block, choose "This subtitle", change its colour, then "Apply to all"
+  await region(1).click({ position: { x: 20, y: 30 } })
+  await page.getByRole('button', { name: /Subtitle look/ }).click()
+  await page.getByRole('radio', { name: 'This subtitle' }).click()
+  await page.getByLabel('Text colour').fill('#123456')
+  await page.waitForTimeout(1000)
+  let own = await project()
+  assert.deepEqual(own.cues[1].look, { color: '#123456' })
+  assert.equal(own.look.color, '#ff0000', 'the track keeps its colour')
+  const two = await page.evaluate(() => fetch('/api/preview.ass').then((r) => r.text()))
+  assert.match(two, /Style: Cue1,.*&H00563412,/, 'the cue gets its own Style line')
+  assert.match(await region(1).textContent(), /^✦/, 'the timeline marks a block with its own style')
+  await page.getByRole('button', { name: 'Apply to all' }).click()
+  await page.waitForTimeout(1000)
+  own = await project()
+  assert.equal(own.look.color, '#123456')
+  assert.equal(own.cues[1].look, undefined, 'applied to all: the cue follows the track again')
+  await page.getByRole('button', { name: /Subtitle look/ }).click()
+  await page.keyboard.press('Escape')
+
   // the timeline must not flicker while a drawer tab is open and the video plays (it once re-rendered forever)
   await page.getByRole('button', { name: 'Subtitles' }).first().click()
   await page.locator('body').click({ position: { x: 5, y: 5 } }) // Space on a focused button would click it

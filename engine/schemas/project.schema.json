@@ -105,6 +105,10 @@
               },
               "additionalProperties": false
             }
+          },
+          "look": {
+            "$ref": "#/properties/look",
+            "description": "This cue's own look overrides (ADR-022); absent means it follows the track."
           }
         },
         "additionalProperties": false
@@ -112,7 +116,7 @@
     },
     "look": {
       "type": "object",
-      "description": "Optional overrides of the style's look: font family, size multiplier and vertical position.",
+      "description": "Optional overrides of the style's look for the whole track (ADR-019); a cue may override them again (ADR-022).",
       "additionalProperties": false,
       "properties": {
         "font": {
@@ -138,11 +142,31 @@
           "type": "string",
           "pattern": "^#[0-9a-fA-F]{6}$"
         },
-        "outline": { "type": "number", "minimum": 0, "maximum": 20 },
-        "box_opacity": { "type": "number", "minimum": 0, "maximum": 1 },
-        "box_padding_x": { "type": "number", "minimum": 0, "maximum": 2 },
-        "box_padding_y": { "type": "number", "minimum": 0, "maximum": 1 },
-        "box_radius": { "type": "number", "minimum": 0, "maximum": 1 },
+        "outline": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "box_opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "box_padding_x": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "box_padding_y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "box_radius": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "uppercase": {
           "type": "boolean"
         },

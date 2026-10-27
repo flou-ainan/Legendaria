@@ -2,7 +2,7 @@
 import type { Range } from './timeline'
 
 export type Word = { start: number; end: number; word: string; probability?: number }
-export type Cue = { start: number; end: number; text: string; words?: Word[] }
+export type Cue = { start: number; end: number; text: string; words?: Word[]; look?: Look } // `look`: this cue's own overrides (ADR-022)
 
 /** The project file, `<video>.legendaria.json` (ADR-016). All times in source seconds. */
 export type Project = {

@@ -24,7 +24,7 @@
 | 2. Contextual toolbar ≤ 5 | Done (step 36): nothing selected = Play, In, Out, Cut, Look; a block selected = Play, Split, Merge, Delete, Look. Snap, Undo and Redo stay as a small utility group. Esc or a click on the empty waveform deselects. |
 | 4. Generate captions sheet | Done (step 41): File menu → "Generate captions…" opens the Transcribe form as a sheet over the editor; generating again keeps the cuts and the look and replaces the cues. "Voice only" as a source is still to do. |
 | 3. Orange cue track | Done (step 40): cues orange (current brighter, selected lighter), cuts grey-blue, in/out mark blue. The separate row above the video track waits for a multi-track timeline. |
-| 4. Batch vs one style | Not yet: one style per project. Needs per-cue style overrides in the project file (ADR-016 bump). |
+| 4. Batch vs one style | Done (step 45, plan 09, ADR-022): with a block selected the Look menu edits "Whole track" or "This subtitle"; "Apply to all" moves a cue's style to the track. Blocks with their own style show ✦. |
 | 5. Double-click + list | Done (step 33). |
 | 6. Two layouts | Partly: one layout that reflows (drawer becomes a bottom sheet under 900 px). The menu is a hamburger on narrow screens. No separate mobile layout yet. |
 | 7. Export top right | Done. |

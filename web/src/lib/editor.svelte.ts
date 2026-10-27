@@ -7,6 +7,18 @@ import { remember, type VideoInfo } from './recovery'
 import { settings } from './settings'
 import { removeRange, restoreRange, type Range } from './timeline'
 
+type LookPatch = { [K in keyof Look]?: Look[K] | null }
+
+/** `look` with `patch` applied; `null` removes a key. */
+function patched(look: Look | undefined, patch: LookPatch): Look {
+  const out: Look = { ...look }
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === null) delete out[key as keyof Look]
+    else (out as Record<string, unknown>)[key] = value
+  }
+  return out
+}
+
 const GROUP_MS = settings.undoGroupMs // edits of the same thing within this window undo together (OpenReel pattern)
 const SAVE_MS = settings.autosaveMs
 const HISTORY = settings.undoSteps
@@ -163,6 +175,7 @@ class Editor {
         first = { start: cue.start, end: time, text: parts.slice(0, half).join(' ') }
         second = { start: time, end: cue.end, text: parts.slice(half).join(' ') }
       }
+      if (cue.look) [first.look, second.look] = [{ ...cue.look }, { ...cue.look }]
       p.cues.splice(i, 1, first, second)
     })
   }
@@ -177,16 +190,33 @@ class Editor {
     })
   }
 
-  /** Change the subtitle look (font, size, height) for the whole project; `null` removes an override. */
-  setLook(patch: { [K in keyof Look]?: Look[K] | null }) {
+  /** Change the subtitle look for the whole track; `null` removes an override. */
+  setLook(patch: LookPatch) {
+    this.edit((p) => (p.look = patched(p.look, patch)), 'look')
+  }
+
+  /** Change one cue's own look (ADR-022); an empty look is removed, so the cue follows the track again. */
+  setCueLook(i: number, patch: LookPatch) {
     this.edit((p) => {
-      const look: Look = { ...p.look }
-      for (const [key, value] of Object.entries(patch)) {
-        if (value === null) delete look[key as keyof Look]
-        else (look as Record<string, unknown>)[key] = value
+      const look = patched(p.cues[i].look, patch)
+      if (Object.keys(look).length) p.cues[i].look = look
+      else delete p.cues[i].look
+    }, `look:${i}`)
+  }
+
+  /** "Apply to all": this cue's overrides become the track's, and no cue keeps its own value for them. */
+  applyToAll(i: number) {
+    this.edit((p) => {
+      const own = p.cues[i].look ?? {}
+      const track: Look = { ...p.look, ...own }
+      if (own.size !== undefined) track.size = (p.look?.size ?? 1) * own.size // a cue's size was relative to the track
+      p.look = track
+      for (const cue of p.cues) {
+        if (!cue.look) continue
+        for (const key of Object.keys(own)) delete cue.look[key as keyof Look]
+        if (!Object.keys(cue.look).length) delete cue.look
       }
-      p.look = look
-    }, 'look')
+    })
   }
 
   mergeNext(i: number) {
@@ -198,6 +228,7 @@ class Editor {
         end: b.end,
         text: `${a.text} ${b.text}`.trim(),
         words: [...(a.words ?? []), ...(b.words ?? [])],
+        ...(a.look ? { look: a.look } : {}), // the merged block keeps the first one's look
       })
     })
   }

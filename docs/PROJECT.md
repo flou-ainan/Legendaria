@@ -83,6 +83,7 @@ engine/ (`flosub`) ── faster-whisper (GPU → CPU fallback) ──► transc
 | [019](dev-docs/decisions/ADR-019-subtitle-look-and-bundled-fonts.md) | Subtitle look overrides in the project (`look`) and bundled open-licence fonts | accepted |
 | [020](dev-docs/decisions/ADR-020-solar-icons.md) | Solar Linear icons (CC BY 4.0), copied one by one into `lib/icons.ts` | accepted |
 | [021](dev-docs/decisions/ADR-021-playhead-modes-and-settings.md) | Two playhead modes (draggable arrow / centred line) and `settings.json` | accepted |
+| [022](dev-docs/decisions/ADR-022-per-cue-look.md) | Per-cue look overrides (style → track → cue), one `Style:` line per distinct look | accepted |
 
 ## 5. Folder structure
 
@@ -153,7 +154,7 @@ Generated with `python3 tools/project_map.py <files>` and then reviewed. Regener
 - `engine/legendaria_engine/defaults/config.json`: engine defaults (`review`: mode suggest/auto, profile, glossary_bias, fuzzy_threshold 0.82, low_confidence 0.5, `llm` {enabled false (experimental), provider ollama, model, batch/context lines, max_change_ratio, unload_after}; model `small`, language `auto`, device `auto`, compute types, beam size, VAD, word timestamps, default `style`, cue `styles` (`pop`: one word at a time, two when the first has ≤ 3 letters, glued pieces like "-vindas" kept, gaps ≤ 0.35 s filled — the MVP default in Blender; `captions`: up to 4 words / 22 chars / 2.2 s; `subtitles`: film-style, up to 84 chars / 6 s, 2 lines of 42), output formats, UI language list; each style has an `ass` look block: font, size at 1080 px on the short side, RGBA colors, outline, shadow, box, position, uppercase, `animation` none/pop; `ffmpeg` path and `burn` encoder arguments, incl. `render_audio_args` for cut exports).
 - `engine/legendaria_engine/defaults/models.json`: model catalog (tiny, base, small, medium, large-v3, large-v3-turbo) with HF repo, size, VRAM, notes.
 - `engine/schemas/*.schema.json`: JSON Schemas for config (incl. styles), models, transcript v1, cues v1 and project v1 (ADR-016).
-- `engine/tests/`: `conftest.py` (isolated dirs, sample transcript), `test_cues.py` (chunking rules), `test_formats.py`, `test_schema.py`, `test_config.py`, `test_cli.py`, `test_transcriber.py` (GPU→CPU fallback with a fake run), `test_glossary.py`, `test_fix_rules.py`, `test_llm_review.py` (fake OpenAI-compatible server), `test_glossary_library.py`, `test_ass.py` (the `.ass` writer, export from edited cues, burn and overlay when FFmpeg is on PATH), `test_project.py` (kept ranges, remap incl. a random property test, project file + schema, a real cut + burn), `test_server.py` (`flosub serve` routes: state, Range, local-only guard, save, export SRT, preview `.ass`, peaks, review; starting without a video, browse, open/upload, glossary add/import/export). 134 tests, no network.
+- `engine/tests/`: `conftest.py` (isolated dirs, sample transcript), `test_cues.py` (chunking rules), `test_formats.py`, `test_schema.py`, `test_config.py`, `test_cli.py`, `test_transcriber.py` (GPU→CPU fallback with a fake run), `test_glossary.py`, `test_fix_rules.py`, `test_llm_review.py` (fake OpenAI-compatible server), `test_glossary_library.py`, `test_ass.py` (the `.ass` writer, export from edited cues, burn and overlay when FFmpeg is on PATH), `test_project.py` (kept ranges, remap incl. a random property test, project file + schema, a real cut + burn), `test_server.py` (`flosub serve` routes: state, Range, local-only guard, save, export SRT, preview `.ass`, peaks, review; starting without a video, browse, open/upload, glossary add/import/export). 135 tests, no network.
 - `engine/legendaria_engine/defaults/languages.json`: language codes for the transcribe form (a user copy in the config dir wins).
 
 **Glossary and review (plan 03):** glossary files are plain text (`Term` or `wrong -> right`). Sources, merged in order: the **active glossary of the library** (`<config dir>/glossaries/<name>.txt`, config `review.glossary`, `flosub glossary list|new|use|import|export|delete`; an old `glossary.txt` migrates to "default"), the project file `legendaria-glossary.txt` next to the media or transcript, and `--glossary FILE|NAME`. `transcribe` passes the terms to Whisper as `hotwords` (layer 1). `flosub review FILE.json` (or `transcribe --review`) finds explicit fixes and fuzzy matches of uncertain words (layer 2) and writes `<name>.review.json` (mode `suggest`) or applies them (`auto`). `flosub review apply FILE.review.json --ids …|--all [--format srt]` applies the chosen ones, re-timing the words. `flosub glossary path|show|add` is the base of every UI's "Add to glossary". **Layer 3 (stage 3b, EXPERIMENTAL, off by default):** `review --llm` sends batches (with context, uncertain words marked `[[…]]`) to any OpenAI-compatible server (`defaults/providers.json`: ollama, lmstudio, llamacpp, openai, gemini, anthropic, openrouter; keys from env vars) using the editable prompt `defaults/review_prompt.txt` (user copy in the config dir wins); the model returns only changed lines, which are diffed word by word and kept only if the guard allows (accent-only fixes, or similar-sounding changes of uncertain words / to glossary terms; never deletions). `flosub llm check|providers`. Config `review.profile` (light/standard = no LLM) and `review.llm.enabled: auto` degrade gracefully when no server answers.
@@ -188,17 +189,17 @@ Layout (step 33): a header, the video with a tool row under it (play, in, out, c
 | `components/Browse.svelte` | 77 | File browser dialog over the computer running the server (`/api/browse`), with an editable folder path. |
 | `components/Transcribe.svelte` | 80 | Drop-down lists for model (shows size and whether it is downloaded), language and style; runs the transcribe job with progress. |
 | `components/Player.svelte` | 124 | `<video>` + JASSUB (font preloaded, repaint on paused seeks); a `requestVideoFrameCallback` loop skips cut parts and tracks the current cue without reactive state at frame rate; keyboard shortcuts from `lib/shortcuts.json`. |
-| `components/LookMenu.svelte` | 43 | Quick menu for the whole subtitle look: Top / Bottom presets, height and size sliders, font drop-down, colours, rectangle and caps, reset (stored as the project's `look`, ADR-019). |
+| `components/LookMenu.svelte` | 109 | Look menu: Top / Bottom, height, size, font, colours, outline, rounded rectangle, caps, reset; for the whole track or, with a block selected, \"This subtitle\" plus \"Apply to all\" (ADR-019, ADR-022). |
 | `components/Toolbar.svelte` | 67 | The tool row under the video: Undo, Redo first, then contextual tools (at most 5: Play, In, Out, Cut, Look; with a block selected: Play, Split, Merge, Delete, Look) and Snap; one sliding row on narrow screens. |
 | `components/Icon.svelte`, `lib/icons.ts` | 8, 20 | Solar Linear icons (ADR-020): `icons.ts` holds the SVG paths, `Icon` draws one by name in the text colour. |
 | `components/Inspector.svelte` | 44 | Edits the selected block's text (Esc leaves the box) and its start/end; shown only while a block is selected. |
-| `components/Timeline.svelte` | 336 | wavesurfer.js waveform from the server's peaks; one draggable/resizable region per cue (diffed against the project), cuts and the in/out mark as overlays. Playhead (overlay above the waveform, per-frame): a draggable yellow arrow on pointer devices, or fixed in the centre while the timeline slides under it (empty space before the start; dragging pans) on touch screens (ADR-021). Only the selected block can be dragged or resized. While dragging, edges stick (8 px, a magnet that lets go when the pointer leaves) to other cues' edges, the cue's own words, kept-range edges and the playhead, with a guide line; click selects and seeks, double-click jumps to the text; Ctrl + wheel zooms around the pointer. |
+| `components/Timeline.svelte` | 338 | wavesurfer.js waveform from the server's peaks; one draggable/resizable region per cue (diffed against the project), cuts and the in/out mark as overlays. Playhead (overlay above the waveform, per-frame): a draggable yellow arrow on pointer devices, or fixed in the centre while the timeline slides under it (empty space before the start; dragging pans) on touch screens (ADR-021). Only the selected block can be dragged or resized. While dragging, edges stick (8 px, a magnet that lets go when the pointer leaves) to other cues' edges, the cue's own words, kept-range edges and the playhead, with a guide line; click selects and seeks, double-click jumps to the text; Ctrl + wheel zooms around the pointer. |
 | `components/Drawer.svelte` | 43 | The optional side panel with tabs: `CueList`, `Glossary` + `Review`, `Cuts`, `Export`. |
 | `components/CueList.svelte` | 74 | All cues as rows (text, times, split, merge, delete, add at playhead); dims cues inside cuts. |
 | `components/Glossary.svelte` | 92 | Glossary library: choose or create the active one, add a word or `wrong -> right`, import a `.txt`, export. |
 | `components/Review.svelte` | 57 | "Check" runs the glossary review on the current cues; apply or ignore each suggestion, or apply all (one undo step). |
 | `components/Cuts.svelte`, `Export.svelte` | 31, 42 | Removed ranges with restore; MP4 / SRT / VTT / ASS export jobs with progress. |
-| `lib/editor.svelte.ts` | 218 | `editor`: the project in `$state`, selection, snapshot undo/redo with grouping (800 ms per field), debounced autosave that then refreshes the preview `.ass`; commands `setText`, `setTimes`, `remove`, `split` (uses the words only while they still spell the text), `mergeNext`, `addAt`, `cut`, `restore`, `applySuggestions`; the in/out marks. |
+| `lib/editor.svelte.ts` | 252 | `editor`: the project in `$state`, selection, snapshot undo/redo with grouping (800 ms per field), debounced autosave that then refreshes the preview `.ass`; commands `setText`, `setTimes`, `remove`, `split` (uses the words only while they still spell the text), `mergeNext`, `addAt`, `cut`, `restore`, `applySuggestions`, `setLook`, `setCueLook`, `applyToAll`; the in/out marks. |
 | `lib/recovery.ts` | 67 | IndexedDB copy of the work (project, video path and size, `dirty` flag): `remember`, `lastWork`, `forget`, and `sameVideo` (the relink rule, ADR-018). |
 | `lib/settings.json`, `settings.ts` | 16, 9 | Editor settings, `basic` and `advanced` (snap distance 4 px, autosave, undo, zoom, playhead mode); a Settings screen will edit them later. |
 | `lib/ui.svelte.ts` | 13 | Interface switches: snap on/off, which drawer panel is open. |
@@ -215,7 +216,7 @@ Legendária transcription engine.
 ### engine/legendaria_engine/__main__.py — 5 lines
 Allow `python -m legendaria_engine`.
 
-### engine/legendaria_engine/ass.py — 207 lines
+### engine/legendaria_engine/ass.py — 220 lines
 Styled subtitles: cues → Advanced SubStation Alpha (`.ass`), rendered by libass (ADR-012).
 
 | Function / class | Line | What it does |
@@ -228,7 +229,8 @@ Styled subtitles: cues → Advanced SubStation Alpha (`.ass`), rendered by libas
 | `escape(text)` | 100 | Cue text → ASS text: no override braces or backslashes; line breaks become `\N`. |
 | `animation_tags(animation)` | 106 | Override tags for the cue's entrance (`pop`: scale from → peak → 100 %). |
 | `box_shape(text, style, font_size)` | 120 | An ASS drawing of the rounded rectangle behind `text` (one or more lines) at `font_size`. |
-| `to_ass(cues, look, size, line_length)` | 134 | The whole `.ass` file for these cues, drawn on a `size` (width, height) canvas. |
+| `style_fields(style, width, scale)` | 134 | The values of an ASS `Style:` line (without its name) for a resolved look. |
+| `to_ass(cues, look, size, line_length)` | 163 | The whole `.ass` file for these cues, drawn on a `size` (width, height) canvas. |
 
 ### engine/legendaria_engine/cli.py — 803 lines
 `flosub` command line: transcribe, export, review, glossary, burn, overlay, serve, models, config.
@@ -284,18 +286,18 @@ Make the NVIDIA libraries installed by pip (cuBLAS, cuDNN) visible to CTranslate
 | `nvidia_lib_dirs()` | 18 | Library folders of the installed `nvidia.*` packages (empty when not installed). |
 | `ensure_cuda_libs()` | 33 | Expose the NVIDIA libraries to the current process. Call before importing ctranslate2. |
 
-### engine/legendaria_engine/cues.py — 189 lines
+### engine/legendaria_engine/cues.py — 194 lines
 Cues: the timed text blocks shown on screen, built from word timings by a style.
 
 | Function / class | Line | What it does |
 |---|---|---|
 | `class Cue` | 21 | One block of text on screen, with the words it contains. |
-| `class CueList` | 31 | Cues for one media file in one style (cues JSON v1). |
-| `CueList.to_dict()` | 40 | Plain dict ready for JSON. |
-| `CueList.save(path)` | 44 | Write as pretty UTF-8 JSON. |
-| `CueList.from_dict(data)` | 49 | Build from a cues JSON v1 dict (words are optional). |
-| `make_cues(transcript, style, style_name)` | 95 | Chunk the transcript's words into cues that respect the style's limits. |
-| `wrap_lines(text, line_length)` | 182 | Split text into two balanced lines when it is longer than `line_length`. |
+| `class CueList` | 32 | Cues for one media file in one style (cues JSON v1). |
+| `CueList.to_dict()` | 41 | Plain dict ready for JSON (a cue's `look` only when it has one). |
+| `CueList.save(path)` | 49 | Write as pretty UTF-8 JSON. |
+| `CueList.from_dict(data)` | 54 | Build from a cues JSON v1 dict (words are optional). |
+| `make_cues(transcript, style, style_name)` | 100 | Chunk the transcript's words into cues that respect the style's limits. |
+| `wrap_lines(text, line_length)` | 187 | Split text into two balanced lines when it is longer than `line_length`. |
 
 ### engine/legendaria_engine/events.py — 111 lines
 Progress reporting: JSON lines for programs (the Blender add-on), a progress bar for humans.
@@ -377,7 +379,7 @@ Per-OS locations for user config, data and models.
 | `models_dir()` | 35 | Where downloaded models live: `<data dir>/models`. |
 | `defaults_dir()` | 40 | Shipped default JSON files inside the package. |
 
-### engine/legendaria_engine/project.py — 231 lines
+### engine/legendaria_engine/project.py — 241 lines
 Project file: the web editor's document, `<video>.legendaria.json` (ADR-016).
 
 | Function / class | Line | What it does |
@@ -388,15 +390,15 @@ Project file: the web editor's document, `<video>.legendaria.json` (ADR-016).
 | `remove_range(keep, start, end)` | 52 | The kept ranges after cutting out [start, end] (source time); tiny cuts are ignored. |
 | `output_duration(keep)` | 68 | Length of the edited video: the sum of the kept ranges. |
 | `remap(cues, keep)` | 73 | Cues on the output timeline: removed parts disappear, cues across a cut are clipped. |
-| `class Project` | 88 | The editor document. `source` is relative to the project file when possible. |
-| `Project.new(video, duration, cues)` | 100 | A fresh project for `video`: nothing cut, the cues as transcribed. |
-| `Project.cue_list()` | 111 | The cues (source time) as a CueList. |
-| `Project.edited_cues()` | 115 | The cues on the output timeline (after the cuts). |
-| `Project.to_dict()` | 119 | Plain dict ready for JSON (see schemas/project.schema.json). |
-| `Project.from_dict(data)` | 134 | Validate and build; ranges are normalized, cues sorted by start. |
-| `Project.load(path)` | 173 | Read a project file. |
-| `Project.save(path)` | 181 | Write atomically (temp file + rename), so a crash never leaves half a project. |
-| `clean_look(raw)` | 201 | The project's look overrides, validated: `font` (family), `size` (multiplier), `y` (0 bottom to 1 top), colours (`#rrggbb`), `outline` and box numbers (LOOK_NUMBERS), `box` and `uppercase` (bool). |
+| `class Project` | 95 | The editor document. `source` is relative to the project file when possible. |
+| `Project.new(video, duration, cues)` | 107 | A fresh project for `video`: nothing cut, the cues as transcribed. |
+| `Project.cue_list()` | 118 | The cues (source time) as a CueList. |
+| `Project.edited_cues()` | 122 | The cues on the output timeline (after the cuts). |
+| `Project.to_dict()` | 126 | Plain dict ready for JSON (see schemas/project.schema.json). |
+| `Project.from_dict(data)` | 141 | Validate and build; ranges are normalized, cues sorted by start. |
+| `Project.load(path)` | 181 | Read a project file. |
+| `Project.save(path)` | 189 | Write atomically (temp file + rename), so a crash never leaves half a project. |
+| `clean_look(raw)` | 209 | The project's look overrides, validated: `font` (family), `size` (multiplier), `y` (0 bottom to 1 top), colours (`#rrggbb`), `outline` and box numbers (LOOK_NUMBERS), `box` and `uppercase` (bool). |
 
 ### engine/legendaria_engine/schema.py — 115 lines
 Transcript format (JSON v1): the contract between the engine and the Blender add-on.

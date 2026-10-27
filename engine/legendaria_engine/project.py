@@ -79,7 +79,14 @@ def remap(cues: CueList, keep: list[Range]) -> CueList:
             start, end = max(cue.start, k_start), min(cue.end, k_end)
             if end - start >= MIN_CUE:
                 shift = offset - k_start
-                out.append(Cue(round(start + shift, 3), round(end + shift, 3), cue.text))
+                out.append(
+                    Cue(
+                        round(start + shift, 3),
+                        round(end + shift, 3),
+                        cue.text,
+                        look=dict(cue.look),
+                    )
+                )
         offset += k_end - k_start
     return CueList(cues.style, cues.source, cues.language, out)
 
@@ -147,6 +154,7 @@ class Project:
                         float(c["end"]),
                         str(c["text"]),
                         [Word(**w) for w in c.get("words", [])],
+                        clean_look(c.get("look")),
                     )
                     for c in data.get("cues", [])
                 ),
@@ -228,4 +236,6 @@ def _cue_dict(cue: Cue) -> dict[str, Any]:
             {"start": w.start, "end": w.end, "word": w.word, "probability": w.probability}
             for w in cue.words
         ]
+    if cue.look:
+        data["look"] = dict(cue.look)
     return data
