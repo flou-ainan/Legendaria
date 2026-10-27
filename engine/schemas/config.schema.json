@@ -402,7 +402,7 @@
     },
     "burn": {
       "type": "object",
-      "description": "FFmpeg arguments for `flosub burn`.",
+      "description": "FFmpeg arguments for `flosub burn` and the web editor's export.",
       "additionalProperties": false,
       "properties": {
         "video_args": {
@@ -418,6 +418,13 @@
             "type": "string"
           },
           "description": "Audio arguments (default: copy)."
+        },
+        "render_audio_args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Audio encoder arguments when the video is cut (the audio must be re-encoded; default: AAC 192k)."
         }
       }
     }

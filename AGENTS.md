@@ -37,6 +37,25 @@ Goal: someone who clones the repository, with no access to any agent memory, can
 
 This machine uses [ai-memory](https://github.com/akitaonrails/ai-memory) to carry context between agents. It is a complement: the source of truth for project state is always `docs/`.
 
+## Recommending the model for the next task
+
+When you finish a task, end your reply to the owner with the model tier and reasoning effort the **next** task needs, and write the same line in the plan's "next" item so it survives a hand-off. The owner prefers **low** or **medium** effort; propose **high** only for a specific reason.
+
+Tiers are vendor-neutral; map them to your own family:
+
+| Tier | Examples (2026) | Use it for |
+|---|---|---|
+| **standard** | Claude Sonnet, GPT standard / Codex default, Gemini Pro | Work with a written plan and an existing pattern to follow: components, routes, tests, docs, bug fixes with a clear repro, translations. |
+| **top** | Claude Opus, GPT top reasoning tier, Gemini top "thinking" tier | New architecture or file formats (ADRs with trade-offs), changes across engine + server + UI at once, opaque debugging (WASM, workers, FFmpeg filter graphs, concurrency), security-sensitive code. |
+
+| Effort | When |
+|---|---|
+| **low** | Mechanical edits, docs, renames, small fixes. |
+| **medium** | The default for feature work. |
+| **high** | Only when a wrong design is expensive to undo, or a bug resists a first investigation. Say why. |
+
+Format: `**Next task:** <what> — tier: standard|top, effort: low|medium|high — <one-line reason>`.
+
 ## Branches and commits
 
 `main` is protected: work on a branch, commit with Conventional Commits, open a PR, and wait for the `ci` check (ADR-008).

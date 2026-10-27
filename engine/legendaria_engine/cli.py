@@ -1,4 +1,4 @@
-"""`flosub` command line: transcribe, export, review, glossary, burn, overlay, models, config."""
+"""`flosub` command line: transcribe, export, review, glossary, burn, overlay, serve, models, config."""
 
 from __future__ import annotations
 
@@ -592,6 +592,18 @@ def cmd_overlay(args: argparse.Namespace, reporter: Reporter) -> int:
     return 0
 
 
+def cmd_serve(args: argparse.Namespace, reporter: Reporter) -> int:
+    """`flosub serve VIDEO`: open the web editor for a video (local server, plan 07)."""
+    from legendaria_engine.server import serve
+
+    video = Path(args.file).expanduser().resolve()
+    if not video.is_file():
+        reporter.error(f"File not found: {video}")
+        return 2
+    serve(video, args.port, not args.no_browser, reporter)
+    return 0
+
+
 def cmd_models(args: argparse.Namespace, reporter: Reporter) -> int:
     """`flosub models list|download`."""
     from legendaria_engine import models
@@ -745,6 +757,14 @@ def build_parser() -> argparse.ArgumentParser:
     o.add_argument("--duration", type=float, help="seconds (default: the source or last cue)")
     o.add_argument("--output", help="the .mov to write (default: NAME.overlay.mov)")
     o.set_defaults(func=cmd_overlay)
+
+    s = sub.add_parser("serve", help="open the web editor for a video (cut, edit, export)")
+    s.add_argument("file", help="the video")
+    s.add_argument(
+        "--port", type=int, default=8765, help="local port (default: 8765; 0 = any free)"
+    )
+    s.add_argument("--no-browser", action="store_true", help="do not open the browser")
+    s.set_defaults(func=cmd_serve)
 
     m = sub.add_parser("models", help="list or download Whisper models")
     m_sub = m.add_subparsers(dest="action", required=True)

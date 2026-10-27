@@ -1,8 +1,8 @@
 # Plan 07 — Web editor (replaces the Blender add-on as the main UI)
 
-**Status:** approved (owner, 2026-10-26). Phase 0 done (step 29). Framework decided: Svelte 5 (ADR-015). OpenReel dissected (step 30, `references/openreel_dissection.md`). Next: ADR-016 and the MVP build.
+**Status:** in progress. Phase 0 done (step 29). Phase 1 done: Svelte 5 (ADR-015), project file (ADR-016). Phase 2: first slice done (step 31); next items in "Phase 2 progress" below.
 **Date:** 2026-10-26
-**Related decisions:** ADR-014 (pivot), ADR-015 (Svelte 5 + Vite + TS), ADR-012 (`.ass` + libass). ADR-016 (project file) is written in phase 1.
+**Related decisions:** ADR-014 (pivot), ADR-015 (Svelte 5 + Vite + TS), ADR-016 (project file), ADR-012 (`.ass` + libass).
 **Supersedes:** plan 05 (local API + `flosub gui`), plan 06 (Blender UX) and the Blender parts of plan 04 §11.
 
 ## Why
@@ -83,6 +83,25 @@ Results: `docs/dev-docs/references/plan07_phase0_spikes.md` (step 29).
 6. An export dialog: burned MP4, SRT, VTT or ASS.
 7. pt-BR.
 
+#### Phase 2 progress
+
+| # | Item | Status |
+|---|---|---|
+| 1 | `flosub serve`: media (Range), state, project load/save, transcribe and export jobs (SSE), preview `.ass`, font | done (step 31); review/glossary routes still to do |
+| 2 | Open/transcribe screen with progress | done (step 31) |
+| 3 | Player with the JASSUB preview, live update after each edit | done (step 31) |
+| 4 | Cue list: text, times, split, merge, delete, add | done (step 31); review suggestions still to do |
+| 5 | Timeline: cuts + cue strip | basic strip done (step 31). To do: wavesurfer waveform with server peaks, draggable cue edges, snapping (pixels + word boundaries), zoom at cursor, follow playhead |
+| 6 | Export: burned MP4, SRT, VTT, ASS | done (step 31) |
+| 7 | pt-BR | done (step 31) |
+| — | Undo/redo with grouping, autosave, shortcut table (JSON) | done (step 31) |
+| — | Tests: engine pytest (remap, project, server, real cut + burn), Vitest (timeline) | done (step 31). Playwright smoke test in CI: to do (it ran locally) |
+
+**Next slice (step 32 proposal), after the owner's manual test:**
+- waveform + draggable cues + snapping + zoom — tier: standard, effort: medium — the spikes (1.3) and the OpenReel dissection already define the approach;
+- review/glossary suggestions in the cue list — tier: standard, effort: medium — reuses `cli.run_review`, needs a small refactor;
+- Playwright smoke in CI — tier: standard, effort: low — the local script from step 31 exists.
+
 ### 3. Freeze Blender
 
 - The README and the docs say the add-on is frozen.
@@ -105,7 +124,7 @@ Results: `docs/dev-docs/references/plan07_phase0_spikes.md` (step 29).
 - [ ] The JASSUB preview matches the burned frame (pixel diff as in step 23).
 - [ ] Engine pytest covers the remap and the project file, plus a real FFmpeg cut + burn in CI.
 - [ ] Web: Vitest for the timeline and remap logic; a Playwright smoke test (open → transcribe fixture → edit → export SRT).
-- [ ] Docs: ADR-015/016, `PROJECT.md`, a devlog step for each phase, en + pt-BR UI.
+- [x] Docs: ADR-015/016, `PROJECT.md`, a devlog step for each phase, en + pt-BR UI.
 
 ## Owner answers (2026-10-26)
 
@@ -124,4 +143,3 @@ Results: `docs/dev-docs/references/plan07_phase0_spikes.md` (step 29).
 ## Open questions for the owner
 
 None right now. Still pending from earlier: import `.ass`/`.srt` + `flosub align --srt` (plan 04 §11.3, item 4).
-3. Still pending from earlier: import `.ass`/`.srt` + `flosub align --srt` (plan 04 §11.3, item 4).

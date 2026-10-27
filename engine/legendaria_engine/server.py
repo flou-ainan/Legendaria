@@ -1,0 +1,419 @@
+"""`flosub serve`: the local web editor's backend (plan 07, ADR-014).
+
+Standard library only (`http.server`). It serves the built Svelte app, the video (HTTP Range,
+so the browser can seek), the project file, `.ass` for the live preview, and runs
+transcription and export as jobs whose events stream over Server-Sent Events.
+
+It listens on 127.0.0.1 only and rejects requests whose Host or Origin is not local, so a
+web page on the internet cannot drive it (DNS rebinding, cross-site requests).
+"""
+
+from __future__ import annotations
+
+import json
+import mimetypes
+import re
+import shutil
+import subprocess
+import sys
+import threading
+import uuid
+import webbrowser
+from http import HTTPStatus
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from typing import Any
+from urllib.parse import urlsplit
+
+from legendaria_engine import formats, media
+from legendaria_engine.ass import to_ass
+from legendaria_engine.config import load_config
+from legendaria_engine.cues import CueList
+from legendaria_engine.events import Reporter
+from legendaria_engine.project import Project, ProjectError, project_path
+
+WEB_DIR = Path(__file__).parent / "web"
+LOCAL_HOSTS = {"127.0.0.1", "localhost"}
+# COOP/COEP make the page cross-origin isolated, so JASSUB can use worker threads.
+ISOLATION = {
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "Cross-Origin-Embedder-Policy": "require-corp",
+    "Cross-Origin-Resource-Policy": "same-origin",
+}
+CHUNK = 1 << 20
+mimetypes.add_type("application/wasm", ".wasm")
+mimetypes.add_type("font/woff2", ".woff2")
+mimetypes.add_type("text/javascript", ".js")
+
+
+class Job(Reporter):
+    """A background task (transcribe, export) that records its events for SSE readers."""
+
+    def __init__(self, kind: str) -> None:
+        self.id = uuid.uuid4().hex[:12]
+        self.kind = kind
+        self.events: list[dict[str, Any]] = []
+        self.finished = False
+        self._changed = threading.Condition()
+
+    def emit(self, event: str, **data: Any) -> None:
+        """Record one event and wake the SSE readers."""
+        with self._changed:
+            self.events.append({"event": event, **data})
+            if event in ("done", "error"):
+                self.finished = True
+            self._changed.notify_all()
+
+    def wait(self, seen: int, timeout: float = 15.0) -> list[dict[str, Any]]:
+        """Events after the first `seen` ones; blocks up to `timeout` for new ones."""
+        with self._changed:
+            if len(self.events) <= seen and not self.finished:
+                self._changed.wait(timeout)
+            return self.events[seen:]
+
+
+class Session:
+    """One video being edited: its project file, config and running jobs."""
+
+    def __init__(self, video: Path, config: dict[str, Any]) -> None:
+        self.video = video
+        self.config = config
+        self.project_file = project_path(video)
+        self.info = media.probe(video, config)
+        self.jobs: dict[str, Job] = {}
+        self.lock = threading.Lock()
+
+    def project(self) -> Project | None:
+        """The saved project, or None before the first transcription."""
+        return Project.load(self.project_file) if self.project_file.is_file() else None
+
+    def state(self) -> dict[str, Any]:
+        """Everything the editor needs on load."""
+        project = self.project()
+        return {
+            "video": self.video.name,
+            "font": self.look(project.style if project else self.config["style"]).get("font", "Arial"),
+            "media": self.info,
+            "project": project.to_dict() if project else None,
+            "styles": sorted(self.config["styles"]),
+            "style": self.config["style"],
+            "model": self.config["model"],
+            "language": self.config["language"],
+        }
+
+    def look(self, style: str) -> dict[str, Any]:
+        """The style's `.ass` look from the config (empty if unknown)."""
+        return self.config["styles"].get(style, {}).get("ass", {})
+
+    def size(self) -> tuple[int, int] | None:
+        """The video's (width, height) for the `.ass` canvas."""
+        return (self.info["width"], self.info["height"]) if self.info["width"] else None
+
+    def ass_text(self, cues: CueList, style: str) -> str:
+        """`.ass` for these cues in the style's look, on the video's canvas."""
+        rules = self.config["styles"].get(style) or self.config["styles"][self.config["style"]]
+        return to_ass(cues, rules.get("ass"), self.size(), rules.get("line_length"))
+
+    def start(self, kind: str, work) -> Job:
+        """Run `work(job)` in a thread; only one job at a time."""
+        with self.lock:
+            if any(not j.finished for j in self.jobs.values()):
+                raise RuntimeError("Another task is still running.")
+            job = Job(kind)
+            self.jobs[job.id] = job
+
+        def run() -> None:
+            try:
+                work(job)
+            except Exception as exc:  # report every failure to the browser
+                job.error(str(exc) or type(exc).__name__)
+
+        threading.Thread(target=run, daemon=True).start()
+        return job
+
+    def transcribe(self, job: Job, options: dict[str, Any]) -> None:
+        """Run `flosub transcribe` in a child process (it may re-exec for CUDA), relay events."""
+        style = options.get("style") or self.config["style"]
+        command = [
+            sys.executable, "-m", "legendaria_engine", "--progress", "json", "transcribe",
+            str(self.video), "--format", "json,cues", "--style", style,
+        ]  # fmt: skip
+        for key in ("model", "language"):
+            if options.get(key):
+                command += [f"--{key}", str(options[key])]
+        process = subprocess.Popen(
+            command, stdout=subprocess.PIPE, text=True, encoding="utf-8", errors="replace"
+        )
+        failed = None
+        for line in process.stdout:
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            name = event.pop("event", "log")
+            if name == "error":
+                failed = event.get("message", "")
+            elif name != "done":
+                job.emit(name, **event)
+        process.wait()
+        if failed is not None or process.returncode != 0:
+            job.error(failed or f"Transcription failed (exit code {process.returncode}).")
+            return
+        cues_file = self.video.parent / f"{self.video.stem}.cues.json"
+        cues = CueList.from_dict(json.loads(cues_file.read_text(encoding="utf-8")))
+        project = Project.new(self.video, self.info["duration"], cues)
+        project.save(self.project_file)
+        job.emit("done", project=project.to_dict())
+
+    def export(self, job: Job, fmt: str) -> None:
+        """Write the edited video (`mp4`) or subtitles (`srt`, `vtt`, `ass`) next to the source."""
+        project = self.project()
+        if project is None:
+            raise ProjectError("Nothing to export yet: transcribe first.")
+        edited = project.edited_cues()
+        target = self.video.parent / f"{self.video.stem}.edited.{fmt}"
+        rules = self.config["styles"].get(project.style, {})
+        if fmt == "mp4":
+            if target.resolve() == self.video.resolve():
+                raise media.MediaError("The output would overwrite the input video.")
+            media.render(
+                self.config, self.video, project.keep, self.ass_text(edited, project.style),
+                target, job,
+            )  # fmt: skip
+        elif fmt == "ass":
+            target.write_text(self.ass_text(edited, project.style), encoding="utf-8")
+        elif fmt in formats.WRITERS:
+            text = formats.WRITERS[fmt](edited, rules.get("line_length"))
+            target.write_text(text, encoding="utf-8")
+        else:
+            raise ValueError(f"Unknown export format: {fmt}")
+        job.emit("done", outputs=[str(target)])
+
+
+def find_font(name: str, bold: bool) -> Path | None:
+    """The font file the system uses for `name` (fontconfig), so the preview matches FFmpeg."""
+    tool = shutil.which("fc-match")
+    if not tool:
+        return None
+    pattern = f"{name}:bold" if bold else name
+    result = subprocess.run(
+        [tool, "-f", "%{file}", pattern], capture_output=True, text=True, check=False
+    )
+    path = Path(result.stdout.strip()) if result.returncode == 0 else None
+    return path if path and path.is_file() else None
+
+
+class Handler(BaseHTTPRequestHandler):
+    """Routes for the editor. `self.server.session` is the open video."""
+
+    server_version = "Legendaria"
+    protocol_version = "HTTP/1.1"
+
+    @property
+    def session(self) -> Session:
+        """The open video's session."""
+        return self.server.session  # type: ignore[attr-defined]
+
+    def log_message(self, format: str, *args: Any) -> None:  # noqa: A002 - stdlib signature
+        """Quiet: only errors are printed."""
+
+    # --- helpers -------------------------------------------------------------
+
+    def _local(self) -> bool:
+        host = (self.headers.get("Host") or "").rsplit(":", 1)[0].strip("[]")
+        origin = self.headers.get("Origin")
+        origin_host = urlsplit(origin).hostname if origin else None
+        return host in LOCAL_HOSTS and (origin is None or origin_host in LOCAL_HOSTS)
+
+    def _send(self, status: int, body: bytes, content_type: str, extra: dict | None = None) -> None:
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        for key, value in {**ISOLATION, **(extra or {})}.items():
+            self.send_header(key, value)
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(body)
+
+    def _json(self, data: Any, status: int = 200) -> None:
+        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+        self._send(status, body, "application/json; charset=utf-8")
+
+    def _error(self, status: int, message: str) -> None:
+        self._json({"error": message}, status)
+
+    def _body(self) -> Any:
+        length = int(self.headers.get("Content-Length") or 0)
+        return json.loads(self.rfile.read(length) or b"null")
+
+    # --- routes --------------------------------------------------------------
+
+    def do_GET(self) -> None:  # noqa: N802 - stdlib name
+        """Static app, state, media, font, preview `.ass` and job events."""
+        if not self._local():
+            return self._error(HTTPStatus.FORBIDDEN, "Only local requests are allowed.")
+        path = urlsplit(self.path).path
+        try:
+            if path == "/api/state":
+                return self._json(self.session.state())
+            if path == "/api/media":
+                return self._file(self.session.video)
+            if path == "/api/font":
+                return self._font()
+            if path == "/api/preview.ass":
+                project = self.session.project()
+                if project is None:
+                    return self._error(HTTPStatus.NOT_FOUND, "No project yet.")
+                text = self.session.ass_text(project.cue_list(), project.style)
+                return self._send(200, text.encode("utf-8"), "text/plain; charset=utf-8")
+            if match := re.fullmatch(r"/api/jobs/(\w+)/events", path):
+                return self._events(match.group(1))
+            return self._static(path)
+        except (ProjectError, ValueError, OSError) as exc:
+            return self._error(HTTPStatus.BAD_REQUEST, str(exc))
+
+    do_HEAD = do_GET
+
+    def do_PUT(self) -> None:  # noqa: N802 - stdlib name
+        """Save the project (validated and normalized); returns what was saved."""
+        if not self._local():
+            return self._error(HTTPStatus.FORBIDDEN, "Only local requests are allowed.")
+        if urlsplit(self.path).path != "/api/project":
+            return self._error(HTTPStatus.NOT_FOUND, "Not found.")
+        try:
+            project = Project.from_dict(self._body())
+        except (ProjectError, json.JSONDecodeError) as exc:
+            return self._error(HTTPStatus.BAD_REQUEST, str(exc))
+        project.save(self.session.project_file)
+        self._json(project.to_dict())
+
+    def do_POST(self) -> None:  # noqa: N802 - stdlib name
+        """Start a job: `/api/transcribe` {model, language, style} or `/api/export` {format}."""
+        if not self._local():
+            return self._error(HTTPStatus.FORBIDDEN, "Only local requests are allowed.")
+        path = urlsplit(self.path).path
+        try:
+            options = self._body() or {}
+            if path == "/api/transcribe":
+                job = self.session.start("transcribe", lambda j: self.session.transcribe(j, options))
+            elif path == "/api/export":
+                fmt = str(options.get("format", ""))
+                job = self.session.start("export", lambda j: self.session.export(j, fmt))
+            else:
+                return self._error(HTTPStatus.NOT_FOUND, "Not found.")
+        except RuntimeError as exc:
+            return self._error(HTTPStatus.CONFLICT, str(exc))
+        except json.JSONDecodeError as exc:
+            return self._error(HTTPStatus.BAD_REQUEST, str(exc))
+        self._json({"job": job.id})
+
+    def _events(self, job_id: str) -> None:
+        job = self.session.jobs.get(job_id)
+        if job is None:
+            return self._error(HTTPStatus.NOT_FOUND, "Unknown job.")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Connection", "close")
+        for key, value in ISOLATION.items():
+            self.send_header(key, value)
+        self.end_headers()
+        self.close_connection = True
+        seen = 0
+        try:
+            while True:
+                fresh = job.wait(seen)
+                for event in fresh:
+                    self.wfile.write(f"data: {json.dumps(event, ensure_ascii=False)}\n\n".encode())
+                seen += len(fresh)
+                if not fresh:
+                    self.wfile.write(b": keep-alive\n\n")
+                self.wfile.flush()
+                if job.finished and seen >= len(job.events):
+                    return
+        except (BrokenPipeError, ConnectionResetError):
+            return
+
+    def _font(self) -> None:
+        project = self.session.project()
+        look = self.session.look(project.style if project else self.session.config["style"])
+        font = find_font(look.get("font", "Arial"), look.get("bold", True))
+        if font is None:
+            return self._error(HTTPStatus.NOT_FOUND, "Font not found (the preview uses a fallback).")
+        return self._file(font)
+
+    def _static(self, path: str) -> None:
+        root = WEB_DIR.resolve()
+        target = (root / path.lstrip("/")).resolve()
+        if path in ("", "/") or not target.is_file():
+            target = root / "index.html"
+        if not target.is_relative_to(root) or not target.is_file():
+            message = "The editor is not built. Run `npm run build` in web/ (see CONTRIBUTING.md)."
+            return self._error(HTTPStatus.NOT_FOUND, message)
+        return self._file(target)
+
+    def _file(self, path: Path) -> None:
+        """Send a file, honoring a single `Range: bytes=a-b` (video seeking)."""
+        size = path.stat().st_size
+        content_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+        start, end, status = 0, size - 1, 200
+        match = re.fullmatch(r"bytes=(\d*)-(\d*)", self.headers.get("Range", "").strip())
+        if match and size:
+            first, last = match.groups()
+            if first:
+                start, end = int(first), min(int(last), size - 1) if last else size - 1
+            elif last:
+                start = max(0, size - int(last))
+            if start > end:
+                self.send_response(HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
+                self.send_header("Content-Range", f"bytes */{size}")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            status = 206
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Accept-Ranges", "bytes")
+        self.send_header("Content-Length", str(end - start + 1))
+        if status == 206:
+            self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+        for key, value in ISOLATION.items():
+            self.send_header(key, value)
+        self.end_headers()
+        if self.command == "HEAD":
+            return
+        try:
+            with path.open("rb") as handle:
+                handle.seek(start)
+                remaining = end - start + 1
+                while remaining > 0:
+                    chunk = handle.read(min(CHUNK, remaining))
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+                    remaining -= len(chunk)
+        except (BrokenPipeError, ConnectionResetError):
+            pass  # the browser cancels range requests while seeking
+
+
+def make_server(video: Path, port: int = 0, config: dict[str, Any] | None = None) -> ThreadingHTTPServer:
+    """A server for `video` on 127.0.0.1 (`port` 0 picks a free one)."""
+    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    server.daemon_threads = True
+    server.session = Session(video, config or load_config())  # type: ignore[attr-defined]
+    return server
+
+
+def serve(video: Path, port: int, open_browser: bool, reporter: Reporter) -> None:
+    """Run the editor until Ctrl+C."""
+    server = make_server(video, port)
+    url = f"http://127.0.0.1:{server.server_address[1]}/"
+    reporter.emit("serving", url=url, video=str(video))
+    reporter.log(f"Editor running at {url} (Ctrl+C to stop)")
+    if open_browser:
+        webbrowser.open(url)
+    try:
+        server.serve_forever()
+    finally:
+        server.server_close()

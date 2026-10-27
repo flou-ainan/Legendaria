@@ -1,0 +1,11 @@
+{
+  "_comment": "Keyboard shortcuts of the editor. Keys are KeyboardEvent.key values; prefix with 'ctrl+' or 'shift+'.",
+  "play": " ",
+  "mark_in": "i",
+  "mark_out": "o",
+  "cut": "x",
+  "back": "ArrowLeft",
+  "forward": "ArrowRight",
+  "undo": "ctrl+z",
+  "redo": "ctrl+shift+z"
+}
