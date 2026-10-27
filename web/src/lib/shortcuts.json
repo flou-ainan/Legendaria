@@ -10,5 +10,6 @@
   "forward": "ArrowRight",
   "undo": "ctrl+z",
   "redo": "ctrl+shift+z",
-  "deselect": "Escape"
+  "deselect": "Escape",
+  "fullscreen": "f"
 }

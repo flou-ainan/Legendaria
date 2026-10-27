@@ -1,6 +1,8 @@
 <script lang="ts">
-  // Quick menu for the subtitle look as a whole: height and size sliders, Top / Bottom presets, font.
+  // Quick menu for the look of a subtitle track as a whole (today there is one track): position, size, font,
+  // colours, outline, the rounded rectangle and caps. Every value is a project `look` override (ADR-019).
   import { editor } from '../lib/editor.svelte'
+  import type { BaseLook } from '../lib/api'
   import { t } from '../lib/i18n'
 
   const TOP = 0.88
@@ -10,10 +12,13 @@
   const y = $derived(look.y ?? editor.base.y)
   const size = $derived(look.size ?? 1)
   const font = $derived(look.font ?? '')
-  const color = $derived(look.color ?? editor.base.color)
-  const outline = $derived(look.outline_color ?? editor.base.outline_color)
-  const box = $derived(look.box ?? editor.base.box)
-  const upper = $derived(look.uppercase ?? editor.base.uppercase)
+  // the project's override, else what the style sets
+  const value = <K extends keyof BaseLook>(key: K): BaseLook[K] => (look[key] ?? editor.base[key]) as BaseLook[K]
+  const color = $derived(value('color'))
+  const outline = $derived(value('outline_color'))
+  const box = $derived(value('box'))
+  const upper = $derived(value('uppercase'))
+  const percent = (key: keyof BaseLook) => Math.round(Number(value(key)) * 100)
 </script>
 
 <div class="look" role="group" aria-label={t('look.title')}>
@@ -21,7 +26,7 @@
   <div class="row presets">
     <button onclick={() => editor.setLook({ y: TOP })} class:on={Math.abs(y - TOP) < 0.005}>⤒ {t('look.top')}</button>
     <button onclick={() => editor.setLook({ y: BOTTOM })} class:on={Math.abs(y - BOTTOM) < 0.005}>⤓ {t('look.bottom')}</button>
-    <button onclick={() => editor.setLook({ y: null, size: null, font: null, color: null, outline_color: null, box: null, uppercase: null })} disabled={!Object.keys(look).length}>{t('look.reset')}</button>
+    <button onclick={() => editor.setLook(Object.fromEntries(Object.keys(look).map((k) => [k, null])))} disabled={!Object.keys(look).length}>{t('look.reset')}</button>
   </div>
   <label>{t('look.height')} <output>{Math.round(y * 100)}%</output>
     <input type="range" min="0" max="100" value={Math.round(y * 100)} oninput={(e) => editor.setLook({ y: Number(e.currentTarget.value) / 100 })} />
@@ -43,12 +48,35 @@
       <input type="color" value={outline} oninput={(e) => editor.setLook({ outline_color: e.currentTarget.value })} />
     </label>
   </div>
-  <label class="check"><input type="checkbox" checked={box} onchange={(e) => editor.setLook({ box: e.currentTarget.checked })} /> {t('look.box')}</label>
+  <label>{t('look.outline_width')} <output>{Math.round(Number(value('outline')))} px</output>
+    <input type="range" min="0" max="20" step="0.5" value={value('outline')} oninput={(e) => editor.setLook({ outline: Number(e.currentTarget.value) })} />
+  </label>
   <label class="check"><input type="checkbox" checked={upper} onchange={(e) => editor.setLook({ uppercase: e.currentTarget.checked })} /> {t('look.uppercase')}</label>
+  <label class="check"><input type="checkbox" checked={box} onchange={(e) => editor.setLook({ box: e.currentTarget.checked })} /> {t('look.box')}</label>
+  {#if box}
+    <div class="boxed">
+      <label>{t('look.box_color')}
+        <input type="color" value={value('box_color')} oninput={(e) => editor.setLook({ box_color: e.currentTarget.value })} />
+      </label>
+      <label>{t('look.box_transparency')} <output>{100 - percent('box_opacity')}%</output>
+        <input type="range" min="0" max="100" value={100 - percent('box_opacity')} oninput={(e) => editor.setLook({ box_opacity: 1 - Number(e.currentTarget.value) / 100 })} />
+      </label>
+      <label>{t('look.box_width')} <output>{percent('box_padding_x')}%</output>
+        <input type="range" min="0" max="200" value={percent('box_padding_x')} oninput={(e) => editor.setLook({ box_padding_x: Number(e.currentTarget.value) / 100 })} />
+      </label>
+      <label>{t('look.box_height')} <output>{percent('box_padding_y')}%</output>
+        <input type="range" min="0" max="100" value={percent('box_padding_y')} oninput={(e) => editor.setLook({ box_padding_y: Number(e.currentTarget.value) / 100 })} />
+      </label>
+      <label>{t('look.box_radius')} <output>{percent('box_radius')}%</output>
+        <input type="range" min="0" max="100" value={percent('box_radius')} oninput={(e) => editor.setLook({ box_radius: Number(e.currentTarget.value) / 100 })} />
+      </label>
+    </div>
+  {/if}
 </div>
 
 <style>
-  .look { display: grid; gap: 0.7rem; min-width: min(18rem, 80vw); }
+  .look { display: grid; gap: 0.7rem; min-width: min(18rem, 80vw); max-height: 70vh; overflow-y: auto; }
+  .boxed { display: grid; gap: 0.7rem; padding-left: 0.8rem; border-left: 2px solid var(--line); }
   .heading { margin: 0; font-size: 0.85rem; color: var(--text); }
   .row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
   .row button { flex: 1; }

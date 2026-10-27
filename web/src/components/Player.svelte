@@ -8,11 +8,14 @@
   import { t } from '../lib/i18n'
   import { player } from '../lib/player'
   import { ui } from '../lib/ui.svelte'
+  import Icon from './Icon.svelte'
   import Toolbar from './Toolbar.svelte'
   import shortcuts from '../lib/shortcuts.json'
   import { clock, skipTarget } from '../lib/timeline'
 
   let video: HTMLVideoElement
+  let screen: HTMLDivElement
+  let full = $state(false)
   let clockEl = $state<HTMLSpanElement>()
   let subs: JASSUB | undefined
   let frame = 0
@@ -81,6 +84,14 @@
     )
   }
 
+  // Full screen shows the box that holds the video AND the subtitle canvas; the <video>'s own full screen
+  // would leave JASSUB's canvas behind (the subtitles disappeared). iPhones only allow the video itself.
+  function toggleFullscreen() {
+    if (document.fullscreenElement) void document.exitFullscreen()
+    else if (screen.requestFullscreen) void screen.requestFullscreen()
+    else (video as HTMLVideoElement & { webkitEnterFullscreen?: () => void }).webkitEnterFullscreen?.()
+  }
+
   function onKey(event: KeyboardEvent) {
     const target = event.target as HTMLElement
     if (target.closest('input, textarea, select')) return
@@ -96,6 +107,7 @@
       forward: () => player.seek(video.currentTime + 1),
       undo: () => editor.undo(),
       redo: () => editor.redo(),
+      fullscreen: toggleFullscreen,
     }
     for (const [name, run] of Object.entries(actions)) {
       if (matches(event, (shortcuts as Record<string, string>)[name])) {
@@ -108,17 +120,25 @@
 </script>
 
 <svelte:window onkeydown={onKey} />
+<svelte:document onfullscreenchange={() => (full = document.fullscreenElement === screen)} />
 
 <section class="player">
-  <div class="screen">
+  <div class="screen" class:full bind:this={screen}>
     <!-- svelte-ignore a11y_media_has_caption: the captions are drawn by JASSUB -->
-    <video bind:this={video} src="/api/media" controls preload="auto"></video>
+    <video bind:this={video} src="/api/media" controls controlslist="nofullscreen" preload="auto" ondblclick={toggleFullscreen}></video>
+    <button class="fs" onclick={toggleFullscreen} title={t('tool.fullscreen')} aria-label={t('tool.fullscreen')}>
+      <Icon name={full ? 'exitFullscreen' : 'fullscreen'} />
+    </button>
   </div>
 
   <Toolbar bind:clockEl />
 </section>
 
 <style>
-  .screen { background: #000; border-radius: 8px; overflow: hidden; }
+  .screen { position: relative; background: #000; border-radius: 8px; overflow: hidden; }
   video { display: block; width: 100%; max-height: 44vh; }
+  .screen.full { border-radius: 0; display: grid; place-items: center; }
+  .screen.full video { width: 100vw; height: 100vh; max-height: none; object-fit: contain; }
+  .fs { position: absolute; top: 0.5rem; right: 0.5rem; z-index: 5; display: grid; place-items: center; width: 2.2rem; height: 2.2rem; padding: 0; background: #000a; color: #fff; opacity: 0.7; }
+  .fs:hover { opacity: 1; }
 </style>

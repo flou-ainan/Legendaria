@@ -18,7 +18,12 @@ export type Project = {
 }
 
 /** `size` multiplies the style's font size; `y` is the text centre's height above the bottom (0 to 1). */
-export type Look = { font?: string; size?: number; y?: number; color?: string; outline_color?: string; box?: boolean; uppercase?: boolean }
+export type Look = {
+  font?: string; size?: number; y?: number; color?: string; outline_color?: string; outline?: number; uppercase?: boolean
+  box?: boolean; box_color?: string; box_opacity?: number; box_padding_x?: number; box_padding_y?: number; box_radius?: number
+}
+/** What the style itself sets, for the Look menu (every override has a value here). */
+export type BaseLook = Required<Omit<Look, 'size'>>
 
 export type FontEntry = { family: string; file: string; bold: boolean; category: string }
 
@@ -39,7 +44,7 @@ export type State = Options & {
   path?: string // full path of the open video (to reopen it after a restart)
   font: string // family name of the font in use, served by /api/font
   fonts: FontEntry[] // the bundled families, served by /api/fonts/<file>
-  base: { font: string; y: number; color: string; outline_color: string; box: boolean; uppercase: boolean } // what the style itself sets, for the Look menu
+  base: BaseLook // what the style itself sets, for the Look menu
   media: { width: number | null; height: number | null; fps: number | null; duration: number; has_audio: boolean }
   project: Project | null
 }
@@ -67,7 +72,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
 }
 
 /** The server API this page was built for (server.py API_VERSION); a different one means `flosub serve` is older. */
-export const API_VERSION = 2
+export const API_VERSION = 3
 
 export const loadState = () => request<State>('GET', '/api/state')
 

@@ -249,3 +249,19 @@ def test_uppercase_override_can_turn_the_pop_caps_off():
     on = to_ass(cues((0, 1)), with_look(pop, None))
     off = to_ass(cues((0, 1)), with_look(pop, {"uppercase": False}))
     assert "C0" in on and "c0" in off
+
+
+def test_box_and_outline_numbers_are_clamped():
+    look = Project.from_dict(
+        project().to_dict()
+        | {
+            "look": {
+                "outline": 99,
+                "box_opacity": 2,
+                "box_radius": -1,
+                "box_color": "#00FF00",
+                "box_padding_x": True,
+            }
+        }
+    ).look
+    assert look == {"outline": 20.0, "box_opacity": 1.0, "box_radius": 0.0, "box_color": "#00ff00"}

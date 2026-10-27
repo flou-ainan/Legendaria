@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from legendaria_engine import fonts
 from legendaria_engine.cues import CueList, wrap_lines
 
 DEFAULT_SIZE = (1920, 1080)
@@ -25,6 +26,11 @@ DEFAULT_LOOK: dict[str, Any] = {
     "shadow_color": [0.0, 0.0, 0.0, 0.6],
     "box": False,
     "box_color": [0.0, 0.0, 0.0, 0.55],
+    "box_padding": [
+        0.35,
+        0.06,
+    ],  # extra width and height on each side, as a fraction of the font size
+    "box_radius": 0.25,  # corner roundness, as a fraction of the font size
     "position": [0.5, 0.15],
     "width": 0.9,
     "uppercase": False,
@@ -33,19 +39,32 @@ DEFAULT_LOOK: dict[str, Any] = {
 
 
 def with_look(base: dict[str, Any] | None, override: dict[str, Any] | None) -> dict[str, Any]:
-    """The style's look with the project's overrides: `font`, `size` (multiplies font, outline and shadow), `y`, `color`, `outline_color`, `box` and `uppercase`."""
+    """The style's look with the project's overrides: `font`, `size` (multiplies font, outline and shadow), `y`, colours, `outline`, `box` (+ colour, opacity, padding, radius) and `uppercase`."""
     look = {**DEFAULT_LOOK, **(base or {})}
     override = override or {}
     if "font" in override:
         look["font"] = override["font"]
+    if "outline" in override:
+        look["outline"] = override["outline"]
     if "size" in override:
         for key in ("font_size", "outline", "shadow"):
             look[key] = look[key] * override["size"]
     if "y" in override:
         look["position"] = [look["position"][0], override["y"]]
-    for key in ("color", "outline_color"):  # `#rrggbb` in the project; the style's alpha stays
+    for key in (
+        "color",
+        "outline_color",
+        "box_color",
+    ):  # `#rrggbb` in the project; the style's alpha stays
         if key in override:
             look[key] = [*hex_rgb(override[key]), look[key][3] if len(look[key]) > 3 else 1.0]
+    if "box_opacity" in override:
+        look["box_color"] = [*look["box_color"][:3], override["box_opacity"]]
+    if "box_padding_x" in override or "box_padding_y" in override:
+        x, y = look["box_padding"]
+        look["box_padding"] = [override.get("box_padding_x", x), override.get("box_padding_y", y)]
+    if "box_radius" in override:
+        look["box_radius"] = override["box_radius"]
     for key in ("box", "uppercase"):
         if key in override:
             look[key] = bool(override[key])
@@ -98,6 +117,20 @@ def animation_tags(animation: dict[str, Any]) -> str:
     )
 
 
+def box_shape(text: str, style: dict[str, Any], font_size: int) -> str:
+    """An ASS drawing of the rounded rectangle behind `text` (one or more lines) at `font_size`."""
+    lines = [line.strip() for line in text.splitlines()] or [""]
+    widest = max(fonts.text_width(line, style["font"], style["bold"], font_size) for line in lines)
+    pad_x, pad_y = (p * font_size for p in style["box_padding"])
+    w = round(widest + 2 * pad_x)
+    h = round(len(lines) * font_size + 2 * pad_y)
+    r = round(min(style["box_radius"] * font_size, w / 2, h / 2))
+    return (
+        f"m {r} 0 l {w - r} 0 b {w} 0 {w} 0 {w} {r} l {w} {h - r} b {w} {h} {w} {h} {w - r} {h} "
+        f"l {r} {h} b 0 {h} 0 {h} 0 {h - r} l 0 {r} b 0 0 0 0 {r} 0"
+    )
+
+
 def to_ass(
     cues: CueList,
     look: dict[str, Any] | None = None,
@@ -112,13 +145,14 @@ def to_ass(
     y = round((1 - style["position"][1]) * height)
     margin = round(width * (1 - style["width"]) / 2)
     box = bool(style["box"])
+    font_size = round(style["font_size"] * scale)
     fields = [
         "Default",
         style["font"],
-        round(style["font_size"] * scale),
+        font_size,
         ass_color(style["color"]),
         ass_color(style["color"]),
-        ass_color(style["box_color"] if box else style["outline_color"]),
+        ass_color(style["outline_color"]),
         ass_color(style["shadow_color"]),
         -1 if style["bold"] else 0,
         0,
@@ -128,7 +162,7 @@ def to_ass(
         100,
         0,
         0,
-        3 if box else 1,
+        1,  # the rectangle is drawn as its own shape (rounded, padded), not ASS's BorderStyle 3
         round(style["outline"] * scale, 1),
         round(style["shadow"] * scale, 1),
         5,
@@ -155,13 +189,19 @@ def to_ass(
         "[Events]",
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
     ]
-    tags = f"{{\\an5\\pos({x},{y}){animation_tags(style['animation'])}}}"
+    animation = animation_tags(style["animation"])
+    tags = f"{{\\an5\\pos({x},{y}){animation}}}"
     for cue in cues.cues:
         text = wrap_lines(cue.text, line_length)
         if style["uppercase"]:
             text = text.upper()
-        lines.append(
-            f"Dialogue: 0,{ass_time(cue.start)},{ass_time(cue.end)},Default,,0,0,0,,"
-            f"{tags}{escape(text)}"
-        )
+        times = f"{ass_time(cue.start)},{ass_time(cue.end)},Default,,0,0,0,,"
+        if box:  # layer 0: the rectangle, with the same position and animation as the text above it
+            shape = box_shape(text, style, font_size)
+            fill = ass_color(style["box_color"])
+            lines.append(
+                f"Dialogue: 0,{times}{{\\an5\\pos({x},{y}){animation}\\bord0\\shad0"
+                f"\\1c&H{fill[4:]}&\\1a&H{fill[2:4]}&\\p1}}{shape}{{\\p0}}"
+            )
+        lines.append(f"Dialogue: {int(box)},{times}{tags}{escape(text)}")  # above the box
     return "\n".join(lines) + "\n"

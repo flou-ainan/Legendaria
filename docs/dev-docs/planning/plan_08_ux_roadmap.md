@@ -46,6 +46,10 @@
 5. **Breakpoint at 1024 px** and a real mobile layout (bottom toolbar, bottom sheets with a slide transition, touch dragging and pinch zoom on the timeline).
 6. **Desktop extras:** caption list always visible with search and replace, right-click menu, Ctrl+B split.
 
+## Later: subtitle tracks
+
+The project has one subtitle track today, and the Look menu edits it ("Edit this track's subtitles"). The plan is several subtitle tracks (for example a speaker or a second language each), each with its own global look, then per-cue overrides inside a track. The project file will need a list of tracks, each with its `look` and cues (a version bump, ADR then).
+
 ## Not now
 
 Stickers, effects, multiple video tracks and animations from the study stay out until the subtitle flow is complete.

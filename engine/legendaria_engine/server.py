@@ -13,7 +13,6 @@ from __future__ import annotations
 import json
 import mimetypes
 import re
-import shutil
 import subprocess
 import sys
 import threading
@@ -48,7 +47,7 @@ ISOLATION = {
 }
 CHUNK = 1 << 20
 # Bumped when the editor needs something new from the server; the page compares it to warn about an old server.
-API_VERSION = 2
+API_VERSION = 3
 mimetypes.add_type("application/wasm", ".wasm")
 mimetypes.add_type("font/woff2", ".woff2")
 mimetypes.add_type("text/javascript", ".js")
@@ -111,7 +110,13 @@ class Session:
                 "y": base["position"][1],
                 "color": rgb_hex(base["color"]),
                 "outline_color": rgb_hex(base["outline_color"]),
+                "outline": base["outline"],
                 "box": bool(base["box"]),
+                "box_color": rgb_hex(base["box_color"]),
+                "box_opacity": base["box_color"][3] if len(base["box_color"]) > 3 else 1.0,
+                "box_padding_x": base["box_padding"][0],
+                "box_padding_y": base["box_padding"][1],
+                "box_radius": base["box_radius"],
                 "uppercase": bool(base["uppercase"]),
             },
             "media": self.info,
@@ -275,19 +280,6 @@ class Session:
         else:
             raise ValueError(f"Unknown export format: {fmt}")
         job.emit("done", outputs=[str(target)])
-
-
-def find_font(name: str, bold: bool) -> Path | None:
-    """The font file the system uses for `name` (fontconfig), so the preview matches FFmpeg."""
-    tool = shutil.which("fc-match")
-    if not tool:
-        return None
-    pattern = f"{name}:bold" if bold else name
-    result = subprocess.run(
-        [tool, "-f", "%{file}", pattern], capture_output=True, text=True, check=False
-    )
-    path = Path(result.stdout.strip()) if result.returncode == 0 else None
-    return path if path and path.is_file() else None
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -513,7 +505,7 @@ class Handler(BaseHTTPRequestHandler):
         project = self.session.project()
         look = self.session.look(project.style if project else self.session.config["style"])
         family = (project.look.get("font") if project else None) or look.get("font", "Arial")
-        font = fonts.file_for(family) or find_font(family, look.get("bold", True))
+        font = fonts.file_for(family) or fonts.find_font(family, look.get("bold", True))
         if font is None:
             return self._error(
                 HTTPStatus.NOT_FOUND, "Font not found (the preview uses a fallback)."

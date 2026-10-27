@@ -161,7 +161,14 @@ try {
   const preview = await page.evaluate(() => fetch('/api/preview.ass').then((r) => r.text()))
   const style = preview.split('\n').find((l) => l.startsWith('Style:'))
   assert.match(style, /,&H000000FF,&H000000FF,/, `text colour in the style: ${style}`)
-  assert.match(style, /,3,[\d.]+,[\d.]+,5,/, 'BorderStyle 3 draws the rectangle')
+  assert.match(style, /,&H000000FF,&H000000FF,&H0000FF00,/, `outline colour in the style: ${style}`)
+  assert.match(preview, /\\p1}m \d+ 0 l .* b /, 'the rectangle is a rounded shape under the text')
+  await page.getByLabel('Rectangle colour').fill('#0000ff')
+  await page.locator('label', { hasText: 'Roundness' }).locator('input').fill('0')
+  await page.waitForTimeout(1000)
+  const square = await page.evaluate(() => fetch('/api/preview.ass').then((r) => r.text()))
+  assert.match(square, /\\1c&HFF0000&/, 'rectangle colour')
+  assert.match(square, /\\p1}m 0 0 /, 'roundness 0 gives square corners')
   assert.match(preview, /}palavra0/, 'caps off keeps the text as typed')
   await page.getByRole('button', { name: /Subtitle look/ }).click()
 
@@ -238,6 +245,18 @@ try {
   g = await geometry()
   assert.ok(g.time > 0.2, `dragging the timeline seeks (${g.time})`)
   await touch.close()
+
+  // full screen keeps the subtitles: the box with the video and JASSUB's canvas goes full screen, not the <video>
+  await page.getByRole('button', { name: /Full screen/ }).click()
+  await page.waitForTimeout(800)
+  const fs = await page.evaluate(() => ({
+    el: document.fullscreenElement?.className ?? '',
+    canvas: document.fullscreenElement?.querySelector('canvas')?.getBoundingClientRect().width ?? 0,
+  }))
+  assert.match(fs.el, /screen/, 'the player box is the full-screen element')
+  assert.ok(fs.canvas > 1000, `the subtitle canvas fills the screen (${fs.canvas})`)
+  await page.evaluate(() => document.exitFullscreen())
+  await page.waitForTimeout(300)
 
   // export SRT
   await page.getByRole('button', { name: 'Export' }).first().click()

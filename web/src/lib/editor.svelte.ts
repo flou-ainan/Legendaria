@@ -2,7 +2,7 @@
 // `$state` makes a value reactive: components that read it update when it changes
 // (https://svelte.dev/docs/svelte/$state). The video's current time is NOT kept here
 // (ADR-015 player rule); only the index of the cue under the playhead is.
-import { previewAss, saveProject, type Cue, type FontEntry, type Look, type Project, type Suggestion } from './api'
+import { previewAss, saveProject, type BaseLook, type Cue, type FontEntry, type Look, type Project, type Suggestion } from './api'
 import { remember, type VideoInfo } from './recovery'
 import { settings } from './settings'
 import { removeRange, restoreRange, type Range } from './timeline'
@@ -14,7 +14,10 @@ const HISTORY = settings.undoSteps
 class Editor {
   project = $state<Project | null>(null)
   fonts = $state<FontEntry[]>([]) // bundled families for the Look menu
-  base = $state({ font: '', y: 0.2, color: '#ffffff', outline_color: '#000000', box: false, uppercase: false }) // what the style itself sets
+  base = $state<BaseLook>({
+    font: '', y: 0.2, color: '#ffffff', outline_color: '#000000', outline: 4, uppercase: false,
+    box: false, box_color: '#000000', box_opacity: 0.55, box_padding_x: 0.35, box_padding_y: 0.06, box_radius: 0.25,
+  }) // what the style itself sets
   video: VideoInfo | null = null // which video the project belongs to, for the local recovery copy
   current = $state(-1) // cue under the playhead
   selected = $state(-1) // cue picked on the timeline (shown in the inspector)

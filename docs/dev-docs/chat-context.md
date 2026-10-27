@@ -1,6 +1,6 @@
 # Chat context (hand-off)
 
-**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 43.
+**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 44.
 **Policy:** `AGENTS.md` and `docs/dev-docs/README.md` ("chat-context.md"). This is a snapshot that gets replaced, never appended. It is public: no secrets and no private data.
 
 ## Summary of the conversation so far
@@ -77,6 +77,8 @@
 20. **Step 42:** Look menu: text and outline colour, rectangle, ALL CAPS checkbox (pop stays caps by default); square toolbar buttons.
 
 21. **Step 43:** colours seemed broken because the owner's server predated step 42; added an API version check with a restart banner, a heading in the Look menu, e2e coverage. Owner switched to Opus.
+
+22. **Step 44:** rounded, padded rectangle drawn as its own shape (colour, transparency, width, height, roundness), outline colour and thickness, full screen keeps subtitles, "Edit this track's subtitles" (multiple tracks noted in plan 08).
 
 **Open and next**
 - **Next:** plan 08 step 2 (orange subtitle track), then the generate-captions sheet and per-cue style; the owner keeps testing (`cd engine && uv run flosub serve`) and sends more corrections; mobile polish comes later.

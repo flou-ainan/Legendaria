@@ -26,3 +26,9 @@ The owner wants a quick menu to move and scale all the subtitles (sliders, plus 
 - The wheel grows by about 1.5 MB.
 - A `look.font` that is not in the catalogue still works on the machine that has it, but the preview falls back to JASSUB's font.
 - Where a family has only a regular cut (Anton, Bebas Neue), a style with `bold: true` gets libass's synthetic bold, in the preview and in the export alike.
+
+## Update (step 44)
+
+- More `look` keys: `outline` (px at 1080, 0–20), `box_color` (`#rrggbb`), `box_opacity` (0–1), `box_padding_x` / `box_padding_y` and `box_radius` (fractions of the font size).
+- **The rectangle is no longer ASS `BorderStyle 3`.** That box reuses the outline colour and width (so the outline lost its colour, and the padding was tied to the outline) and cannot be rounded. Now each cue gets a layer-0 drawing (`\p1`) of a rounded rectangle with the same `\pos` and pop animation as the text on layer 1; the text keeps a normal outline. Its width comes from measuring the text with the font file (`fonts.text_width`, a small TrueType reader: cmap + hmtx, scaled like libass by winAscent + winDescent; no kerning). Without a font file the width is a guess (0.55 em per character). Checked by rendering with FFmpeg: the box fits Arial, Anton and Montserrat, on one and two lines.
+- Defaults: padding 0.35 em × 0.06 em, roundness 0.25 em, black at 55 %.
