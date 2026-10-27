@@ -7,11 +7,13 @@
   import { editor } from '../lib/editor.svelte'
   import { t } from '../lib/i18n'
   import { player } from '../lib/player'
+  import { ui } from '../lib/ui.svelte'
+  import Toolbar from './Toolbar.svelte'
   import shortcuts from '../lib/shortcuts.json'
-  import { clock, outputDuration, skipTarget } from '../lib/timeline'
+  import { clock, skipTarget } from '../lib/timeline'
 
   let video: HTMLVideoElement
-  let clockEl: HTMLSpanElement
+  let clockEl = $state<HTMLSpanElement>()
   let subs: JASSUB | undefined
   let frame = 0
 
@@ -61,24 +63,10 @@
     const jump = video.paused ? null : skipTarget(project.keep, time)
     if (jump === Infinity) video.pause()
     else if (jump !== null) video.currentTime = jump
-    clockEl.textContent = clock(time)
+    if (clockEl) clockEl.textContent = clock(time)
     const index = project.cues.findIndex((c) => c.start <= time && time < c.end)
     if (index !== editor.current) editor.current = index
     frame = video.requestVideoFrameCallback(tick)
-  }
-
-  function togglePlay() {
-    if (video.paused) {
-      const jump = skipTarget(project.keep, video.currentTime)
-      if (jump === Infinity) video.currentTime = project.keep[0]?.[0] ?? 0
-      video.play()
-    } else video.pause()
-  }
-
-  function cut() {
-    if (editor.markIn === null || editor.markOut === null) return
-    editor.cut(editor.markIn, editor.markOut)
-    editor.markIn = editor.markOut = null
   }
 
   function matches(event: KeyboardEvent, combo: string) {
@@ -95,10 +83,12 @@
     const target = event.target as HTMLElement
     if (target.closest('input, textarea, select')) return
     const actions: Record<string, () => void> = {
-      play: togglePlay,
+      play: () => player.togglePlay(),
       mark_in: () => (editor.markIn = video.currentTime),
       mark_out: () => (editor.markOut = video.currentTime),
-      cut,
+      cut: () => player.cut(),
+      split: () => player.splitAtPlayhead(),
+      snap: () => (ui.snap = !ui.snap),
       back: () => player.seek(video.currentTime - 1),
       forward: () => player.seek(video.currentTime + 1),
       undo: () => editor.undo(),
@@ -122,23 +112,10 @@
     <video bind:this={video} src="/api/media" controls preload="auto"></video>
   </div>
 
-  <div class="controls">
-    <span class="time" bind:this={clockEl}>0:00.00</span>
-    <button onclick={togglePlay}>⏯</button>
-    <button onclick={() => (editor.markIn = video.currentTime)}>{t('player.mark_in')} (I)</button>
-    <button onclick={() => (editor.markOut = video.currentTime)}>{t('player.mark_out')} (O)</button>
-    <button class="danger" disabled={editor.markIn === null || editor.markOut === null} onclick={cut}>
-      {t('player.cut', { start: clock(Math.min(editor.markIn ?? 0, editor.markOut ?? 0)), end: clock(Math.max(editor.markIn ?? 0, editor.markOut ?? 0)) })} (X)
-    </button>
-    <span class="muted">{t('player.output', { time: clock(outputDuration(project.keep)) })}</span>
-  </div>
-  <p class="muted">{t('player.hint')}</p>
+  <Toolbar bind:clockEl />
 </section>
 
 <style>
   .screen { background: #000; border-radius: 8px; overflow: hidden; }
-  video { display: block; width: 100%; max-height: 58vh; }
-  .controls { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.6rem; }
-  .time { font-variant-numeric: tabular-nums; min-width: 5.5em; }
-  .danger:not(:disabled) { background: var(--cut); }
+  video { display: block; width: 100%; max-height: 44vh; }
 </style>

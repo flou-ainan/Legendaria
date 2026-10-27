@@ -1,6 +1,6 @@
 # Chat context (hand-off)
 
-**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 32.
+**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 33.
 **Policy:** `AGENTS.md` and `docs/dev-docs/README.md` ("chat-context.md"). This is a snapshot that gets replaced, never appended. It is public: no secrets and no private data.
 
 ## Summary of the conversation so far
@@ -56,56 +56,18 @@
 
 10. **Step 32 (2026-10-27), same PR #29:** timeline with waveform from server peaks, draggable cue blocks, snapping, zoom; glossary review panel; Playwright smoke test in CI; fixed the ruff errors that made `checks` fail on step 31. The owner switched to Sonnet for this step and asked for the command to open their real video; they have notes and will start requesting edits once the MVP is finished.
 
+11. **Step 33 (2026-10-27), same PR #29:** the owner's first 8 corrections: `flosub serve` with no path (file browser + drop, ADR-017), drop-down lists, glossary tools, live snapping with a magnet button, double-click edits, optional side drawer, a Kdenlive/CapCut-style layout. The owner wants the desktop to look like Kdenlive, with CapCut/InShot-style strong editing elements so mobile can follow later.
+
 **Open and next**
-- **Next:** the owner's manual test of the MVP (`cd engine && uv run flosub serve <video>`), then their list of changes.
-- **Known gaps:** "add term to glossary" in the editor, `.ass`/`.srt` import, fonts on Windows/macOS, an LLM pass in the review panel.
+- **Next:** the owner keeps testing (`cd engine && uv run flosub serve`) and sends more corrections; mobile polish comes later.
+- **Known gaps:** touch dragging on the timeline, `.ass`/`.srt` import, fonts on Windows/macOS, an LLM pass in the review panel, cleaning old uploads, drive list on Windows.
 - **Pending owner decisions:** import `.ass`/`.srt` + `flosub align --srt` (plan 04 §11.3, item 4).
 - **Not published:** engine 0.1.0.dev4 is not on PyPI; the tag needs the owner's approval.
 - **Open PRs:** #28 (docs for steps 28–30), #29 (steps 31–32, stacked on #28).
 
 ## Last two complete replies (verbatim)
 
-### Reply 1 (2026-10-27): web editor first slice
-
-> Feito. O editor já funciona de ponta a ponta: abrir → transcrever → editar → cortar → exportar.
->
-> **Como testar**
-> ```bash
-> cd engine
-> uv run flosub serve /caminho/do/video.mp4
-> ```
-> O navegador abre sozinho. O app já está compilado na sua máquina; se aparecer "The editor is not built", rode `cd web && npm ci && npm run build`.
->
-> **ADR-016, o arquivo de projeto:** `video.mp4.legendaria.json`, ao lado do vídeo. É um JSON nosso, com versão e validação. Guarda os trechos mantidos (os cortes), as legendas no tempo do vídeo original e o estilo. `.ass`, SRT e VTT viram exportações. Isso fecha a sua pergunta antiga sobre `.ass` ou `.ass` estendido: outros editores, como o Aegisub, apagam seções desconhecidas ao salvar, e perderíamos os cortes e os tempos das palavras.
->
-> **O que o editor faz**
-> - Tela de transcrição: modelo, idioma, estilo e progresso.
-> - Prévia exata ao vivo com o JASSUB: cada edição aparece no vídeo em menos de 1 s, com o mesmo libass da exportação.
-> - Cortes: **I** marca o início, **O** marca o fim, **X** corta. A reprodução pula os trechos cortados. Na lista de cortes, "Restaurar" traz o trecho e as legendas de volta.
-> - Lista de legendas: texto, tempos, dividir no cursor, juntar, apagar, adicionar.
-> - Desfazer e refazer (Ctrl+Z / Ctrl+Shift+Z) e salvamento automático.
-> - Exporta MP4 com a legenda gravada, SRT, VTT ou ASS, como `video.edited.*` ao lado do original.
-> - Português e inglês. Os atalhos ficam num JSON editável.
->
-> **Testes**
-> - 120 testes do motor, incluindo um corte + gravação real com FFmpeg e as rotas do servidor.
-> - 5 testes do app, um deles com 200 cortes aleatórios.
-> - Um teste no navegador (Playwright): cortar, editar, desfazer, tocar pulando o corte, exportar. Também transcrevi o seu clipe de 20 s pelo servidor: 41 blocos.
->
-> Três problemas apareceram e já foram corrigidos:
-> - um corte menor que 10 ms deixava um buraco invisível;
-> - a fonte não carregava no primeiro quadro;
-> - com o vídeo pausado, a legenda não era redesenhada depois de um salto.
->
-> **Ainda não tem:** forma de onda, arrastar blocos na timeline, encaixe (snap), zoom e as sugestões do glossário no editor. Essa é a próxima etapa. Por enquanto, a fonte da prévia só é encontrada automaticamente no Linux; nos outros sistemas o JASSUB usa uma fonte própria.
->
-> **Recomendação de modelo:** a regra está no `AGENTS.md`, de forma neutra: nível **standard** (Sonnet e equivalentes) ou **top** (Opus e equivalentes), e esforço **low / medium / high**. Assim qualquer agente traduz para o próprio modelo. A recomendação também fica anotada no plano, para não se perder entre sessões.
->
-> Tudo está no **PR #29** (https://github.com/flou-ainan/Legendaria/pull/29), que vem em cima do #28.
->
-> **Next task:** o seu teste manual com `flosub serve`; depois, a timeline com forma de onda, arrastar e encaixe — tier: **standard** (Sonnet), effort: **medium** — o caminho já está definido pelos spikes e pelo plano 07.
-
-### Reply 2 (2026-10-27): timeline, review, browser test
+### Reply 1 (2026-10-27): timeline, review, browser test
 
 > O MVP está completo: a lista do plano 07 inteira está feita. Falta o seu teste manual.
 >
@@ -123,3 +85,20 @@
 > **Para testar:** `cd engine && uv run flosub serve "<caminho do vídeo>"`. Quando tiver a sua lista, mande que eu aplico.
 >
 > **Next task:** as mudanças da sua lista — tier: **standard** (Sonnet), effort: **low** a **medium**. Se alguma pedir uma decisão de formato ou arquitetura, aviso e subo para **top**.
+
+### Reply 2 (2026-10-27): the owner's first corrections
+
+> As 8 correções estão feitas. Para abrir: `cd engine && uv run flosub serve`, sem caminho.
+>
+> 1. **Sem caminho:** o editor abre numa tela inicial que pede o vídeo.
+> 2. **Abrir ou arrastar:** "Escolher um arquivo…" abre um navegador de pastas dentro da página, com campo de caminho editável, e o vídeo abre onde está. Se você arrastar um vídeo para a página, ele é copiado para a pasta de dados da Legendária. O navegador não informa de onde o arquivo veio, e o servidor precisa do caminho real. Registrei isso na ADR-017.
+> 3. **Listas suspensas:** modelo (com tamanho e se já está baixado), idioma e estilo.
+> 4. **Glossário:** aba com glossário ativo, novo, adicionar palavra ou `errado -> certo`, importar um `.txt` e exportar. A revisão fica na mesma aba.
+> 5. **Encaixe ao vivo:** o bloco gruda durante o arrasto, com uma linha-guia branca no alvo. Há um botão de ímã na barra de ferramentas abaixo do vídeo (atalho M).
+> 6. **Layout:** vídeo em cima, barra de ferramentas com botões grandes, editor do bloco selecionado e timeline embaixo. Em tela estreita o painel lateral vira uma gaveta por baixo. Arrastar com o dedo na timeline não foi testado.
+> 7. **Duplo clique edita:** seleciona o bloco e põe o cursor no texto (Esc sai da caixa). Dividir ficou na barra de ferramentas, no editor do bloco e na tecla S.
+> 8. **Painel opcional:** a lista de legendas virou aba de uma gaveta (Legendas, Glossário, Cortes, Exportar), fechada por padrão.
+>
+> **Testes:** 127 do motor, 6 do app, o teste de navegador atualizado e o pre-commit passaram. Conferi capturas em tela larga e estreita.
+>
+> **Next task:** a próxima rodada de correções — tier: **standard** (Sonnet), effort: **low** a **medium**.

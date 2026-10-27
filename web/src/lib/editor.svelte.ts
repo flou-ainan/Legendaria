@@ -12,6 +12,8 @@ const HISTORY = 200
 class Editor {
   project = $state<Project | null>(null)
   current = $state(-1) // cue under the playhead
+  selected = $state(-1) // cue picked on the timeline (shown in the inspector)
+  focusText = $state(0) // bumped to focus the inspector's text box
   markIn = $state<number | null>(null) // the range being marked for a cut
   markOut = $state<number | null>(null)
   saveStatus = $state<'saved' | 'saving' | 'error'>('saved')
@@ -27,8 +29,10 @@ class Editor {
   private lastAt = 0
   private timer: ReturnType<typeof setTimeout> | undefined
 
-  load(project: Project) {
+  load(project: Project | null) {
     this.project = project
+    this.selected = -1
+    this.markIn = this.markOut = null
     this.past = []
     this.future = []
     this.syncHistory()
@@ -46,6 +50,7 @@ class Editor {
     this.lastAt = now
     this.future = []
     change(this.project)
+    if (this.selected >= this.project.cues.length) this.selected = -1
     this.syncHistory()
     this.scheduleSave()
   }
@@ -104,6 +109,7 @@ class Editor {
       cue.start = Math.max(0, Math.min(start, end))
       cue.end = Math.min(p.duration, Math.max(start, end))
       p.cues.sort((a, b) => a.start - b.start)
+      if (this.selected === i) this.selected = p.cues.indexOf(cue) // the block may have moved in the list
     }, `time:${i}`)
   }
 

@@ -1,6 +1,6 @@
 # Plan 07 — Web editor (replaces the Blender add-on as the main UI)
 
-**Status:** in progress. Phase 0 done (step 29). Phase 1 done: Svelte 5 (ADR-015), project file (ADR-016). Phase 2: the MVP list is done (steps 31–32); waiting for the owner's manual test.
+**Status:** in progress. Phase 0 done (step 29). Phase 1 done: Svelte 5 (ADR-015), project file (ADR-016). Phase 2: the MVP list is done (steps 31–33); the owner is testing and sending corrections.
 **Date:** 2026-10-26
 **Related decisions:** ADR-014 (pivot), ADR-015 (Svelte 5 + Vite + TS), ADR-016 (project file), ADR-012 (`.ass` + libass).
 **Supersedes:** plan 05 (local API + `flosub gui`), plan 06 (Blender UX) and the Blender parts of plan 04 §11.
@@ -96,6 +96,8 @@ Results: `docs/dev-docs/references/plan07_phase0_spikes.md` (step 29).
 | 7 | pt-BR | done (step 31) |
 | — | Undo/redo with grouping, autosave, shortcut table (JSON) | done (step 31) |
 | — | Tests: engine pytest (remap, project, server, real cut + burn, peaks, review), Vitest (timeline, snap), Playwright smoke in CI | done (steps 31–32) |
+
+**Step 33 (owner's first corrections):** done: open with no path (file browser + drop), drop-down lists, glossary tools, live snapping with a magnet toggle, double-click edits, optional side drawer, a CapCut/Kdenlive-style layout.
 
 **Next:** the owner's manual test of the MVP (`flosub serve <video>`), then the owner's list of changes. Candidates already known: "add term to glossary" in the editor, `.ass`/`.srt` import, an LLM pass in the review panel, fonts on Windows/macOS, follow-playhead and keyboard-driven nudging of cue edges.
 

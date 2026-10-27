@@ -23,9 +23,9 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
-from legendaria_engine import formats, media
+from legendaria_engine import formats, media, workspace
 from legendaria_engine.ass import to_ass
 from legendaria_engine.config import load_config
 from legendaria_engine.cues import CueList
@@ -34,6 +34,12 @@ from legendaria_engine.project import Project, ProjectError, project_path
 
 WEB_DIR = Path(__file__).parent / "web"
 LOCAL_HOSTS = {"127.0.0.1", "localhost"}
+# Routes that work before a video is open (everything else answers 409).
+NO_VIDEO_ROUTES = {
+    "/api/state", "/api/browse", "/api/open", "/api/upload",
+    "/api/glossary", "/api/glossary/export", "/api/glossary/add", "/api/glossary/import",
+    "/api/glossary/use",
+}  # fmt: skip
 # COOP/COEP make the page cross-origin isolated, so JASSUB can use worker threads.
 ISOLATION = {
     "Cross-Origin-Opener-Policy": "same-origin",
@@ -98,10 +104,7 @@ class Session:
             ),
             "media": self.info,
             "project": project.to_dict() if project else None,
-            "styles": sorted(self.config["styles"]),
-            "style": self.config["style"],
-            "model": self.config["model"],
-            "language": self.config["language"],
+            **workspace.options(self.config),
         }
 
     def peaks(self) -> dict[str, Any]:
@@ -277,8 +280,15 @@ class Handler(BaseHTTPRequestHandler):
 
     @property
     def session(self) -> Session:
-        """The open video's session."""
+        """The open video's session (routes that need one are guarded by `_ready`)."""
         return self.server.session  # type: ignore[attr-defined]
+
+    def _ready(self, path: str) -> bool:
+        """False (after answering 409) when the route needs a video and none is open."""
+        if self.session is None and path.startswith("/api/") and path not in NO_VIDEO_ROUTES:
+            self._error(HTTPStatus.CONFLICT, "Open a video first.")
+            return False
+        return True
 
     def log_message(self, format: str, *args: Any) -> None:
         """Quiet: only errors are printed."""
@@ -319,10 +329,26 @@ class Handler(BaseHTTPRequestHandler):
         """Static app, state, media, font, preview `.ass` and job events."""
         if not self._local():
             return self._error(HTTPStatus.FORBIDDEN, "Only local requests are allowed.")
-        path = urlsplit(self.path).path
+        url = urlsplit(self.path)
+        path, query = url.path, parse_qs(url.query)
+        if not self._ready(path):
+            return None
         try:
             if path == "/api/state":
+                if self.session is None:
+                    return self._json({"video": None, **workspace.options(self.server.config)})
                 return self._json(self.session.state())
+            if path == "/api/browse":
+                return self._json(workspace.browse((query.get("path") or [None])[0]))
+            if path == "/api/glossary":
+                return self._json(workspace.glossary_state())
+            if path == "/api/glossary/export":
+                name = (query.get("name") or [workspace.glossary_state()["active"]])[0]
+                text = workspace.glossary_text(name).encode("utf-8")
+                return self._send(
+                    200, text, "text/plain; charset=utf-8",
+                    {"Content-Disposition": f'attachment; filename="{name}.txt"'},
+                )  # fmt: skip
             if path == "/api/media":
                 return self._file(self.session.video)
             if path == "/api/review":
@@ -351,6 +377,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._error(HTTPStatus.FORBIDDEN, "Only local requests are allowed.")
         if urlsplit(self.path).path != "/api/project":
             return self._error(HTTPStatus.NOT_FOUND, "Not found.")
+        if not self._ready("/api/project"):
+            return None
         try:
             project = Project.from_dict(self._body())
         except (ProjectError, json.JSONDecodeError) as exc:
@@ -362,9 +390,27 @@ class Handler(BaseHTTPRequestHandler):
         """Start a job: `/api/transcribe` {model, language, style} or `/api/export` {format}."""
         if not self._local():
             return self._error(HTTPStatus.FORBIDDEN, "Only local requests are allowed.")
-        path = urlsplit(self.path).path
+        url = urlsplit(self.path)
+        path = url.path
+        if not self._ready(path):
+            return None
         try:
+            if path == "/api/upload":
+                name = Path((parse_qs(url.query).get("name") or ["video"])[0]).name or "video"
+                return self._upload(name)
             options = self._body() or {}
+            if path == "/api/open":
+                return self._open(Path(str(options.get("path", ""))).expanduser())
+            if path == "/api/glossary/add":
+                return self._json({"added": workspace.glossary_add(str(options.get("entry", "")))})
+            if path == "/api/glossary/import":
+                name = workspace.glossary_import(
+                    str(options.get("name", "")), str(options.get("text", ""))
+                )
+                return self._json({"name": name, **workspace.glossary_state()})
+            if path == "/api/glossary/use":
+                workspace.glossary_use(str(options.get("name", "")))
+                return self._json(workspace.glossary_state())
             if path == "/api/transcribe":
                 job = self.session.start(
                     "transcribe", lambda j: self.session.transcribe(j, options)
@@ -376,9 +422,35 @@ class Handler(BaseHTTPRequestHandler):
                 return self._error(HTTPStatus.NOT_FOUND, "Not found.")
         except RuntimeError as exc:
             return self._error(HTTPStatus.CONFLICT, str(exc))
-        except json.JSONDecodeError as exc:
+        except (json.JSONDecodeError, ValueError, OSError) as exc:
             return self._error(HTTPStatus.BAD_REQUEST, str(exc))
-        self._json({"job": job.id})
+        return self._json({"job": job.id})
+
+    def _open(self, video: Path) -> None:
+        """Open `video` as the session (a project file next to it is loaded if it exists)."""
+        if not video.is_file():
+            return self._error(HTTPStatus.BAD_REQUEST, f"File not found: {video}")
+        try:
+            self.server.session = Session(video.resolve(), self.server.config)  # type: ignore[attr-defined]
+        except media.MediaError as exc:
+            return self._error(HTTPStatus.BAD_REQUEST, str(exc))
+        return self._json(self.session.state())
+
+    def _upload(self, name: str) -> None:
+        """Store a dropped file in the uploads folder (streamed) and open it."""
+        length = int(self.headers.get("Content-Length") or 0)
+        folder = workspace.uploads_dir() / uuid.uuid4().hex[:8]
+        folder.mkdir(parents=True, exist_ok=True)
+        target = folder / name
+        with target.open("wb") as handle:
+            remaining = length
+            while remaining > 0:
+                chunk = self.rfile.read(min(CHUNK, remaining))
+                if not chunk:
+                    break
+                handle.write(chunk)
+                remaining -= len(chunk)
+        return self._open(target)
 
     def _events(self, job_id: str) -> None:
         job = self.session.jobs.get(job_id)
@@ -472,20 +544,21 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def make_server(
-    video: Path, port: int = 0, config: dict[str, Any] | None = None
+    video: Path | None = None, port: int = 0, config: dict[str, Any] | None = None
 ) -> ThreadingHTTPServer:
-    """A server for `video` on 127.0.0.1 (`port` 0 picks a free one)."""
+    """A server on 127.0.0.1 (`port` 0 picks a free one), with `video` open if given."""
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     server.daemon_threads = True
-    server.session = Session(video, config or load_config())  # type: ignore[attr-defined]
+    server.config = config or load_config()  # type: ignore[attr-defined]
+    server.session = Session(video, server.config) if video else None  # type: ignore[attr-defined]
     return server
 
 
-def serve(video: Path, port: int, open_browser: bool, reporter: Reporter) -> None:
-    """Run the editor until Ctrl+C."""
+def serve(video: Path | None, port: int, open_browser: bool, reporter: Reporter) -> None:
+    """Run the editor until Ctrl+C (the browser asks for a video when none is given)."""
     server = make_server(video, port)
     url = f"http://127.0.0.1:{server.server_address[1]}/"
-    reporter.emit("serving", url=url, video=str(video))
+    reporter.emit("serving", url=url, video=str(video) if video else None)
     reporter.log(f"Editor running at {url} (Ctrl+C to stop)")
     if open_browser:
         webbrowser.open(url)

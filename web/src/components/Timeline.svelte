@@ -11,10 +11,12 @@
   import { t } from '../lib/i18n'
   import { player } from '../lib/player'
   import { cutsOf, snap, snapPoints } from '../lib/timeline'
+  import { ui } from '../lib/ui.svelte'
 
   const SNAP_PX = 8
   const COLOR = 'rgba(110, 86, 207, 0.55)'
   const CURRENT = 'rgba(255, 210, 63, 0.6)'
+  const SELECTED = 'rgba(160, 135, 255, 0.85)'
   const CUT = 'rgba(229, 72, 77, 0.5)'
   const MARK = 'rgba(255, 210, 63, 0.25)'
 
@@ -27,6 +29,9 @@
   const cueRegions: Region[] = []
   let overlays: Region[] = [] // cuts and the mark: rebuilt when their signature changes
   let overlayKey = ''
+  let dragPoints: number[] | null = null // snap targets, built once per drag
+  let guide: Region | undefined // the line that shows what the edge is stuck to
+  let guideAt: number | null = null
 
   const project = $derived(editor.project!)
 
@@ -48,13 +53,19 @@
       plugins: [regions, TimelinePlugin.create()],
     })
     ws.on('zoom', (px) => (pxPerSec = px))
+    regions.on('region-update', onDragging)
     regions.on('region-updated', onUpdated)
     regions.on('region-clicked', (region: Region, event: MouseEvent) => {
       event.stopPropagation()
-      if (region.id.startsWith('c')) player.seek(region.start)
+      if (!region.id.startsWith('c')) return
+      editor.selected = Number(region.id.slice(1))
+      player.seek(region.start)
     })
+    // double-click: select the block and jump to its text
     regions.on('region-double-clicked', (region: Region) => {
-      if (region.id.startsWith('c')) editor.split(Number(region.id.slice(1)), player.time())
+      if (!region.id.startsWith('c')) return
+      editor.selected = Number(region.id.slice(1))
+      editor.focusText++
     })
     container.addEventListener('wheel', onWheel, { passive: false })
     await new Promise<void>((done) => ws!.once('ready', () => done()))
@@ -71,7 +82,7 @@
     if (!ready || !regions) return
     const cues = project.cues
     cues.forEach((cue, i) => {
-      const options = { start: cue.start, end: cue.end, content: cue.text, color: i === editor.current ? CURRENT : COLOR }
+      const options = { start: cue.start, end: cue.end, content: cue.text, color: i === editor.selected ? SELECTED : i === editor.current ? CURRENT : COLOR }
       const region = cueRegions[i]
       if (!region) {
         cueRegions[i] = regions!.addRegion({ id: `c${i}`, ...options, drag: true, resize: true })
@@ -102,34 +113,74 @@
     }
   })
 
-  // A region was dragged or resized: snap the moved edge(s) and store the new times.
-  function onUpdated(region: Region) {
-    if (!region.id.startsWith('c')) return
-    const i = Number(region.id.slice(1))
-    const cue = project.cues[i]
-    if (!cue) return
-    const movedStart = Math.abs(region.start - cue.start) > 1e-3
-    const movedEnd = Math.abs(region.end - cue.end) > 1e-3
-    if (!movedStart && !movedEnd) return // our own re-draw
-    const threshold = SNAP_PX / pxPerSec
-    const points = snapPoints([
+  // Snap targets for dragging cue `i`: other cues' edges, its own words, kept-range edges, the playhead.
+  function targets(i: number): number[] {
+    return snapPoints([
       player.time(),
       ...project.cues.flatMap((c, j) => (j === i ? (c.words ?? []).flatMap((w) => [w.start, w.end]) : [c.start, c.end])),
       ...project.keep.flat(),
     ])
-    let [start, end] = [region.start, region.end]
-    if (movedStart && movedEnd) {
-      // dragged whole: snap whichever edge is closer to a target, keep the length
+  }
+
+  /** Where the region should sit after snapping, and which time it stuck to (null: nothing near). */
+  function snapped(region: Region, side?: string) {
+    const points = (dragPoints ??= targets(Number(region.id.slice(1))))
+    const threshold = SNAP_PX / pxPerSec
+    let { start, end } = region
+    let target: number | null = null
+    if (side === 'start') {
+      const to = snap(start, points, threshold)
+      if (to !== start) target = to
+      start = to
+    } else if (side === 'end') {
+      const to = snap(end, points, threshold)
+      if (to !== end) target = to
+      end = to
+    } else {
+      // dragging the whole block: the closer of the two edges decides, the length stays
       const a = snap(start, points, threshold) - start
       const b = snap(end, points, threshold) - end
       const shift = a !== 0 && (b === 0 || Math.abs(a) <= Math.abs(b)) ? a : b
+      if (shift !== 0) target = (shift === a ? start : end) + shift
       start += shift
       end += shift
-    } else if (movedStart) start = snap(start, points, threshold)
-    else end = snap(end, points, threshold)
-    editor.setTimes(i, start, end)
-    // If snapping changed nothing in the project (same values), put the region back where the project has it.
-    region.setOptions({ start: project.cues[i]?.start ?? start, end: project.cues[i]?.end ?? end })
+    }
+    return { start, end, target }
+  }
+
+  // The guide line: a thin marker at the time the edge is stuck to.
+  function showGuide(time: number | null) {
+    if (time === guideAt) return
+    guide?.remove()
+    guide = undefined
+    guideAt = time
+    if (time !== null) guide = regions?.addRegion({ id: 'guide', start: time, end: time, color: '#ffffff', drag: false, resize: false })
+  }
+
+  // While dragging: the block sticks to nearby targets right away (the magnet), with a guide line.
+  function onDragging(region: Region, side?: string) {
+    if (!ui.snap || !region.id.startsWith('c')) return
+    const result = snapped(region, side)
+    if (result.start !== region.start || result.end !== region.end) {
+      region.setOptions({ start: result.start, end: result.end })
+    }
+    showGuide(result.target)
+  }
+
+  // Released: store the new times in the project.
+  function onUpdated(region: Region) {
+    showGuide(null)
+    if (!region.id.startsWith('c')) return
+    const i = Number(region.id.slice(1))
+    const cue = project.cues[i]
+    dragPoints = null
+    if (!cue) return
+    const movedStart = Math.abs(region.start - cue.start) > 1e-3
+    const movedEnd = Math.abs(region.end - cue.end) > 1e-3
+    if (!movedStart && !movedEnd) return // our own re-draw
+    editor.setTimes(i, region.start, region.end)
+    // keep the region where the project has it (the project may have clamped or sorted)
+    region.setOptions({ start: project.cues[i]?.start ?? region.start, end: project.cues[i]?.end ?? region.end })
   }
 
   function setZoom(px: number, anchorX?: number) {

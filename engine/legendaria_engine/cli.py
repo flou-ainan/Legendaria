@@ -593,11 +593,11 @@ def cmd_overlay(args: argparse.Namespace, reporter: Reporter) -> int:
 
 
 def cmd_serve(args: argparse.Namespace, reporter: Reporter) -> int:
-    """`flosub serve VIDEO`: open the web editor for a video (local server, plan 07)."""
+    """`flosub serve [VIDEO]`: open the web editor, with a video or asking for one (plan 07)."""
     from legendaria_engine.server import serve
 
-    video = Path(args.file).expanduser().resolve()
-    if not video.is_file():
+    video = Path(args.file).expanduser().resolve() if args.file else None
+    if video and not video.is_file():
         reporter.error(f"File not found: {video}")
         return 2
     serve(video, args.port, not args.no_browser, reporter)
@@ -758,8 +758,8 @@ def build_parser() -> argparse.ArgumentParser:
     o.add_argument("--output", help="the .mov to write (default: NAME.overlay.mov)")
     o.set_defaults(func=cmd_overlay)
 
-    s = sub.add_parser("serve", help="open the web editor for a video (cut, edit, export)")
-    s.add_argument("file", help="the video")
+    s = sub.add_parser("serve", help="open the web editor (cut, edit, export)")
+    s.add_argument("file", nargs="?", help="the video (optional: the editor asks for one)")
     s.add_argument(
         "--port", type=int, default=8765, help="local port (default: 8765; 0 = any free)"
     )

@@ -118,3 +118,75 @@ def test_review_suggests_glossary_fixes_in_the_saved_cues(server, tmp_path):
     (tmp_path / "legendaria-glossary.txt").write_text("um -> UM!\n", encoding="utf-8")
     suggestions = json.loads(call(base + "/api/review")[2])["suggestions"]
     assert [(s["cue"], s["before"], s["after"]) for s in suggestions] == [(0, "um", "UM!")]
+
+
+@pytest.fixture
+def empty_server():
+    from legendaria_engine.server import make_server
+
+    srv = make_server(None, 0, load_config())
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    yield f"http://127.0.0.1:{srv.server_address[1]}"
+    srv.shutdown()
+    srv.server_close()
+
+
+def test_starts_without_a_video_and_offers_choices(empty_server):
+    state = json.loads(call(empty_server + "/api/state")[2])
+    assert state["video"] is None and "small" in [m["name"] for m in state["models"]]
+    assert {"code": "pt", "name": "Português"} in state["languages"]
+    with pytest.raises(urllib.error.HTTPError) as err:
+        call(empty_server + "/api/peaks")
+    assert err.value.code == 409
+
+
+def test_browse_lists_folders_and_media_only(empty_server, tmp_path):
+    (tmp_path / "sub").mkdir()
+    (tmp_path / "a.mp4").write_bytes(b"x")
+    (tmp_path / "notes.txt").write_text("no")
+    (tmp_path / ".hidden.mp4").write_bytes(b"x")
+    data = json.loads(
+        call(empty_server + "/api/browse?path=" + str(tmp_path).replace(" ", "%20"))[2]
+    )
+    assert [(e["name"], e["dir"]) for e in data["entries"]] == [("sub", True), ("a.mp4", False)]
+
+
+def test_open_by_path_and_by_upload(empty_server, tmp_path):
+    video = tmp_path / "v.mp4"
+    subprocess.run(
+        ["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc=s=64x48:r=10:d=1", str(video)],
+        check=True,
+    )
+    state = json.loads(call(empty_server + "/api/open", "POST", {"path": str(video)})[2])
+    assert state["video"] == "v.mp4" and state["project"] is None
+    with pytest.raises(urllib.error.HTTPError) as err:
+        call(empty_server + "/api/open", "POST", {"path": str(tmp_path / "missing.mp4")})
+    assert err.value.code == 400
+    request = urllib.request.Request(
+        empty_server + "/api/upload?name=dropped.mp4", video.read_bytes(), method="POST"
+    )
+    uploaded = json.loads(urllib.request.urlopen(request, timeout=10).read())
+    assert uploaded["video"] == "dropped.mp4"
+
+
+def test_glossary_add_import_export(empty_server):
+    state = json.loads(call(empty_server + "/api/glossary")[2])
+    assert state["active"] == "default" and state["text"] == ""
+    added = json.loads(
+        call(empty_server + "/api/glossary/add", "POST", {"entry": "polieste -> poliéster"})[2]
+    )
+    assert added["added"] is True
+    again = json.loads(
+        call(empty_server + "/api/glossary/add", "POST", {"entry": "polieste -> poliéster"})[2]
+    )
+    assert again["added"] is False
+    imported = json.loads(
+        call(
+            empty_server + "/api/glossary/import",
+            "POST",
+            {"name": "Mariana", "text": "Beth\n# c\nbolsa bet -> bolsa Beth\n"},
+        )[2]
+    )
+    assert imported["active"] == "Mariana" and "bolsa bet -> bolsa Beth" in imported["text"]
+    exported = call(empty_server + "/api/glossary/export?name=Mariana")
+    assert "attachment" in exported[1]["Content-Disposition"] and b"Beth" in exported[2]

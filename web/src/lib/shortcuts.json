@@ -4,6 +4,8 @@
   "mark_in": "i",
   "mark_out": "o",
   "cut": "x",
+  "split": "s",
+  "snap": "m",
   "back": "ArrowLeft",
   "forward": "ArrowRight",
   "undo": "ctrl+z",

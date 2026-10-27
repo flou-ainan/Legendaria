@@ -25,7 +25,7 @@
   </header>
   <ol bind:this={list}>
     {#each project.cues as cue, i (i)}
-      <li class:current={i === editor.current} class:cut={inCut(cue.start, cue.end)}>
+      <li class:current={i === editor.current} class:selected={i === editor.selected} onfocusin={() => (editor.selected = i)} class:cut={inCut(cue.start, cue.end)}>
         <div class="times">
           <button class="seek" onclick={() => player.seek(cue.start)} title="▶">▶</button>
           <input
@@ -61,6 +61,7 @@
     border-left: 3px solid transparent;
     border-bottom: 1px solid var(--line);
   }
+  li.selected { outline: 1px solid var(--cue); }
   li.current { border-left-color: var(--accent); background: #ffd23f12; }
   li.cut { opacity: 0.5; }
   .times { display: flex; gap: 0.25rem; }

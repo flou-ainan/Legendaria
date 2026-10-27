@@ -38,11 +38,11 @@ Svelte 5 + Vite + TypeScript (ADR-015). `npm run build` writes the app into `eng
 ```bash
 cd web
 npm ci
-npm run build                 # then: cd ../engine && uv run flosub serve some-clip.mp4
+npm run build                 # then: cd ../engine && uv run flosub serve   (the browser asks for a video)
 npm run check                 # type check (svelte-check)
 npm test                      # Vitest
 npm run e2e                   # browser smoke test: needs ffmpeg, uv and `npx playwright install chromium`
-npm run dev                   # live reload; first run `uv run flosub serve some-clip.mp4 --no-browser` (port 8765)
+npm run dev                   # live reload; first run `uv run flosub serve --no-browser` (port 8765)
 ```
 
 The live preview (JASSUB) is only reliable in the built app; check it with `npm run build` before you push. UI strings live in `web/src/locales/en.json` and `pt-BR.json` (same keys in both).
