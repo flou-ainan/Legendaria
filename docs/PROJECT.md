@@ -50,7 +50,7 @@ engine/ (`flosub`) ── faster-whisper (GPU → CPU fallback) ──► transc
 | GPU acceleration | CUDA 12 via the optional `cuda` extra (`nvidia-cublas-cu12` + `nvidia-cudnn-cu12` 9), no PyTorch; Linux and Windows. `cuda_libs.py` makes them loadable |
 | Media decoding | PyAV (bundled with faster-whisper) / FFmpeg |
 | Styled subtitles | `.ass` written by the engine, rendered by libass through FFmpeg's `ass` filter (burn-in and transparent qtrle overlay). FFmpeg is optional: only `burn`, `overlay` and the size probe for `.ass` need it (ADR-012) |
-| Editor | Blender 4.2+ Video Sequence Editor (`bpy`), extension format |
+| Editor | **Web editor (in progress, plan 07):** Svelte 5 + Vite + TypeScript, served locally by `flosub serve`; JASSUB (libass in WASM) for the exact preview, wavesurfer.js for waveform and cue regions; cuts and burn-in on the server with native FFmpeg (ADR-014, ADR-015). **Frozen:** Blender 4.2+ VSE add-on (`bpy`, extension format) |
 | Language | Python 3.10+ (engine; dev venv pinned to 3.11 via `uv` and `engine/.python-version`) / Blender's bundled Python (add-on) |
 | Config | JSON + JSON Schema, `platformdirs` for per-OS paths |
 | i18n | `bpy.app.translations` + `locales/<lang>.json` (en source, pt_BR maintained) |
@@ -76,6 +76,7 @@ engine/ (`flosub`) ── faster-whisper (GPU → CPU fallback) ──► transc
 | [012](dev-docs/decisions/ADR-012-ass-styled-format.md) | `.ass` as styled format: one preset → `.ass` (libass overlay/burn) and Blender strips | accepted (MVP subset, step 23) |
 | [013](dev-docs/decisions/ADR-013-blender-5-2-minimum.md) | Blender 5.2 LTS is the minimum (4.x support dropped; implementation after the manual test) | suspended (ADR-014) |
 | [014](dev-docs/decisions/ADR-014-web-editor-blender-frozen.md) | Web editor (`flosub serve`) becomes the main UI; Blender add-on frozen | accepted |
+| [015](dev-docs/decisions/ADR-015-web-frontend-svelte.md) | Web editor front end: Svelte 5 + Vite + TypeScript (MIT) | accepted |
 
 ## 5. Folder structure
 
@@ -118,11 +119,12 @@ Legendaria/
     ├── PROJECT.md           # this file
     └── dev-docs/
         ├── README.md        # documentation conventions
+        ├── chat-context.md  # condensed owner ↔ agent conversation + last two full replies (hand-off)
         ├── planning/        # plans (before implementing)
         ├── devlog/          # executed steps
         ├── decisions/       # ADRs
         ├── known-issues.md  # problems seen in real use, with evidence and how to investigate
-        └── references/      # origin_brainstorm.md, ass_brainstorm.md, plan07_phase0_spikes.md
+        └── references/      # origin_brainstorm.md, ass_brainstorm.md, plan07_phase0_spikes.md, openreel_dissection.md
 ```
 
 Build the add-on package: `blender --command extension build --source-dir blender_addon/legendaria --output-dir dist` (gives `legendaria-<version>.zip`, installed with Edit → Preferences → Get Extensions → Install from Disk).
@@ -721,7 +723,7 @@ Generate the glowing Legendária key art (hero and banner) as SVG.
 
 ## 7. In progress
 
-- **Now: plan 07 (web editor).** Phase 0 study spikes done (step 29, `dev-docs/references/plan07_phase0_spikes.md`): JASSUB matches FFmpeg's libass, wavesurfer handles 500 cues with server peaks, one-pass FFmpeg cut + burn works; OpenReel gives patterns, not code. Waiting for the owner's framework choice (ADR-015). ADR-014: the Blender add-on is frozen; plans 05, 06 and the Blender parts of plan 04 §11 are superseded. Owner questions before phase 2: plan 07, last section.
+- **Now: plan 07 (web editor).** Phase 0 study spikes done (step 29, `dev-docs/references/plan07_phase0_spikes.md`): JASSUB matches FFmpeg's libass, wavesurfer handles 500 cues with server peaks, one-pass FFmpeg cut + burn works; OpenReel gives patterns, not code. Front end decided: Svelte 5 + Vite + TS (ADR-015). OpenReel dissected (`dev-docs/references/openreel_dissection.md`: undo grouping, snapping, shortcut table, zoom, versioned project file). Next: ADR-016 (project file), then the MVP build. ADR-014: the Blender add-on is frozen; plans 05, 06 and the Blender parts of plan 04 §11 are superseded. Owner questions before phase 2: plan 07, last section.
 - Plan 02 (Blender add-on): done (steps 09–12).
 - **Plan 03, accuracy:** done — 3a glossary (step 18), 3b LLM reviewer (step 19, experimental), glossary library (step 20), 3c Blender UI (step 22). Engine 0.1.0.dev4 is not on PyPI yet (needs the owner's tag), so "Install engine" gets it only after that release.
 - **Plan 04, MVP subset (§10):** done in step 23: `.ass` export with the approved pop look, `flosub burn`, `flosub overlay`, and in Blender "Export ASS" and "Exact preview".

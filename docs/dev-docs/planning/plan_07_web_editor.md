@@ -1,8 +1,8 @@
 # Plan 07 — Web editor (replaces the Blender add-on as the main UI)
 
-**Status:** approved (owner, 2026-10-26). Phase 0 done (step 29); phase 1 waits for the owner's framework choice.
+**Status:** approved (owner, 2026-10-26). Phase 0 done (step 29). Framework decided: Svelte 5 (ADR-015). OpenReel dissected (step 30, `references/openreel_dissection.md`). Next: ADR-016 and the MVP build.
 **Date:** 2026-10-26
-**Related decisions:** ADR-014 (pivot), ADR-012 (`.ass` + libass). ADR-015 and ADR-016 are written in phase 1.
+**Related decisions:** ADR-014 (pivot), ADR-015 (Svelte 5 + Vite + TS), ADR-012 (`.ass` + libass). ADR-016 (project file) is written in phase 1.
 **Supersedes:** plan 05 (local API + `flosub gui`), plan 06 (Blender UX) and the Blender parts of plan 04 §11.
 
 ## Why
@@ -32,7 +32,7 @@ The engine (`flosub`) stays the core: transcription, glossary and review, cues, 
 ## Architecture
 
 ```
-browser (TS + React + Vite)  ⇄  flosub serve (Python, 127.0.0.1)  →  engine + native FFmpeg
+browser (Svelte 5 + TS + Vite)  ⇄  flosub serve (Python, 127.0.0.1)  →  engine + native FFmpeg
   <video> + JASSUB preview        REST + SSE progress               transcribe / review / ass / render
   timeline: cuts + cue track      serves the built UI + media (HTTP Range)
   waveform (wavesurfer)           COOP/COEP headers
@@ -109,7 +109,7 @@ Results: `docs/dev-docs/references/plan07_phase0_spikes.md` (step 29).
 
 ## Owner answers (2026-10-26)
 
-- **Framework:** the owner finds React heavy and prefers something lighter (at most Vue). React only if copying OpenReel's stack is clearly best. The spikes showed it is not (OpenReel gives patterns, not code), so the recommendation is Svelte 5 + Vite + TS, with Vue 3 second. Pending the owner's pick → ADR-015.
+- **Framework:** the owner finds React heavy and prefers something lighter (at most Vue). React only if copying OpenReel's stack is clearly best. The spikes showed it is not (OpenReel gives patterns, not code), so the recommendation is Svelte 5 + Vite + TS, with Vue 3 second. **Decided 2026-10-27: Svelte 5** (ADR-015).
 - **Backend:** export and cuts always call the local server. A standalone mobile PWA without a backend is out of scope for now.
 - **MVP cuts:** lean. Remove ranges only.
 
@@ -121,7 +121,7 @@ Results: `docs/dev-docs/references/plan07_phase0_spikes.md` (step 29).
 - A standalone PWA (whisper.cpp/WASM), and the web editor on a phone through the desktop server.
 - Font picker and bundled free fonts (libass in the browser only sees the fonts we serve).
 
-## Open questions for the owner (before phase 2)
+## Open questions for the owner
 
-1. The framework: Svelte 5 (recommended) or Vue 3.
+None right now. Still pending from earlier: import `.ass`/`.srt` + `flosub align --srt` (plan 04 §11.3, item 4).
 3. Still pending from earlier: import `.ass`/`.srt` + `flosub align --srt` (plan 04 §11.3, item 4).
