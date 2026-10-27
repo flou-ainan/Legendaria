@@ -1,6 +1,6 @@
 # Chat context (hand-off)
 
-**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 36.
+**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 37.
 **Policy:** `AGENTS.md` and `docs/dev-docs/README.md` ("chat-context.md"). This is a snapshot that gets replaced, never appended. It is public: no secrets and no private data.
 
 ## Summary of the conversation so far
@@ -64,6 +64,8 @@
 
 14. **Step 36 (2026-10-27), same PR #29:** the owner asked to remove the permanent tips (an interactive tutorial comes after the MVP) and to continue: plan 08 step 1 done, a contextual toolbar (5 tools max, changes with the selection).
 
+15. **Step 37 (2026-10-27), same PR #29:** owner's corrections: touch scrolling on the timeline moved and resized blocks, so only the selected block can be dragged now; the snap stuck far from the pointer, so it is a real magnet now (keeps the pointer's position apart from the drawn one); Undo/Redo first in the toolbar; Solar Linear icons (ADR-020, CC BY 4.0).
+
 **Open and next**
 - **Next:** plan 08 step 2 (orange subtitle track), then the generate-captions sheet and per-cue style; the owner keeps testing (`cd engine && uv run flosub serve`) and sends more corrections; mobile polish comes later.
 - **Known gaps:** touch dragging on the timeline, `.ass`/`.srt` import, fonts on Windows/macOS, an LLM pass in the review panel, cleaning old uploads, drive list on Windows.
@@ -73,21 +75,14 @@
 
 ## Last two complete replies (verbatim)
 
-### Reply 1 (2026-10-27): look menu, fonts, translations, mobile toolbar
-
-> Feito, e o plano 08 agora tem essas mudanças como prioridade antes dos itens do PDF.
->
-> - **Menu "Estilo" (Aa)** na barra abaixo do vídeo: botões Topo e Fundo, sliders de altura e tamanho, lista de fontes e Restaurar. Vale para todas as legendas, entra no desfazer, no salvamento automático e é igual no preview, no `.ass` e no MP4 queimado.
-> - **Fontes:** escolhi 19 famílias de licença aberta (OFL) da sua pasta, de estilos variados: sem serifa (Montserrat, Lato, Raleway), arredondadas (Nunito, Comfortaa, Fredoka), condensadas (Oswald, Anton, Bebas Neue, Passion One), pesadas (Archivo Black, Titan One), destaque (Righteous), quadrinhos (Bangers), tecnológica (Orbitron), pixel (Press Start 2P), com serifa (Playfair Display, Merriweather) e manuscrita (Pacifico). Ficam no pacote (1,5 MB), então o vídeo exportado sai igual ao preview em qualquer computador. Para acrescentar uma, basta pôr o `.ttf` e uma linha no `fonts.json`.
-> - **Traduções:** cada idioma é um arquivo JSON em `web/src/locales/`, achado automaticamente, com o nome do idioma dentro dele e um guia para tradutores. Chaves que faltam caem para o inglês, e um teste confere chaves e `{variáveis}`. Não precisa mexer em código para incluir um idioma.
-> - **Barra no celular:** uma linha só, que desliza para os lados, com botões menores.
->
-> **Testes:** 130 do motor, 11 do app, o teste de navegador (escolhe Topo e a fonte Anton e confere o projeto e o preview) e capturas da barra no celular.
->
-> **Next task:** passo 1 do plano 08 (barra de ferramentas contextual, no máximo 5 ícones) — tier: **standard** (Sonnet), effort: **medium**.
-
-### Reply 2 (2026-10-27): tips removed, contextual toolbar
+### Reply 1 (2026-10-27): tips removed, contextual toolbar
 
 > Feito: as duas dicas fixas saíram (o espaço do editor de bloco também só aparece com um bloco selecionado) e ficaram anotadas no plano 08 para o tutorial interativo pós-MVP. Continuei de onde parei: **barra de ferramentas contextual**. Sem seleção: Tocar, Início, Fim, Cortar, Estilo. Com um bloco selecionado: Tocar, Dividir, Juntar, Apagar, Estilo. Ímã, Desfazer e Refazer ficam sempre à direita. Esc ou clique na forma de onda vazia desmarca. O editor do bloco foi para baixo da timeline, para ela não se mover quando você seleciona.
+>
+> **Next task:** passo 2 do plano 08 (trilha de legendas em laranja, cores de corte e marca) — tier: **standard** (Sonnet), effort: **low**.
+
+### Reply 2 (2026-10-27): timeline touch fix, magnet, icons
+
+> Feito. **Timeline:** só o bloco selecionado se move e redimensiona (os outros deixam o toque rolar a página). **Ímã:** o bloco gruda no alvo enquanto o mouse está a 8 px e volta a seguir o mouse quando ele se afasta. **Barra:** Desfazer e Refazer são os primeiros botões; ícones Solar Linear (CC BY 4.0, crédito nos READMEs, ADR-020). Teste de navegador cobre os três casos; não testei no celular de verdade.
 >
 > **Next task:** passo 2 do plano 08 (trilha de legendas em laranja, cores de corte e marca) — tier: **standard** (Sonnet), effort: **low**.

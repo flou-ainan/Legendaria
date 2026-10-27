@@ -81,6 +81,7 @@ engine/ (`flosub`) ── faster-whisper (GPU → CPU fallback) ──► transc
 | [017](dev-docs/decisions/ADR-017-opening-files-in-the-browser.md) | Opening a video from the browser: a server-side file browser (opens in place) and drag-and-drop upload (stores a copy) | accepted |
 | [018](dev-docs/decisions/ADR-018-local-recovery-and-relink.md) | Local recovery copy (IndexedDB) and relinking a moved video | accepted |
 | [019](dev-docs/decisions/ADR-019-subtitle-look-and-bundled-fonts.md) | Subtitle look overrides in the project (`look`) and bundled open-licence fonts | accepted |
+| [020](dev-docs/decisions/ADR-020-solar-icons.md) | Solar Linear icons (CC BY 4.0), copied one by one into `lib/icons.ts` | accepted |
 
 ## 5. Folder structure
 
@@ -187,9 +188,10 @@ Layout (step 33): a header, the video with a tool row under it (play, in, out, c
 | `components/Transcribe.svelte` | 74 | Drop-down lists for model (shows size and whether it is downloaded), language and style; runs the transcribe job with progress. |
 | `components/Player.svelte` | 124 | `<video>` + JASSUB (font preloaded, repaint on paused seeks); a `requestVideoFrameCallback` loop skips cut parts and tracks the current cue without reactive state at frame rate; keyboard shortcuts from `lib/shortcuts.json`. |
 | `components/LookMenu.svelte` | 43 | Quick menu for the whole subtitle look: Top / Bottom presets, height and size sliders, font drop-down, reset (stored as the project's `look`, ADR-019). |
-| `components/Toolbar.svelte` | 70 | The tool row under the video, contextual (at most 5 tools: Play, In, Out, Cut, Look; with a block selected: Play, Split, Merge, Delete, Look) plus Snap, Undo, Redo; one sliding row on narrow screens. |
+| `components/Toolbar.svelte` | 70 | The tool row under the video: Undo, Redo first, then contextual tools (at most 5: Play, In, Out, Cut, Look; with a block selected: Play, Split, Merge, Delete, Look) and Snap; one sliding row on narrow screens. |
+| `components/Icon.svelte`, `lib/icons.ts` | 8, 20 | Solar Linear icons (ADR-020): `icons.ts` holds the SVG paths, `Icon` draws one by name in the text colour. |
 | `components/Inspector.svelte` | 44 | Edits the selected block's text (Esc leaves the box) and its start/end; shown only while a block is selected. |
-| `components/Timeline.svelte` | 221 | wavesurfer.js waveform from the server's peaks; one draggable/resizable region per cue (diffed against the project), cuts and the in/out mark as overlays. While dragging, edges stick (8 px) to other cues' edges, the cue's own words, kept-range edges and the playhead, with a guide line; click selects and seeks, double-click jumps to the text; Ctrl + wheel zooms around the pointer. |
+| `components/Timeline.svelte` | 244 | wavesurfer.js waveform from the server's peaks; one draggable/resizable region per cue (diffed against the project), cuts and the in/out mark as overlays. Only the selected block can be dragged or resized. While dragging, edges stick (8 px, a magnet that lets go when the pointer leaves) to other cues' edges, the cue's own words, kept-range edges and the playhead, with a guide line; click selects and seeks, double-click jumps to the text; Ctrl + wheel zooms around the pointer. |
 | `components/Drawer.svelte` | 43 | The optional side panel with tabs: `CueList`, `Glossary` + `Review`, `Cuts`, `Export`. |
 | `components/CueList.svelte` | 74 | All cues as rows (text, times, split, merge, delete, add at playhead); dims cues inside cuts. |
 | `components/Glossary.svelte` | 92 | Glossary library: choose or create the active one, add a word or `wrong -> right`, import a `.txt`, export. |

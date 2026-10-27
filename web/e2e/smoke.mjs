@@ -54,11 +54,29 @@ try {
   assert.equal(await page.evaluate(() => crossOriginIsolated), true, 'page must be cross-origin isolated')
   assert.equal(await page.locator('aside').count(), 0, 'the side drawer is closed by default')
 
-  // 2. dragging an edge near the next block's start: it sticks while the mouse is still down
-  const box = await region(3).boundingBox()
+  // 2. only a selected block can be dragged: the same drag on an unselected one changes nothing
+  let box = await region(3).boundingBox()
+  await page.mouse.move(box.x + box.width - 2, box.y + box.height / 2)
+  await page.mouse.down(); await page.mouse.move(box.x + box.width + 18, box.y + box.height / 2, { steps: 8 })
+  await page.mouse.up()
+  await page.waitForTimeout(800)
+  const before = (await project()).cues[3]
+  assert.ok(Math.abs(before.end - 4.1) > 0.002 && before.end < 4.1, 'an unselected block does not resize')
+
+  // select it, then drag its edge near the next block's start: it sticks while the mouse is still down
+  await region(3).click({ position: { x: 20, y: 30 } })
+  await page.waitForTimeout(300)
+  box = await region(3).boundingBox()
   await page.mouse.move(box.x + box.width - 2, box.y + box.height / 2)
   await page.mouse.down(); await page.mouse.move(box.x + box.width + 18, box.y + box.height / 2, { steps: 8 })
   assert.equal(await page.locator('[part~="guide"]').count(), 1, 'a guide line shows while snapping')
+  // the magnet lets go: moving the pointer well away makes the edge follow it again
+  await page.mouse.move(box.x + box.width + 120, box.y + box.height / 2, { steps: 8 })
+  assert.equal(await page.locator('[part~="guide"]').count(), 0, 'the guide goes away once the pointer leaves')
+  const far = await region(3).boundingBox()
+  assert.ok(far.x + far.width > box.x + box.width + 100, 'the edge follows the pointer after leaving the magnet')
+  await page.mouse.move(box.x + box.width + 18, box.y + box.height / 2, { steps: 8 }) // back to the magnet
+  assert.equal(await page.locator('[part~="guide"]').count(), 1)
   await page.mouse.up()
   await page.waitForTimeout(1000)
   assert.equal(await page.locator('[part~="guide"]').count(), 0, 'the guide goes away on release')
@@ -68,6 +86,8 @@ try {
   const magnet = page.getByRole('button', { name: /Snap/ })
   await magnet.click()
   assert.equal(await magnet.getAttribute('aria-pressed'), 'false')
+  await region(5).click({ position: { x: 20, y: 30 } })
+  await page.waitForTimeout(300)
   const b5 = await region(5).boundingBox()
   await page.mouse.move(b5.x + b5.width - 2, b5.y + b5.height / 2)
   await page.mouse.down(); await page.mouse.move(b5.x + b5.width + 18, b5.y + b5.height / 2, { steps: 8 })

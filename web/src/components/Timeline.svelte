@@ -30,6 +30,7 @@
   let overlays: Region[] = [] // cuts and the mark: rebuilt when their signature changes
   let overlayKey = ''
   let dragPoints: number[] | null = null // snap targets, built once per drag
+  let raw: { start: number; end: number; drawnStart: number; drawnEnd: number } | null = null // where the pointer put the dragged block
   let guide: Region | undefined // the line that shows what the edge is stuck to
   let guideAt: number | null = null
 
@@ -83,15 +84,19 @@
     if (!ready || !regions) return
     const cues = project.cues
     cues.forEach((cue, i) => {
-      const options = { start: cue.start, end: cue.end, content: cue.text, color: i === editor.selected ? SELECTED : i === editor.current ? CURRENT : COLOR }
+      const picked = i === editor.selected // only the selected block can be dragged or resized, so scrolling by touch never moves one
+      const options = { start: cue.start, end: cue.end, content: cue.text, color: picked ? SELECTED : i === editor.current ? CURRENT : COLOR }
       const region = cueRegions[i]
       if (!region) {
-        cueRegions[i] = regions!.addRegion({ id: `c${i}`, ...options, drag: true, resize: true })
+        cueRegions[i] = regions!.addRegion({ id: `c${i}`, ...options, drag: picked, resize: picked })
+        grip(cueRegions[i], picked)
       } else if (
         region.start !== options.start || region.end !== options.end ||
-        region.content?.textContent !== cue.text || region.color !== options.color
+        region.content?.textContent !== cue.text || region.color !== options.color ||
+        region.drag !== picked || region.resize !== picked
       ) {
-        region.setOptions(options)
+        region.setOptions({ ...options, drag: picked, resize: picked })
+        grip(region, picked)
       }
     })
     while (cueRegions.length > cues.length) cueRegions.pop()!.remove()
@@ -114,6 +119,11 @@
     }
   })
 
+  // A block that is not selected leaves touch gestures to the page (scrolling); the selected one takes them.
+  function grip(region: Region, picked: boolean) {
+    if (region.element) region.element.style.touchAction = picked ? 'none' : 'pan-x pan-y'
+  }
+
   // Snap targets for dragging cue `i`: other cues' edges, its own words, kept-range edges, the playhead.
   function targets(i: number): number[] {
     return snapPoints([
@@ -123,11 +133,13 @@
     ])
   }
 
-  /** Where the region should sit after snapping, and which time it stuck to (null: nothing near). */
-  function snapped(region: Region, side?: string) {
-    const points = (dragPoints ??= targets(Number(region.id.slice(1))))
+  /**
+   * Where a block should sit after snapping, from where the pointer really put it (`start`, `end`),
+   * and which time it stuck to (null: nothing near).
+   */
+  function snapped(i: number, start: number, end: number, side?: string) {
+    const points = (dragPoints ??= targets(i))
     const threshold = SNAP_PX / pxPerSec
-    let { start, end } = region
     let target: number | null = null
     if (side === 'start') {
       const to = snap(start, points, threshold)
@@ -158,10 +170,20 @@
     if (time !== null) guide = regions?.addRegion({ id: 'guide', start: time, end: time, color: '#ffffff', drag: false, resize: false })
   }
 
-  // While dragging: the block sticks to nearby targets right away (the magnet), with a guide line.
+  // wavesurfer moves a block by the pointer's change since the last event. Snapping moves the block
+  // too, so we keep the position the pointer asked for (`raw`) apart from where the block is drawn:
+  // the block sticks to a target while the pointer is near it and follows again once it leaves.
   function onDragging(region: Region, side?: string) {
-    if (!ui.snap || !region.id.startsWith('c')) return
-    const result = snapped(region, side)
+    if (!region.id.startsWith('c')) return
+    const i = Number(region.id.slice(1))
+    const cue = project.cues[i]
+    if (!cue) return
+    const track = (raw ??= { start: cue.start, end: cue.end, drawnStart: cue.start, drawnEnd: cue.end })
+    track.start += region.start - track.drawnStart
+    track.end += region.end - track.drawnEnd
+    const result = ui.snap ? snapped(i, track.start, track.end, side) : { start: region.start, end: region.end, target: null }
+    track.drawnStart = result.start
+    track.drawnEnd = result.end
     if (result.start !== region.start || result.end !== region.end) {
       region.setOptions({ start: result.start, end: result.end })
     }
@@ -175,6 +197,7 @@
     const i = Number(region.id.slice(1))
     const cue = project.cues[i]
     dragPoints = null
+    raw = null
     if (!cue) return
     const movedStart = Math.abs(region.start - cue.start) > 1e-3
     const movedEnd = Math.abs(region.end - cue.end) > 1e-3
