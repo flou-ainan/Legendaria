@@ -73,6 +73,7 @@
   function setupPlayhead() {
     wrap = ws!.getWrapper()
     scroller = wrap.parentElement!
+    scroller.style.touchAction = 'pan-x pan-y' // no browser pinch-zoom here: the pinch zooms the timeline
     follow()
     if (center) {
       // our own pan: a drag on the timeline moves the video time (touch scrolling is off, so the playhead stays put)
@@ -150,6 +151,10 @@
     })
     ws.on('click', () => (editor.selected = -1)) // a click on the empty waveform clears the selection (regions stop their own clicks)
     container.addEventListener('wheel', onWheel, { passive: false })
+    container.addEventListener('pointerdown', onPinchDown, true)
+    window.addEventListener('pointermove', onPinchMove)
+    window.addEventListener('pointerup', onPinchEnd)
+    window.addEventListener('pointercancel', onPinchEnd)
     await new Promise<void>((done) => ws!.once('ready', () => done()))
     ready = true
     setupPlayhead()
@@ -158,6 +163,10 @@
   onDestroy(() => {
     cancelAnimationFrame(frame)
     container?.removeEventListener('wheel', onWheel)
+    container?.removeEventListener('pointerdown', onPinchDown, true)
+    window.removeEventListener('pointermove', onPinchMove)
+    window.removeEventListener('pointerup', onPinchEnd)
+    window.removeEventListener('pointercancel', onPinchEnd)
     ws?.destroy()
   })
 
@@ -297,6 +306,31 @@
     pxPerSec = Math.min(settings.zoomMaxPxPerSec, Math.max(minPx, px))
     ws.zoom(pxPerSec)
     if (!center) ws.setScroll(Math.max(0, timeAt * pxPerSec - x)) // centred mode follows the playhead instead
+  }
+
+  // Pinch zoom: two fingers on the timeline scale it around the point between them.
+  const fingers = new Map<number, number>() // pointer id → clientX
+  let pinchGap = 0
+  const gap = () => Math.abs([...fingers.values()][0] - [...fingers.values()][1])
+
+  function onPinchDown(event: PointerEvent) {
+    if (event.pointerType !== 'touch') return
+    fingers.set(event.pointerId, event.clientX)
+    if (fingers.size === 2) pinchGap = gap()
+  }
+
+  function onPinchMove(event: PointerEvent) {
+    if (!fingers.has(event.pointerId)) return
+    fingers.set(event.pointerId, event.clientX)
+    if (fingers.size !== 2 || pinchGap < 8) return
+    const now = gap()
+    const centre = [...fingers.values()].reduce((a, b) => a + b) / 2 - container.getBoundingClientRect().left
+    setZoom(pxPerSec * (now / pinchGap), centre)
+    pinchGap = now
+  }
+
+  function onPinchEnd(event: PointerEvent) {
+    fingers.delete(event.pointerId)
   }
 
   function onWheel(event: WheelEvent) {

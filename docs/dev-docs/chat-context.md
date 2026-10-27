@@ -1,6 +1,6 @@
 # Chat context (hand-off)
 
-**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 46.
+**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 47.
 **Policy:** `AGENTS.md` and `docs/dev-docs/README.md` ("chat-context.md"). This is a snapshot that gets replaced, never appended. It is public: no secrets and no private data.
 
 ## Summary of the conversation so far
@@ -84,8 +84,10 @@
 
 24. **Step 46:** shadow controls (on/off, colour, size, intensity) in the Look menu.
 
+25. **Step 47:** breakpoint 1024 px, bottom sheets that slide up (drawer, Look), pinch zoom on the timeline.
+
 **Open and next**
-- **Next:** plan 08 mobile layout (breakpoint 1024 px, bottom sheets, pinch zoom on the timeline); the owner keeps testing (`cd engine && uv run flosub serve`, restart it after pulling).
+- **Next:** plan 08 desktop extras (caption list always visible with search and replace, right-click menu, Ctrl+B split); the owner keeps testing (`cd engine && uv run flosub serve`, restart it after pulling).
 - **Known gaps:** touch dragging on the timeline, `.ass`/`.srt` import, fonts on Windows/macOS, an LLM pass in the review panel, cleaning old uploads, drive list on Windows.
 - **Pending owner decisions:** import `.ass`/`.srt` + `flosub align --srt` (plan 04 §11.3, item 4).
 - **Not published:** engine 0.1.0.dev4 is not on PyPI; the tag needs the owner's approval.

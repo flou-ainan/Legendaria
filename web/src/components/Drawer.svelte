@@ -1,6 +1,7 @@
 <script lang="ts">
   // Optional side panel: subtitle list, glossary, cuts, export. Closed by default; the work
   // happens under the video and on the timeline (CapCut / InShot style).
+  import { fly } from 'svelte/transition'
   import { t } from '../lib/i18n'
   import { ui, type Panel } from '../lib/ui.svelte'
   import CueList from './CueList.svelte'
@@ -13,7 +14,7 @@
 </script>
 
 {#if ui.panel}
-  <aside>
+  <aside transition:fly={{ y: 320, duration: matchMedia('(max-width: 1023px)').matches ? 220 : 0 }}>
     <nav>
       {#each tabs as tab (tab)}
         <button class:on={ui.panel === tab} onclick={() => (ui.panel = tab)}>{t(`panel.${tab}`)}</button>
@@ -37,7 +38,7 @@
   .spacer { flex: 1; }
   .body { padding: 0.8rem; overflow-y: auto; min-height: 0; }
   /* narrow screens: a bottom sheet over the editor */
-  @media (max-width: 900px) {
+  @media (max-width: 1023px) {
     aside { position: fixed; left: 0; right: 0; bottom: 0; max-height: 65vh; border-radius: 14px 14px 0 0; z-index: 20; box-shadow: 0 -8px 30px #000a; }
   }
 </style>

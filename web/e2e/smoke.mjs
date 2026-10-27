@@ -231,9 +231,11 @@ try {
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: '✕' }).click() // the drawer is a bottom sheet here
     await page.getByRole('button', { name: /Subtitle look/ }).click()
+    await page.waitForTimeout(500) // let the sheets finish sliding
     await page.screenshot({ path: join(process.env.E2E_SHOTS, 'narrow-look.png') })
-    await page.getByRole('button', { name: /Subtitle look/ }).click()
+    await page.locator('.grab').click() // the sheet covers the Look button: its handle closes it
     await page.setViewportSize({ width: 1400, height: 1000 })
+    await page.waitForTimeout(600)
   }
 
   // the browser keeps a recovery copy of the project (IndexedDB)
@@ -277,6 +279,17 @@ try {
   await touch.mouse.move(g.wave.x + 250, y); await touch.mouse.down(); await touch.mouse.move(g.wave.x + 150, y, { steps: 5 }); await touch.mouse.up()
   g = await geometry()
   assert.ok(g.time > 0.2, `dragging the timeline seeks (${g.time})`)
+  // pinch: two fingers moving apart zoom the timeline in (centred mode here; the same handler serves the arrow mode)
+  const cdp = await touch.context().newCDPSession(touch)
+  const pxBefore = await touch.evaluate(() => document.querySelector('.wave > div').shadowRoot.querySelector('.wrapper').getBoundingClientRect().width)
+  const cy = Math.round(g.wave.y + g.wave.height / 2)
+  const points = (a) => [{ x: 195 - a, y: cy, id: 1 }, { x: 195 + a, y: cy, id: 2 }]
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: points(30) })
+  for (const a of [50, 70, 90, 110]) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: points(a) })
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  await touch.waitForTimeout(300)
+  const pxAfter = await touch.evaluate(() => document.querySelector('.wave > div').shadowRoot.querySelector('.wrapper').getBoundingClientRect().width)
+  assert.ok(pxAfter > pxBefore * 1.5, `pinching out zooms the timeline (${pxBefore} -> ${pxAfter})`)
   await touch.close()
 
   // full screen keeps the subtitles: the box with the video and JASSUB's canvas goes full screen, not the <video>

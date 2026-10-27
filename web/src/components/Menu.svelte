@@ -59,7 +59,7 @@
   .list .on { color: var(--accent); }
   hr { border: 0; border-top: 1px solid var(--line); width: 100%; margin: 0.2rem 0; }
   .label { padding: 0.2rem 0.6rem; }
-  @media (min-width: 900px) {
+  @media (min-width: 1024px) {
     .burger, .narrow { display: none; }
     .word { display: inline; }
   }

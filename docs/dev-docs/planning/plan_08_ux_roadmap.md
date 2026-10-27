@@ -26,7 +26,7 @@
 | 3. Orange cue track | Done (step 40): cues orange (current brighter, selected lighter), cuts grey-blue, in/out mark blue. The separate row above the video track waits for a multi-track timeline. |
 | 4. Batch vs one style | Done (step 45, plan 09, ADR-022): with a block selected the Look menu edits "Whole track" or "This subtitle"; "Apply to all" moves a cue's style to the track. Blocks with their own style show ✦. |
 | 5. Double-click + list | Done (step 33). |
-| 6. Two layouts | Partly: one layout that reflows (drawer becomes a bottom sheet under 900 px). The menu is a hamburger on narrow screens. No separate mobile layout yet. |
+| 6. Two layouts | Step 47: breakpoint moved to 1024 px; the side drawer and the Look menu are bottom sheets that slide up (the Look sheet has a handle that closes it); pinch zoom on the timeline. Earlier: Partly: one layout that reflows (drawer becomes a bottom sheet under 900 px). The menu is a hamburger on narrow screens. No separate mobile layout yet. |
 | 7. Export top right | Done. |
 | 8. 30-second test | Close: open or drop a video, press Transcribe, edit, export. Needs a real-use check. |
 

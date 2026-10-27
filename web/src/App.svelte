@@ -123,7 +123,7 @@
   .logo { width: 1.6rem; height: 1.6rem; }
   .brand { white-space: nowrap; }
   .export { order: 99; } /* always the last, at the top right */
-  @media (max-width: 899px) {
+  @media (max-width: 1023px) {
     .panel, .brand { display: none; }
     .link { max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   }
@@ -133,7 +133,7 @@
   .lower { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; gap: 0.8rem; background: var(--panel); border-radius: 10px; padding: 0.8rem; }
   .outdated { margin: 0; padding: 0.5rem 1rem; background: var(--cut); color: #fff; }
   .center { text-align: center; margin-top: 30vh; }
-  @media (max-width: 900px) {
+  @media (max-width: 1023px) {
     main.drawer { grid-template-columns: minmax(0, 1fr); }
     main { padding: 0.5rem; }
   }
