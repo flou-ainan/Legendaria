@@ -600,7 +600,7 @@ def cmd_serve(args: argparse.Namespace, reporter: Reporter) -> int:
     if video and not video.is_file():
         reporter.error(f"File not found: {video}")
         return 2
-    serve(video, args.port, not args.no_browser, reporter)
+    serve(video, args.port, not args.no_browser, reporter, args.allow_host)
     return 0
 
 
@@ -764,6 +764,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--port", type=int, default=8765, help="local port (default: 8765; 0 = any free)"
     )
     s.add_argument("--no-browser", action="store_true", help="do not open the browser")
+    s.add_argument(
+        "--allow-host",
+        action="append",
+        default=[],
+        metavar="HOST",
+        help="also accept this Host name, e.g. an ngrok domain (repeatable; off by default)",
+    )
     s.set_defaults(func=cmd_serve)
 
     m = sub.add_parser("models", help="list or download Whisper models")

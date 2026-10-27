@@ -76,6 +76,20 @@ def test_foreign_origin_is_rejected(server):
     assert err.value.code == 403
 
 
+def test_allow_host_opens_only_the_named_host(server):
+    srv, base = server
+    tunnel = "abc.ngrok-free.app"
+    with pytest.raises(urllib.error.HTTPError) as err:
+        call(base + "/api/state", headers={"Host": tunnel})
+    assert err.value.code == 403
+    srv.allow_hosts = {tunnel}
+    headers = {"Host": tunnel, "Origin": f"https://{tunnel}"}
+    assert call(base + "/api/state", headers=headers)[0] == 200
+    with pytest.raises(urllib.error.HTTPError) as err:
+        call(base + "/api/state", headers={"Host": tunnel, "Origin": "https://evil.example"})
+    assert err.value.code == 403
+
+
 def test_save_cut_and_export_srt(server, tmp_path):
     _, base = server
     project = json.loads(call(base + "/api/state")[2])["project"]

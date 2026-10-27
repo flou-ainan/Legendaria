@@ -21,6 +21,7 @@ import webbrowser
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from collections.abc import Iterable
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
@@ -313,7 +314,8 @@ class Handler(BaseHTTPRequestHandler):
         host = (self.headers.get("Host") or "").rsplit(":", 1)[0].strip("[]")
         origin = self.headers.get("Origin")
         origin_host = urlsplit(origin).hostname if origin else None
-        return host in LOCAL_HOSTS and (origin is None or origin_host in LOCAL_HOSTS)
+        allowed = LOCAL_HOSTS | self.server.allow_hosts  # type: ignore[attr-defined]
+        return host in allowed and (origin is None or origin_host in allowed)
 
     def _send(self, status: int, body: bytes, content_type: str, extra: dict | None = None) -> None:
         self.send_response(status)
@@ -571,19 +573,32 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def make_server(
-    video: Path | None = None, port: int = 0, config: dict[str, Any] | None = None
+    video: Path | None = None,
+    port: int = 0,
+    config: dict[str, Any] | None = None,
+    allow_hosts: Iterable[str] = (),
 ) -> ThreadingHTTPServer:
-    """A server on 127.0.0.1 (`port` 0 picks a free one), with `video` open if given."""
+    """A server on 127.0.0.1 (`port` 0 picks a free one), with `video` open if given.
+
+    `allow_hosts` are extra Host names accepted besides localhost, for a tunnel such as ngrok.
+    """
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     server.daemon_threads = True
+    server.allow_hosts = {h.lower() for h in allow_hosts}  # type: ignore[attr-defined]
     server.config = config or load_config()  # type: ignore[attr-defined]
     server.session = Session(video, server.config) if video else None  # type: ignore[attr-defined]
     return server
 
 
-def serve(video: Path | None, port: int, open_browser: bool, reporter: Reporter) -> None:
+def serve(
+    video: Path | None,
+    port: int,
+    open_browser: bool,
+    reporter: Reporter,
+    allow_hosts: Iterable[str] = (),
+) -> None:
     """Run the editor until Ctrl+C (the browser asks for a video when none is given)."""
-    server = make_server(video, port)
+    server = make_server(video, port, allow_hosts=allow_hosts)
     url = f"http://127.0.0.1:{server.server_address[1]}/"
     reporter.emit("serving", url=url, video=str(video) if video else None)
     reporter.log(f"Editor running at {url} (Ctrl+C to stop)")
