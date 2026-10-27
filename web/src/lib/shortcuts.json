@@ -9,5 +9,6 @@
   "back": "ArrowLeft",
   "forward": "ArrowRight",
   "undo": "ctrl+z",
-  "redo": "ctrl+shift+z"
+  "redo": "ctrl+shift+z",
+  "deselect": "Escape"
 }

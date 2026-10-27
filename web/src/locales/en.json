@@ -31,7 +31,6 @@
   "export.done": "Saved: {path}",
   "error": "Error: {message}",
   "timeline.title": "Timeline",
-  "timeline.hint": "Drag a block or its edges · double-click edits the text · Ctrl + wheel zooms",
   "timeline.zoom_in": "Zoom in",
   "timeline.zoom_out": "Zoom out",
   "timeline.fit": "Fit",
@@ -67,7 +66,6 @@
   "tool.snap_on": "Snap is on: edges stick to nearby targets (M)",
   "tool.snap_off": "Snap is off (M)",
   "tool.snap_short": "Snap",
-  "inspector.hint": "Click a block on the timeline to select it. Double-click to edit its text.",
   "inspector.text": "Subtitle text",
   "inspector.start": "Start",
   "inspector.end": "End",
@@ -129,5 +127,7 @@
   "font.tech": "tech",
   "font.pixel": "pixel",
   "font.serif": "serif",
-  "font.script": "script"
+  "font.script": "script",
+  "tool.merge_short": "Merge",
+  "tool.delete_short": "Delete"
 }

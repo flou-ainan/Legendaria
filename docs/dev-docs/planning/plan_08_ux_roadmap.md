@@ -20,7 +20,7 @@
 | Idea | State |
 |---|---|
 | 1. Three zones | Done: video, then timeline, then the toolbar under the video. The toolbar sits between player and timeline, not at the very bottom. |
-| 2. Contextual toolbar ≤ 5 | Not yet: the toolbar has 9 buttons and does not change with the selection. |
+| 2. Contextual toolbar ≤ 5 | Done (step 36): nothing selected = Play, In, Out, Cut, Look; a block selected = Play, Split, Merge, Delete, Look. Snap, Undo and Redo stay as a small utility group. Esc or a click on the empty waveform deselects. |
 | 3. Orange cue track | Not yet: cue blocks are purple, the current one yellow. |
 | 4. Batch vs one style | Not yet: one style per project. Needs per-cue style overrides in the project file (ADR-016 bump). |
 | 5. Double-click + list | Done (step 33). |
@@ -37,7 +37,7 @@
 
 ## Then, proposed order (each its own step, lean)
 
-1. **Contextual toolbar:** nothing selected → Play, In/Out, Cut, Snap, Undo; a subtitle selected → Split, Merge, Delete, Edit text, Style. Max 5 visible, the rest in "more".
+1. ~~Contextual toolbar~~ (done, step 36).
 2. **Orange subtitle track** and a separate colour for the cut and the mark.
 3. **"Generate captions" like CapCut:** a sheet with the source (all audio / voice only later), language, model and Generate. Today's Transcribe screen already has language and model; it becomes a sheet over the editor.
 4. **Style sheet with "apply to all":** font, size, colour, position; needs per-cue overrides in the project file.
@@ -47,3 +47,7 @@
 ## Not now
 
 Stickers, effects, multiple video tracks and animations from the study stay out until the subtitle flow is complete.
+
+## After the MVP
+
+- **Interactive tutorial** (a guided first run). The permanent tips were removed from the screen to save space (step 36): click a block to select it, double-click edits its text, drag a block or its edges, Ctrl + wheel zooms. They move into the tutorial.

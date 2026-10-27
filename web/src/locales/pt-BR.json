@@ -31,7 +31,6 @@
   "export.done": "Salvo: {path}",
   "error": "Erro: {message}",
   "timeline.title": "Linha do tempo",
-  "timeline.hint": "Arraste um bloco ou as bordas · duplo clique edita o texto · Ctrl + roda dá zoom",
   "timeline.zoom_in": "Aproximar",
   "timeline.zoom_out": "Afastar",
   "timeline.fit": "Ajustar",
@@ -67,7 +66,6 @@
   "tool.snap_on": "Ímã ligado: as bordas grudam em alvos próximos (M)",
   "tool.snap_off": "Ímã desligado (M)",
   "tool.snap_short": "Ímã",
-  "inspector.hint": "Clique num bloco da timeline para selecioná-lo. Duplo clique para editar o texto.",
   "inspector.text": "Texto da legenda",
   "inspector.start": "Início",
   "inspector.end": "Fim",
@@ -129,5 +127,7 @@
   "font.tech": "tecnológica",
   "font.pixel": "pixel",
   "font.serif": "com serifa",
-  "font.script": "manuscrita"
+  "font.script": "manuscrita",
+  "tool.merge_short": "Juntar",
+  "tool.delete_short": "Apagar"
 }

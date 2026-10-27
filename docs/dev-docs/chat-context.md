@@ -1,6 +1,6 @@
 # Chat context (hand-off)
 
-**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 35.
+**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 36.
 **Policy:** `AGENTS.md` and `docs/dev-docs/README.md` ("chat-context.md"). This is a snapshot that gets replaced, never appended. It is public: no secrets and no private data.
 
 ## Summary of the conversation so far
@@ -62,8 +62,10 @@
 
 13. **Step 35 (2026-10-27), same PR #29:** the owner asked for priority changes before the UX-study items: a quick **Look menu** (size and height sliders, Top / Bottom presets, font), **more fonts**, **translations as plain files**, and a **mobile toolbar** that slides sideways in one row. Done: project `look` override and 19 bundled OFL fonts picked from `~/.local/share/fonts` (ADR-019), locale files auto-discovered with a translators' guide and a test, mobile toolbar. Plan 08 reordered: this is "priority round 3", then the contextual toolbar, orange track, generate-captions sheet, per-cue style.
 
+14. **Step 36 (2026-10-27), same PR #29:** the owner asked to remove the permanent tips (an interactive tutorial comes after the MVP) and to continue: plan 08 step 1 done, a contextual toolbar (5 tools max, changes with the selection).
+
 **Open and next**
-- **Next:** plan 08 step 1 (contextual toolbar, 5 icons max); the owner keeps testing (`cd engine && uv run flosub serve`) and sends more corrections; mobile polish comes later.
+- **Next:** plan 08 step 2 (orange subtitle track), then the generate-captions sheet and per-cue style; the owner keeps testing (`cd engine && uv run flosub serve`) and sends more corrections; mobile polish comes later.
 - **Known gaps:** touch dragging on the timeline, `.ass`/`.srt` import, fonts on Windows/macOS, an LLM pass in the review panel, cleaning old uploads, drive list on Windows.
 - **Pending owner decisions:** import `.ass`/`.srt` + `flosub align --srt` (plan 04 §11.3, item 4).
 - **Not published:** engine 0.1.0.dev4 is not on PyPI; the tag needs the owner's approval.
@@ -71,13 +73,7 @@
 
 ## Last two complete replies (verbatim)
 
-### Reply 1 (2026-10-27): round 2
-
-> Feito: piscar da timeline (coluna implícita do grid esticada pelo waveform; o teste de navegador agora mede), logo e favicon, "Português (Brasil / Portugal)", menu Arquivo (hambúrguer no celular), recuperação local (IndexedDB) com religar vídeo movido (mesma duração ±0,5 s e proporção ±1 %), idioma da interface en/pt-BR, plano 08 com o PDF de UX, CI (o e-mail era o erro de formatação do `workspace.py`, já corrigido).
->
-> **Next task:** passo 1 do plano 08 (barra de ferramentas contextual) — tier: **standard** (Sonnet), effort: **medium**.
-
-### Reply 2 (2026-10-27): look menu, fonts, translations, mobile toolbar
+### Reply 1 (2026-10-27): look menu, fonts, translations, mobile toolbar
 
 > Feito, e o plano 08 agora tem essas mudanças como prioridade antes dos itens do PDF.
 >
@@ -89,3 +85,9 @@
 > **Testes:** 130 do motor, 11 do app, o teste de navegador (escolhe Topo e a fonte Anton e confere o projeto e o preview) e capturas da barra no celular.
 >
 > **Next task:** passo 1 do plano 08 (barra de ferramentas contextual, no máximo 5 ícones) — tier: **standard** (Sonnet), effort: **medium**.
+
+### Reply 2 (2026-10-27): tips removed, contextual toolbar
+
+> Feito: as duas dicas fixas saíram (o espaço do editor de bloco também só aparece com um bloco selecionado) e ficaram anotadas no plano 08 para o tutorial interativo pós-MVP. Continuei de onde parei: **barra de ferramentas contextual**. Sem seleção: Tocar, Início, Fim, Cortar, Estilo. Com um bloco selecionado: Tocar, Dividir, Juntar, Apagar, Estilo. Ímã, Desfazer e Refazer ficam sempre à direita. Esc ou clique na forma de onda vazia desmarca. O editor do bloco foi para baixo da timeline, para ela não se mover quando você seleciona.
+>
+> **Next task:** passo 2 do plano 08 (trilha de legendas em laranja, cores de corte e marca) — tier: **standard** (Sonnet), effort: **low**.

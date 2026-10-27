@@ -185,11 +185,11 @@ Layout (step 33): a header, the video with a tool row under it (play, in, out, c
 | `components/Menu.svelte` | 65 | File menu (open video/project, close, save, download a copy, export), panels on narrow screens and the interface language; a hamburger under 900 px. |
 | `components/Browse.svelte` | 77 | File browser dialog over the computer running the server (`/api/browse`), with an editable folder path. |
 | `components/Transcribe.svelte` | 74 | Drop-down lists for model (shows size and whether it is downloaded), language and style; runs the transcribe job with progress. |
-| `components/Player.svelte` | 123 | `<video>` + JASSUB (font preloaded, repaint on paused seeks); a `requestVideoFrameCallback` loop skips cut parts and tracks the current cue without reactive state at frame rate; keyboard shortcuts from `lib/shortcuts.json`. |
+| `components/Player.svelte` | 124 | `<video>` + JASSUB (font preloaded, repaint on paused seeks); a `requestVideoFrameCallback` loop skips cut parts and tracks the current cue without reactive state at frame rate; keyboard shortcuts from `lib/shortcuts.json`. |
 | `components/LookMenu.svelte` | 43 | Quick menu for the whole subtitle look: Top / Bottom presets, height and size sliders, font drop-down, reset (stored as the project's `look`, ADR-019). |
-| `components/Toolbar.svelte` | 63 | The tool row under the video, with large touch-friendly buttons; the magnet toggles snapping. |
-| `components/Inspector.svelte` | 49 | Edits the selected block: text (Esc leaves the box), start/end, split, merge, delete. |
-| `components/Timeline.svelte` | 222 | wavesurfer.js waveform from the server's peaks; one draggable/resizable region per cue (diffed against the project), cuts and the in/out mark as overlays. While dragging, edges stick (8 px) to other cues' edges, the cue's own words, kept-range edges and the playhead, with a guide line; click selects and seeks, double-click jumps to the text; Ctrl + wheel zooms around the pointer. |
+| `components/Toolbar.svelte` | 70 | The tool row under the video, contextual (at most 5 tools: Play, In, Out, Cut, Look; with a block selected: Play, Split, Merge, Delete, Look) plus Snap, Undo, Redo; one sliding row on narrow screens. |
+| `components/Inspector.svelte` | 44 | Edits the selected block's text (Esc leaves the box) and its start/end; shown only while a block is selected. |
+| `components/Timeline.svelte` | 221 | wavesurfer.js waveform from the server's peaks; one draggable/resizable region per cue (diffed against the project), cuts and the in/out mark as overlays. While dragging, edges stick (8 px) to other cues' edges, the cue's own words, kept-range edges and the playhead, with a guide line; click selects and seeks, double-click jumps to the text; Ctrl + wheel zooms around the pointer. |
 | `components/Drawer.svelte` | 43 | The optional side panel with tabs: `CueList`, `Glossary` + `Review`, `Cuts`, `Export`. |
 | `components/CueList.svelte` | 74 | All cues as rows (text, times, split, merge, delete, add at playhead); dims cues inside cuts. |
 | `components/Glossary.svelte` | 92 | Glossary library: choose or create the active one, add a word or `wrong -> right`, import a `.txt`, export. |
@@ -203,7 +203,7 @@ Layout (step 33): a header, the video with a tool row under it (play, in, out, c
 | `lib/api.ts` | 130 | Types and calls: state, browse, open, upload (XHR with progress), glossary, peaks, review, save, preview `.ass`, `runJob` (POST + EventSource). |
 | `lib/i18n.ts` | 44 | `t(key, vars)` over every `locales/*.json`, found automatically (guide: `locales/README.md`; `lib/locales.test.ts` checks keys and placeholders) (language from the menu, remembered, else the browser's); `setLang`, `interfaceLanguages`. |
 | `lib/shortcuts.json` | — | Editable key table: play, mark in/out, cut, split, snap, seek ±1 s, undo, redo. |
-| `e2e/smoke.mjs` | 177 | Playwright test (`npm run e2e`, also in CI): starts `flosub serve` with no video, opens the clip through the file browser, then checks live snapping and its guide, the magnet button, double-click to edit, cut, undo, glossary add + apply, SRT export. |
+| `e2e/smoke.mjs` | 184 | Playwright test (`npm run e2e`, also in CI): starts `flosub serve` with no video, opens the clip through the file browser, then checks live snapping and its guide, the magnet button, double-click to edit, cut, undo, glossary add + apply, SRT export. |
 
 ### engine/legendaria_engine/__init__.py — 3 lines
 Legendária transcription engine.

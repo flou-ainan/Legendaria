@@ -11,6 +11,7 @@
 
   const project = $derived(editor.project!)
   let lookOpen = $state(false)
+  const selected = $derived(editor.selected >= 0 && editor.selected < project.cues.length)
   const canCut = $derived(editor.markIn !== null && editor.markOut !== null)
 </script>
 
@@ -18,15 +19,21 @@
   <button class="tool" onclick={() => player.togglePlay()} title={t('tool.play')}><span>⏯</span><small>{t('tool.play_short')}</small></button>
   <span class="time" bind:this={clockEl}>0:00.00</span>
   <span class="sep"></span>
-  <button class="tool" onclick={() => (editor.markIn = player.time())} title={t('tool.in')}><span>⟦</span><small>{t('tool.in_short')}</small></button>
-  <button class="tool" onclick={() => (editor.markOut = player.time())} title={t('tool.out')}><span>⟧</span><small>{t('tool.out_short')}</small></button>
-  <button class="tool cut" disabled={!canCut} onclick={() => player.cut()} title={t('tool.cut')}><span>✂</span><small>{t('tool.cut_short')}</small></button>
-  <button class="tool" disabled={editor.current < 0} onclick={() => player.splitAtPlayhead()} title={t('tool.split')}><span>⫽</span><small>{t('tool.split_short')}</small></button>
+  <!-- contextual: at most 5 tools, they change with the selection (plan 08) -->
+  {#if selected}
+    <button class="tool" onclick={() => editor.split(editor.selected, player.time())} title={t('tool.split')}><span>⫽</span><small>{t('tool.split_short')}</small></button>
+    <button class="tool" disabled={editor.selected >= project.cues.length - 1} onclick={() => editor.mergeNext(editor.selected)} title={t('cues.merge')}><span>⤓</span><small>{t('tool.merge_short')}</small></button>
+    <button class="tool danger" onclick={() => { editor.remove(editor.selected); editor.selected = -1 }} title={t('cues.delete')}><span>🗑</span><small>{t('tool.delete_short')}</small></button>
+  {:else}
+    <button class="tool" onclick={() => (editor.markIn = player.time())} title={t('tool.in')}><span>⟦</span><small>{t('tool.in_short')}</small></button>
+    <button class="tool" onclick={() => (editor.markOut = player.time())} title={t('tool.out')}><span>⟧</span><small>{t('tool.out_short')}</small></button>
+    <button class="tool cut" disabled={!canCut} onclick={() => player.cut()} title={t('tool.cut')}><span>✂</span><small>{t('tool.cut_short')}</small></button>
+  {/if}
+  <button class="tool" class:on={lookOpen} aria-expanded={lookOpen} onclick={() => (lookOpen = !lookOpen)} title={t('look.title')}><span>Aa</span><small>{t('look.short')}</small></button>
+  <span class="sep"></span>
   <button class="tool" class:on={ui.snap} aria-pressed={ui.snap} onclick={() => (ui.snap = !ui.snap)} title={ui.snap ? t('tool.snap_on') : t('tool.snap_off')}>
     <span class="magnet">🧲</span><small>{t('tool.snap_short')}</small>
   </button>
-  <button class="tool" class:on={lookOpen} aria-expanded={lookOpen} onclick={() => (lookOpen = !lookOpen)} title={t('look.title')}><span>Aa</span><small>{t('look.short')}</small></button>
-  <span class="sep"></span>
   <button class="tool" disabled={!editor.canUndo} onclick={() => editor.undo()} title={t('undo')}><span>↶</span><small>{t('undo')}</small></button>
   <button class="tool" disabled={!editor.canRedo} onclick={() => editor.redo()} title={t('redo')}><span>↷</span><small>{t('redo')}</small></button>
   <span class="spacer"></span>
@@ -45,7 +52,7 @@
   .tool.on { background: var(--accent); }
   .tool.on small { color: #15131c; }
   .tool.on .magnet { filter: none; }
-  .cut:not(:disabled) { background: var(--cut); }
+  .cut:not(:disabled), .danger:hover:not(:disabled) { background: var(--cut); }
   .time { font-variant-numeric: tabular-nums; min-width: 5.2em; padding: 0 0.4rem; }
   .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 0.2rem; }
   .spacer { flex: 1; }

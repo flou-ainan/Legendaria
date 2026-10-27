@@ -85,6 +85,13 @@ try {
 
   await page.keyboard.press('Escape') // leave the text box so the shortcuts work again
 
+  // the toolbar is contextual: a selected block shows Split / Merge / Delete, Esc brings back In / Out / Cut
+  assert.equal(await page.getByRole('button', { name: /Merge/ }).count(), 1)
+  assert.equal(await page.locator('button.tool.cut').count(), 0)
+  await page.keyboard.press('Escape')
+  assert.equal(await page.getByRole('button', { name: /Merge/ }).count(), 0)
+  assert.equal(await page.locator('button.tool.cut').count(), 1)
+
   // mark 5–7 s and cut with the keyboard
   await page.evaluate(() => (document.querySelector('video').currentTime = 5))
   await page.waitForTimeout(300); await page.keyboard.press('i')

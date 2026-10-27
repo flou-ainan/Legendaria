@@ -91,6 +91,7 @@
       cut: () => player.cut(),
       split: () => player.splitAtPlayhead(),
       snap: () => (ui.snap = !ui.snap),
+      deselect: () => (editor.selected = -1),
       back: () => player.seek(video.currentTime - 1),
       forward: () => player.seek(video.currentTime + 1),
       undo: () => editor.undo(),

@@ -67,6 +67,7 @@
       editor.selected = Number(region.id.slice(1))
       editor.focusText++
     })
+    ws.on('click', () => (editor.selected = -1)) // a click on the empty waveform clears the selection (regions stop their own clicks)
     container.addEventListener('wheel', onWheel, { passive: false })
     await new Promise<void>((done) => ws!.once('ready', () => done()))
     ready = true
@@ -208,7 +209,6 @@
     <button onclick={() => setZoom(minPx)}>{t('timeline.fit')}</button>
     <button onclick={() => setZoom(pxPerSec * 1.5)} title={t('timeline.zoom_in')}>+</button>
   </div>
-  <p class="muted hint">{t('timeline.hint')}</p>
   <div class="wave" bind:this={container}></div>
   {#if !ready}<p class="muted">{t('loading')}</p>{/if}
 </section>
@@ -217,6 +217,5 @@
   .bar { display: flex; gap: 0.5rem; align-items: baseline; }
   .bar h2 { margin: 0 0.5rem 0.4rem 0; }
   .spacer { flex: 1; }
-  .hint { margin: 0; }
   .wave { margin-top: 0.4rem; background: var(--bg); border-radius: 6px; }
 </style>

@@ -96,8 +96,8 @@
     <div class="stage"><Player font={info.font} fonts={info.fonts} /></div>
     <Drawer />
     <div class="lower">
-      <Inspector />
       <Timeline />
+      <Inspector />
     </div>
   </main>
 {/if}

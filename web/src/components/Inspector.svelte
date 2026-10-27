@@ -30,20 +30,15 @@
       <label>{t('inspector.end')}
         <input type="number" step="0.01" min="0" value={cue.end.toFixed(2)} onchange={(e) => editor.setTimes(index, cue.start, seconds(e.currentTarget.value))} />
       </label>
-      <button onclick={() => editor.split(index, player.time())}>⫽ {t('cues.split')}</button>
-      <button onclick={() => editor.mergeNext(index)} disabled={index === project.cues.length - 1}>⤓ {t('cues.merge')}</button>
-      <button onclick={() => { editor.remove(index); editor.selected = -1 }}>🗑 {t('cues.delete')}</button>
     </div>
-  {:else}
-    <p class="muted">{t('inspector.hint')}</p>
   {/if}
 </section>
 
 <style>
-  .inspector { display: grid; gap: 0.5rem; min-height: 5.5rem; }
+  .inspector { display: grid; gap: 0.5rem; }
+  .inspector:empty { display: none; }
   textarea { width: 100%; resize: vertical; font-size: 1rem; }
   .fields { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: end; }
   label { display: grid; gap: 0.15rem; font-size: 0.75rem; color: var(--muted); }
   input { width: 5.5em; }
-  p { margin: 0.4rem 0; }
 </style>
