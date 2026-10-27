@@ -39,6 +39,6 @@
   .body { padding: 0.8rem; overflow-y: auto; min-height: 0; }
   /* narrow screens: a bottom sheet over the editor */
   @media (max-width: 1023px) {
-    aside { position: fixed; left: 0; right: 0; bottom: 0; max-height: 65vh; border-radius: 14px 14px 0 0; z-index: 20; box-shadow: 0 -8px 30px #000a; }
+    aside { position: fixed; left: 0; right: 0; bottom: 0; max-height: 44vh; border-radius: 14px 14px 0 0; z-index: 20; box-shadow: 0 -8px 30px #000a; }
   }
 </style>

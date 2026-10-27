@@ -1,7 +1,7 @@
 <script lang="ts">
   // The page: pick a video, transcribe it, then edit. Everything happens under the video and on the
   // timeline; the side drawer (subtitle list, glossary, cuts, export) is optional.
-  import { onMount } from 'svelte'
+  import { onMount, tick } from 'svelte'
   import Browse from './components/Browse.svelte'
   import Drawer from './components/Drawer.svelte'
   import Inspector from './components/Inspector.svelte'
@@ -65,6 +65,13 @@
     URL.revokeObjectURL(link.href)
   }
 
+  // Narrow screens: when a bottom sheet opens, scroll so the video is at the top, above the sheet.
+  $effect(() => {
+    if (ui.sheet && matchMedia('(max-width: 1023px)').matches) {
+      void tick().then(() => document.querySelector('.stage')?.scrollIntoView({ block: 'start', behavior: 'smooth' }))
+    }
+  })
+
   const saveLabel = $derived(
     editor.saveStatus === 'saving' ? t('saving')
     : editor.saveStatus === 'error' ? t('save_error', { message: editor.saveError })
@@ -97,7 +104,7 @@
     {/each}
     <button class="primary export" onclick={() => ui.toggle('export')}>{t('panel.export')}</button>
   </header>
-  <main class:drawer={ui.panel}>
+  <main class:drawer={ui.panel} class:sheet={ui.sheet}>
     <div class="stage"><Player font={info.font} fonts={info.fonts} /></div>
     <Drawer />
     <div class="lower">
@@ -134,6 +141,10 @@
   .outdated { margin: 0; padding: 0.5rem 1rem; background: var(--cut); color: #fff; }
   .center { text-align: center; margin-top: 30vh; }
   @media (max-width: 1023px) {
+    /* a bottom sheet is open: keep room under the page for it, and the video (with its toolbar) pinned on top to see the subtitles change */
+    main.sheet { padding-bottom: 46vh; }
+    main.sheet .stage { position: sticky; top: 0; z-index: 15; background: var(--bg); padding-bottom: 0.3rem; }
+    main.sheet .stage :global(video) { max-height: 30vh; }
     main.drawer { grid-template-columns: minmax(0, 1fr); }
     main { padding: 0.5rem; }
   }

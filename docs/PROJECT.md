@@ -183,7 +183,7 @@ Layout (step 33): a header, the video with a tool row under it (play, in, out, c
 | File | Lines | What it does |
 |---|---|---|
 | `main.ts` | 5 | Mounts `App.svelte`. `app.css`: theme tokens, base controls, and the style of wavesurfer's cue text (it draws in a shadow root). |
-| `App.svelte` | 130 | Loads `/api/state`; Welcome when no video is open, Transcribe until a project exists, then the editor layout and the header (menu, logo, save status, panel buttons, Export); Save now and Download a copy. |
+| `App.svelte` | 151 | Loads `/api/state`; Welcome when no video is open, Transcribe until a project exists, then the editor layout and the header (menu, logo, save status, panel buttons, Export); Save now and Download a copy. |
 | `components/Welcome.svelte` | 141 | Start screen: drop a video on the page (uploaded) or "Choose a file…" (opened in place); "Continue where you left off" from the browser's recovery copy, and relinking a moved video (same duration ±0.5 s and screen proportion ±1 %). |
 | `components/Menu.svelte` | 65 | File menu (open video/project, close, save, download a copy, export), panels on narrow screens and the interface language; a hamburger under 900 px. |
 | `components/Browse.svelte` | 77 | File browser dialog over the computer running the server (`/api/browse`), with an editable folder path. |
@@ -202,7 +202,7 @@ Layout (step 33): a header, the video with a tool row under it (play, in, out, c
 | `lib/editor.svelte.ts` | 252 | `editor`: the project in `$state`, selection, snapshot undo/redo with grouping (800 ms per field), debounced autosave that then refreshes the preview `.ass`; commands `setText`, `setTimes`, `remove`, `split` (uses the words only while they still spell the text), `mergeNext`, `addAt`, `cut`, `restore`, `applySuggestions`, `setLook`, `setCueLook`, `applyToAll`; the in/out marks. |
 | `lib/recovery.ts` | 67 | IndexedDB copy of the work (project, video path and size, `dirty` flag): `remember`, `lastWork`, `forget`, and `sameVideo` (the relink rule, ADR-018). |
 | `lib/settings.json`, `settings.ts` | 16, 9 | Editor settings, `basic` and `advanced` (snap distance 4 px, autosave, undo, zoom, playhead mode); a Settings screen will edit them later. |
-| `lib/ui.svelte.ts` | 13 | Interface switches: snap on/off, which drawer panel is open. |
+| `lib/ui.svelte.ts` | 20 | Interface switches: snap on/off, which drawer panel is open. |
 | `lib/player.ts` | 39 | Non-reactive handle on the `<video>` plus playback commands: `time`, `seek`, `togglePlay`, `cut`, `splitAtPlayhead`. |
 | `lib/timeline.ts` | 103 | Kept-range math mirroring `project.py`: `normalize`, `removeRange`, `cutsOf`, `restoreRange`, `skipTarget`, `outputDuration`, `clock`; `snapPoints` / `snap` (binary search). Tested in `timeline.test.ts` (Vitest, incl. a random property test). |
 | `lib/api.ts` | 130 | Types and calls: state, browse, open, upload (XHR with progress), glossary, peaks, review, save, preview `.ass`, `runJob` (POST + EventSource). |

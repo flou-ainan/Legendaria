@@ -12,7 +12,6 @@
   let { clockEl = $bindable() }: { clockEl?: HTMLSpanElement } = $props()
 
   const project = $derived(editor.project!)
-  let lookOpen = $state(false)
   const selected = $derived(editor.selected >= 0 && editor.selected < project.cues.length)
   const canCut = $derived(editor.markIn !== null && editor.markOut !== null)
 </script>
@@ -34,7 +33,7 @@
     <button class="tool" onclick={() => (editor.markOut = player.time())} title={t('tool.out')}><Icon name="markOut" /></button>
     <button class="tool cut" disabled={!canCut} onclick={() => player.cut()} title={t('tool.cut')}><Icon name="cut" /></button>
   {/if}
-  <button class="tool" class:on={lookOpen} aria-expanded={lookOpen} onclick={() => (lookOpen = !lookOpen)} title={t('look.title')}><Icon name="look" /></button>
+  <button class="tool" class:on={ui.look} aria-expanded={ui.look} onclick={() => (ui.look = !ui.look)} title={t('look.title')}><Icon name="look" /></button>
   <span class="sep"></span>
   <button class="tool" class:on={ui.snap} aria-pressed={ui.snap} onclick={() => (ui.snap = !ui.snap)} title={ui.snap ? t('tool.snap_on') : t('tool.snap_off')}>
     <Icon name="snap" />
@@ -42,9 +41,9 @@
   <span class="spacer"></span>
   <span class="muted length">{t('player.output', { time: clock(outputDuration(project.keep)) })}</span>
 </div>
-{#if lookOpen}
+{#if ui.look}
   <div class="pop" transition:fly={{ y: 320, duration: matchMedia('(max-width: 1023px)').matches ? 220 : 0 }}>
-    <button class="grab" onclick={() => (lookOpen = false)} aria-label={t('panel.close')}></button>
+    <button class="grab" onclick={() => (ui.look = false)} aria-label={t('panel.close')}></button>
     <LookMenu />
   </div>
 {/if}
@@ -63,7 +62,8 @@
   /* narrow screens: a single row that slides sideways, like mobile editors */
   @media (max-width: 1023px) {
     /* the look menu is a bottom sheet on narrow screens */
-    .pop { position: fixed; left: 0; right: 0; bottom: 0; width: auto; z-index: 30; margin: 0; border-radius: 14px 14px 0 0; box-shadow: 0 -8px 30px #000a; padding-top: 0.4rem; }
+    .pop { position: fixed; left: 0; right: 0; bottom: 0; width: auto; z-index: 30; margin: 0; border-radius: 14px 14px 0 0; box-shadow: 0 -8px 30px #000a; padding-top: 0.4rem; max-height: 44vh; overflow-y: auto; }
+    .pop :global(.look) { max-height: none; overflow: visible; }
     .grab { display: block; width: 3rem; height: 0.35rem; padding: 0; margin: 0 auto 0.6rem; border-radius: 1rem; background: var(--line); }
     .toolbar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 0.15rem; padding-bottom: 0.2rem; }
     .toolbar::-webkit-scrollbar { display: none; }

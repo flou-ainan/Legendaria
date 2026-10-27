@@ -1,6 +1,6 @@
 # Chat context (hand-off)
 
-**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 47.
+**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 48.
 **Policy:** `AGENTS.md` and `docs/dev-docs/README.md` ("chat-context.md"). This is a snapshot that gets replaced, never appended. It is public: no secrets and no private data.
 
 ## Summary of the conversation so far
@@ -85,6 +85,8 @@
 24. **Step 46:** shadow controls (on/off, colour, size, intensity) in the Look menu.
 
 25. **Step 47:** breakpoint 1024 px, bottom sheets that slide up (drawer, Look), pinch zoom on the timeline.
+
+26. **Step 48:** sheets take at most 44 % of the screen and the video stays pinned above them.
 
 **Open and next**
 - **Next:** plan 08 desktop extras (caption list always visible with search and replace, right-click menu, Ctrl+B split); the owner keeps testing (`cd engine && uv run flosub serve`, restart it after pulling).

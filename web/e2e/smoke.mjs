@@ -231,7 +231,11 @@ try {
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: '✕' }).click() // the drawer is a bottom sheet here
     await page.getByRole('button', { name: /Subtitle look/ }).click()
-    await page.waitForTimeout(500) // let the sheets finish sliding
+    await page.waitForTimeout(900) // let the sheets finish sliding and the page scroll
+    const video = await page.locator('video').boundingBox()
+    const sheet = await page.locator('.pop').boundingBox()
+    assert.ok(video.y >= 0 && video.y + video.height <= sheet.y + 1, `the video stays visible above the sheet (${video.y}+${video.height} vs ${sheet.y})`)
+    assert.ok(sheet.height <= 800 * 0.45, `the sheet is at most 45% of the screen (${sheet.height})`)
     await page.screenshot({ path: join(process.env.E2E_SHOTS, 'narrow-look.png') })
     await page.locator('.grab').click() // the sheet covers the Look button: its handle closes it
     await page.setViewportSize({ width: 1400, height: 1000 })
