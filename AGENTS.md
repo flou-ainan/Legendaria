@@ -5,7 +5,7 @@ Applies to every agent (Claude Code, Gemini/Antigravity, OpenCode, Copilot, Code
 ## Before you start
 
 1. Read `docs/PROJECT.md`: overview, stack, decisions, and a file map with line counts and functions.
-2. Read the latest step in `docs/dev-docs/devlog/` and any open plan in `docs/dev-docs/planning/` to see what is in progress.
+2. Read `docs/dev-docs/chat-context.md` (the conversation so far, condensed), the latest step in `docs/dev-docs/devlog/`, and any open plan in `docs/dev-docs/planning/` to see what is in progress.
 3. Only then open the source files related to the task. Do not scan the whole repository when the docs already answer the question.
 
 ## Documentation rules (mandatory)
@@ -16,6 +16,8 @@ Full conventions: `docs/dev-docs/README.md`. Summary:
 - **Every change is logged** as a step in `docs/dev-docs/devlog/`: what changed, why, files touched, how it was tested.
 - **Every relevant technical decision** (library, architecture, format) becomes an ADR in `docs/dev-docs/decisions/`.
 - **`docs/PROJECT.md` always reflects the current code.** Any change to files, functions, stack, or folder layout updates `PROJECT.md` in the same commit, including line counts. Generate the file map entries with `python3 tools/project_map.py <files>`; give every public function a one-line docstring so the map stays useful.
+
+- **Conversation hand-off:** keep `docs/dev-docs/chat-context.md` up to date: a lean summary of the whole conversation with the owner, plus your last two complete replies verbatim. Update it when the owner asks and after long stretches of work (hours). It is public, so no secrets or private third-party data. Details: `docs/dev-docs/README.md`.
 
 Goal: someone who clones the repository, with no access to any agent memory, can understand the project and what is going on just by reading `docs/`.
 
