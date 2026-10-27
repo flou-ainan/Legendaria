@@ -147,6 +147,23 @@
           "minimum": 0,
           "maximum": 20
         },
+        "shadow": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "shadow_on": {
+          "type": "boolean"
+        },
+        "shadow_color": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "shadow_opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "box_opacity": {
           "type": "number",
           "minimum": 0,

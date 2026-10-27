@@ -287,3 +287,20 @@ def test_a_cue_can_have_its_own_look():
     styles = [line for line in text.splitlines() if line.startswith("Style:")]
     assert [s.split(",")[0] for s in styles] == ["Style: Default", "Style: Cue1"]
     assert ",100,&H000000FF," in styles[1] and ",Default,," in text and ",Cue1,," in text
+
+
+def test_shadow_controls():
+    from legendaria_engine.ass import with_look
+
+    base = {"shadow": 3, "shadow_color": [0, 0, 0, 0.5]}
+    look = with_look(base, {"shadow": 6, "shadow_color": "#ff0000", "shadow_opacity": 0.2})
+    assert look["shadow"] == 6 and look["shadow_color"] == [1.0, 0.0, 0.0, 0.2]
+    assert with_look(base, {"shadow_on": False})["shadow"] == 0
+    assert (
+        with_look({"shadow": 0}, {"shadow_on": True})["shadow"] == 4
+    )  # switched on with no size: a default
+    assert with_look({"shadow": 0}, {"shadow_on": True, "shadow": 7})["shadow"] == 7
+    clean = Project.from_dict(
+        project().to_dict() | {"look": {"shadow": 99, "shadow_on": False, "shadow_opacity": "x"}}
+    ).look
+    assert clean == {"shadow": 20.0, "shadow_on": False}

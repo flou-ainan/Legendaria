@@ -28,6 +28,7 @@ class Editor {
   fonts = $state<FontEntry[]>([]) // bundled families for the Look menu
   base = $state<BaseLook>({
     font: '', y: 0.2, color: '#ffffff', outline_color: '#000000', outline: 4, uppercase: false,
+    shadow: 4, shadow_on: true, shadow_color: '#000000', shadow_opacity: 0.6,
     box: false, box_color: '#000000', box_opacity: 0.55, box_padding_x: 0.35, box_padding_y: 0.06, box_radius: 0.25,
   }) // what the style itself sets
   video: VideoInfo | null = null // which video the project belongs to, for the local recovery copy

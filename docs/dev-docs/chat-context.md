@@ -1,6 +1,6 @@
 # Chat context (hand-off)
 
-**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 45.
+**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 46.
 **Policy:** `AGENTS.md` and `docs/dev-docs/README.md` ("chat-context.md"). This is a snapshot that gets replaced, never appended. It is public: no secrets and no private data.
 
 ## Summary of the conversation so far
@@ -81,6 +81,8 @@
 22. **Step 44:** rounded, padded rectangle drawn as its own shape (colour, transparency, width, height, roundness), outline colour and thickness, full screen keeps subtitles, "Edit this track's subtitles" (multiple tracks noted in plan 08).
 
 23. **Step 45 (plan 09, ADR-022):** style per subtitle: Look menu "Whole track | This subtitle", "Apply to all", ✦ on blocks with their own style.
+
+24. **Step 46:** shadow controls (on/off, colour, size, intensity) in the Look menu.
 
 **Open and next**
 - **Next:** plan 08 mobile layout (breakpoint 1024 px, bottom sheets, pinch zoom on the timeline); the owner keeps testing (`cd engine && uv run flosub serve`, restart it after pulling).

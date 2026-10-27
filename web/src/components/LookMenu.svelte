@@ -68,6 +68,20 @@
   <label>{t('look.outline_width')} <output>{Math.round(Number(value('outline')))} px</output>
     <input type="range" min="0" max="20" step="0.5" value={value('outline')} oninput={(e) => set({ outline: Number(e.currentTarget.value) })} />
   </label>
+  <label class="check"><input type="checkbox" checked={value('shadow_on')} onchange={(e) => set({ shadow_on: e.currentTarget.checked })} /> {t('look.shadow')}</label>
+  {#if value('shadow_on')}
+    <div class="boxed">
+      <label>{t('look.shadow_color')}
+        <input type="color" value={value('shadow_color')} oninput={(e) => set({ shadow_color: e.currentTarget.value })} />
+      </label>
+      <label>{t('look.shadow_size')} <output>{Math.round(Number(value('shadow')))} px</output>
+        <input type="range" min="0" max="20" step="0.5" value={value('shadow')} oninput={(e) => set({ shadow: Number(e.currentTarget.value) })} />
+      </label>
+      <label>{t('look.shadow_intensity')} <output>{percent('shadow_opacity')}%</output>
+        <input type="range" min="0" max="100" value={percent('shadow_opacity')} oninput={(e) => set({ shadow_opacity: Number(e.currentTarget.value) / 100 })} />
+      </label>
+    </div>
+  {/if}
   <label class="check"><input type="checkbox" checked={upper} onchange={(e) => set({ uppercase: e.currentTarget.checked })} /> {t('look.uppercase')}</label>
   <label class="check"><input type="checkbox" checked={box} onchange={(e) => set({ box: e.currentTarget.checked })} /> {t('look.box')}</label>
   {#if box}

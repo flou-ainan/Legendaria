@@ -47,7 +47,7 @@ ISOLATION = {
 }
 CHUNK = 1 << 20
 # Bumped when the editor needs something new from the server; the page compares it to warn about an old server.
-API_VERSION = 3
+API_VERSION = 4
 mimetypes.add_type("application/wasm", ".wasm")
 mimetypes.add_type("font/woff2", ".woff2")
 mimetypes.add_type("text/javascript", ".js")
@@ -111,6 +111,10 @@ class Session:
                 "color": rgb_hex(base["color"]),
                 "outline_color": rgb_hex(base["outline_color"]),
                 "outline": base["outline"],
+                "shadow": base["shadow"] or 4,
+                "shadow_on": bool(base["shadow"]),
+                "shadow_color": rgb_hex(base["shadow_color"]),
+                "shadow_opacity": base["shadow_color"][3] if len(base["shadow_color"]) > 3 else 1.0,
                 "box": bool(base["box"]),
                 "box_color": rgb_hex(base["box_color"]),
                 "box_opacity": base["box_color"][3] if len(base["box_color"]) > 3 else 1.0,

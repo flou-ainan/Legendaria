@@ -172,6 +172,19 @@ try {
   assert.match(preview, /}palavra0/, 'caps off keeps the text as typed')
   await page.getByRole('button', { name: /Subtitle look/ }).click()
 
+  // the shadow: colour, size and the on/off switch reach the preview
+  await page.getByRole('button', { name: /Subtitle look/ }).click()
+  await page.getByLabel('Shadow colour').fill('#ff00ff')
+  await page.locator('label', { hasText: 'Shadow size' }).locator('input').fill('9')
+  await page.waitForTimeout(1000)
+  const shadowed = (await page.evaluate(() => fetch('/api/preview.ass').then((r) => r.text()))).split('\n').find((l) => l.startsWith('Style: Default'))
+  assert.match(shadowed, /,&H[0-9A-F]{2}FF00FF,/, `shadow colour: ${shadowed}`)
+  assert.match(shadowed, /,3\.0,5,/, 'shadow size 9 px at 1080, scaled to this video')
+  await page.getByLabel('Shadow', { exact: true }).uncheck()
+  await page.waitForTimeout(1000)
+  assert.match((await page.evaluate(() => fetch('/api/preview.ass').then((r) => r.text()))).split('\n').find((l) => l.startsWith('Style: Default')), /,0\.0,5,/, 'shadow off')
+  await page.getByRole('button', { name: /Subtitle look/ }).click()
+
   // one subtitle's own style: select a block, choose "This subtitle", change its colour, then "Apply to all"
   await region(1).click({ position: { x: 20, y: 30 } })
   await page.getByRole('button', { name: /Subtitle look/ }).click()

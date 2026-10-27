@@ -154,7 +154,7 @@ Generated with `python3 tools/project_map.py <files>` and then reviewed. Regener
 - `engine/legendaria_engine/defaults/config.json`: engine defaults (`review`: mode suggest/auto, profile, glossary_bias, fuzzy_threshold 0.82, low_confidence 0.5, `llm` {enabled false (experimental), provider ollama, model, batch/context lines, max_change_ratio, unload_after}; model `small`, language `auto`, device `auto`, compute types, beam size, VAD, word timestamps, default `style`, cue `styles` (`pop`: one word at a time, two when the first has ≤ 3 letters, glued pieces like "-vindas" kept, gaps ≤ 0.35 s filled — the MVP default in Blender; `captions`: up to 4 words / 22 chars / 2.2 s; `subtitles`: film-style, up to 84 chars / 6 s, 2 lines of 42), output formats, UI language list; each style has an `ass` look block: font, size at 1080 px on the short side, RGBA colors, outline, shadow, box, position, uppercase, `animation` none/pop; `ffmpeg` path and `burn` encoder arguments, incl. `render_audio_args` for cut exports).
 - `engine/legendaria_engine/defaults/models.json`: model catalog (tiny, base, small, medium, large-v3, large-v3-turbo) with HF repo, size, VRAM, notes.
 - `engine/schemas/*.schema.json`: JSON Schemas for config (incl. styles), models, transcript v1, cues v1 and project v1 (ADR-016).
-- `engine/tests/`: `conftest.py` (isolated dirs, sample transcript), `test_cues.py` (chunking rules), `test_formats.py`, `test_schema.py`, `test_config.py`, `test_cli.py`, `test_transcriber.py` (GPU→CPU fallback with a fake run), `test_glossary.py`, `test_fix_rules.py`, `test_llm_review.py` (fake OpenAI-compatible server), `test_glossary_library.py`, `test_ass.py` (the `.ass` writer, export from edited cues, burn and overlay when FFmpeg is on PATH), `test_project.py` (kept ranges, remap incl. a random property test, project file + schema, a real cut + burn), `test_server.py` (`flosub serve` routes: state, Range, local-only guard, save, export SRT, preview `.ass`, peaks, review; starting without a video, browse, open/upload, glossary add/import/export). 135 tests, no network.
+- `engine/tests/`: `conftest.py` (isolated dirs, sample transcript), `test_cues.py` (chunking rules), `test_formats.py`, `test_schema.py`, `test_config.py`, `test_cli.py`, `test_transcriber.py` (GPU→CPU fallback with a fake run), `test_glossary.py`, `test_fix_rules.py`, `test_llm_review.py` (fake OpenAI-compatible server), `test_glossary_library.py`, `test_ass.py` (the `.ass` writer, export from edited cues, burn and overlay when FFmpeg is on PATH), `test_project.py` (kept ranges, remap incl. a random property test, project file + schema, a real cut + burn), `test_server.py` (`flosub serve` routes: state, Range, local-only guard, save, export SRT, preview `.ass`, peaks, review; starting without a video, browse, open/upload, glossary add/import/export). 136 tests, no network.
 - `engine/legendaria_engine/defaults/languages.json`: language codes for the transcribe form (a user copy in the config dir wins).
 
 **Glossary and review (plan 03):** glossary files are plain text (`Term` or `wrong -> right`). Sources, merged in order: the **active glossary of the library** (`<config dir>/glossaries/<name>.txt`, config `review.glossary`, `flosub glossary list|new|use|import|export|delete`; an old `glossary.txt` migrates to "default"), the project file `legendaria-glossary.txt` next to the media or transcript, and `--glossary FILE|NAME`. `transcribe` passes the terms to Whisper as `hotwords` (layer 1). `flosub review FILE.json` (or `transcribe --review`) finds explicit fixes and fuzzy matches of uncertain words (layer 2) and writes `<name>.review.json` (mode `suggest`) or applies them (`auto`). `flosub review apply FILE.review.json --ids …|--all [--format srt]` applies the chosen ones, re-timing the words. `flosub glossary path|show|add` is the base of every UI's "Add to glossary". **Layer 3 (stage 3b, EXPERIMENTAL, off by default):** `review --llm` sends batches (with context, uncertain words marked `[[…]]`) to any OpenAI-compatible server (`defaults/providers.json`: ollama, lmstudio, llamacpp, openai, gemini, anthropic, openrouter; keys from env vars) using the editable prompt `defaults/review_prompt.txt` (user copy in the config dir wins); the model returns only changed lines, which are diffed word by word and kept only if the guard allows (accent-only fixes, or similar-sounding changes of uncertain words / to glossary terms; never deletions). `flosub llm check|providers`. Config `review.profile` (light/standard = no LLM) and `review.llm.enabled: auto` degrade gracefully when no server answers.
@@ -189,7 +189,7 @@ Layout (step 33): a header, the video with a tool row under it (play, in, out, c
 | `components/Browse.svelte` | 77 | File browser dialog over the computer running the server (`/api/browse`), with an editable folder path. |
 | `components/Transcribe.svelte` | 80 | Drop-down lists for model (shows size and whether it is downloaded), language and style; runs the transcribe job with progress. |
 | `components/Player.svelte` | 124 | `<video>` + JASSUB (font preloaded, repaint on paused seeks); a `requestVideoFrameCallback` loop skips cut parts and tracks the current cue without reactive state at frame rate; keyboard shortcuts from `lib/shortcuts.json`. |
-| `components/LookMenu.svelte` | 109 | Look menu: Top / Bottom, height, size, font, colours, outline, rounded rectangle, caps, reset; for the whole track or, with a block selected, \"This subtitle\" plus \"Apply to all\" (ADR-019, ADR-022). |
+| `components/LookMenu.svelte` | 123 | Look menu: Top / Bottom, height, size, font, colours, outline, shadow, rounded rectangle, caps, reset; for the whole track or, with a block selected, \"This subtitle\" plus \"Apply to all\" (ADR-019, ADR-022). |
 | `components/Toolbar.svelte` | 67 | The tool row under the video: Undo, Redo first, then contextual tools (at most 5: Play, In, Out, Cut, Look; with a block selected: Play, Split, Merge, Delete, Look) and Snap; one sliding row on narrow screens. |
 | `components/Icon.svelte`, `lib/icons.ts` | 8, 20 | Solar Linear icons (ADR-020): `icons.ts` holds the SVG paths, `Icon` draws one by name in the text colour. |
 | `components/Inspector.svelte` | 44 | Edits the selected block's text (Esc leaves the box) and its start/end; shown only while a block is selected. |
@@ -216,21 +216,21 @@ Legendária transcription engine.
 ### engine/legendaria_engine/__main__.py — 5 lines
 Allow `python -m legendaria_engine`.
 
-### engine/legendaria_engine/ass.py — 220 lines
+### engine/legendaria_engine/ass.py — 230 lines
 Styled subtitles: cues → Advanced SubStation Alpha (`.ass`), rendered by libass (ADR-012).
 
 | Function / class | Line | What it does |
 |---|---|---|
-| `with_look(base, override)` | 41 | The style's look with the project's overrides: `font`, `size` (multiplies font, outline and shadow), `y`, colours, `outline`, `box` (+ colour, opacity, padding, radius) and `uppercase`. |
-| `hex_rgb(value)` | 74 | `#rrggbb` → RGB floats (0 to 1). |
-| `rgb_hex(rgba)` | 79 | RGB floats (0 to 1) → `#rrggbb`. |
-| `ass_color(rgba)` | 84 | RGBA floats (0 to 1) → `&HAABBGGRR` (ASS alpha 00 is opaque). |
-| `ass_time(seconds)` | 91 | `H:MM:SS.cc` (centiseconds). |
-| `escape(text)` | 100 | Cue text → ASS text: no override braces or backslashes; line breaks become `\N`. |
-| `animation_tags(animation)` | 106 | Override tags for the cue's entrance (`pop`: scale from → peak → 100 %). |
-| `box_shape(text, style, font_size)` | 120 | An ASS drawing of the rounded rectangle behind `text` (one or more lines) at `font_size`. |
-| `style_fields(style, width, scale)` | 134 | The values of an ASS `Style:` line (without its name) for a resolved look. |
-| `to_ass(cues, look, size, line_length)` | 163 | The whole `.ass` file for these cues, drawn on a `size` (width, height) canvas. |
+| `with_look(base, override)` | 41 | The style's look with the project's overrides: `font`, `size` (multiplies font, outline and shadow), `y`, colours, `outline`, `shadow` (+ colour, opacity, on/off), `box` (+ colour, opacity, padding, radius) and `uppercase`. |
+| `hex_rgb(value)` | 84 | `#rrggbb` → RGB floats (0 to 1). |
+| `rgb_hex(rgba)` | 89 | RGB floats (0 to 1) → `#rrggbb`. |
+| `ass_color(rgba)` | 94 | RGBA floats (0 to 1) → `&HAABBGGRR` (ASS alpha 00 is opaque). |
+| `ass_time(seconds)` | 101 | `H:MM:SS.cc` (centiseconds). |
+| `escape(text)` | 110 | Cue text → ASS text: no override braces or backslashes; line breaks become `\N`. |
+| `animation_tags(animation)` | 116 | Override tags for the cue's entrance (`pop`: scale from → peak → 100 %). |
+| `box_shape(text, style, font_size)` | 130 | An ASS drawing of the rounded rectangle behind `text` (one or more lines) at `font_size`. |
+| `style_fields(style, width, scale)` | 144 | The values of an ASS `Style:` line (without its name) for a resolved look. |
+| `to_ass(cues, look, size, line_length)` | 173 | The whole `.ass` file for these cues, drawn on a `size` (width, height) canvas. |
 
 ### engine/legendaria_engine/cli.py — 803 lines
 `flosub` command line: transcribe, export, review, glossary, burn, overlay, serve, models, config.
@@ -379,7 +379,7 @@ Per-OS locations for user config, data and models.
 | `models_dir()` | 35 | Where downloaded models live: `<data dir>/models`. |
 | `defaults_dir()` | 40 | Shipped default JSON files inside the package. |
 
-### engine/legendaria_engine/project.py — 241 lines
+### engine/legendaria_engine/project.py — 243 lines
 Project file: the web editor's document, `<video>.legendaria.json` (ADR-016).
 
 | Function / class | Line | What it does |
@@ -398,7 +398,7 @@ Project file: the web editor's document, `<video>.legendaria.json` (ADR-016).
 | `Project.from_dict(data)` | 141 | Validate and build; ranges are normalized, cues sorted by start. |
 | `Project.load(path)` | 181 | Read a project file. |
 | `Project.save(path)` | 189 | Write atomically (temp file + rename), so a crash never leaves half a project. |
-| `clean_look(raw)` | 209 | The project's look overrides, validated: `font` (family), `size` (multiplier), `y` (0 bottom to 1 top), colours (`#rrggbb`), `outline` and box numbers (LOOK_NUMBERS), `box` and `uppercase` (bool). |
+| `clean_look(raw)` | 211 | The project's look overrides, validated: `font` (family), `size` (multiplier), `y` (0 bottom to 1 top), colours (`#rrggbb`), `outline` and box numbers (LOOK_NUMBERS), `box` and `uppercase` (bool). |
 
 ### engine/legendaria_engine/schema.py — 115 lines
 Transcript format (JSON v1): the contract between the engine and the Blender add-on.
@@ -414,7 +414,7 @@ Transcript format (JSON v1): the contract between the engine and the Blender add
 | `Transcript.save(path)` | 108 | Write as pretty UTF-8 JSON. |
 | `Transcript.load(path)` | 113 | Read a transcript JSON file. |
 
-### engine/legendaria_engine/server.py — 591 lines
+### engine/legendaria_engine/server.py — 595 lines
 `flosub serve`: the local web editor's backend (plan 07, ADR-014).
 
 | Function / class | Line | What it does |
@@ -425,22 +425,22 @@ Transcript format (JSON v1): the contract between the engine and the Blender add
 | `class Session` | 82 | One video being edited: its project file, config and running jobs. |
 | `Session.project()` | 94 | The saved project, or None before the first transcription. |
 | `Session.state()` | 98 | Everything the editor needs on load. |
-| `Session.peaks()` | 127 | Waveform peaks (100 per second), computed once per session. |
-| `Session.review()` | 137 | Glossary suggestions (layer 2, no AI) for the saved cues, as the editor shows them. |
-| `Session.look(style)` | 177 | The style's `.ass` look from the config (empty if unknown). |
-| `Session.size()` | 181 | The video's (width, height) for the `.ass` canvas. |
-| `Session.ass_text(cues, style, override)` | 185 | `.ass` for these cues in the style's look (plus the project's `look` overrides), on the video's canvas. |
-| `Session.start(kind, work)` | 191 | Run `work(job)` in a thread; only one job at a time. |
-| `Session.transcribe(job, options)` | 208 | Run `flosub transcribe` in a child process (it may re-exec for CUDA), relay events. |
-| `Session.export(job, fmt)` | 256 | Write the edited video (`mp4`) or subtitles (`srt`, `vtt`, `ass`) next to the source. |
-| `class Handler` | 285 | Routes for the editor. `self.server.session` is the open video. |
-| `Handler.session()` | 292 | The open video's session (routes that need one are guarded by `_ready`). |
-| `Handler.log_message(format, *args)` | 303 | Quiet: only errors are printed. |
-| `Handler.do_GET()` | 338 | Static app, state, media, font, preview `.ass` and job events. |
-| `Handler.do_PUT()` | 391 | Save the project (validated and normalized); returns what was saved. |
-| `Handler.do_POST()` | 406 | Start a job: `/api/transcribe` {model, language, style} or `/api/export` {format}. |
-| `make_server(video, port, config)` | 569 | A server on 127.0.0.1 (`port` 0 picks a free one), with `video` open if given. |
-| `serve(video, port, open_browser, reporter)` | 580 | Run the editor until Ctrl+C (the browser asks for a video when none is given). |
+| `Session.peaks()` | 131 | Waveform peaks (100 per second), computed once per session. |
+| `Session.review()` | 141 | Glossary suggestions (layer 2, no AI) for the saved cues, as the editor shows them. |
+| `Session.look(style)` | 181 | The style's `.ass` look from the config (empty if unknown). |
+| `Session.size()` | 185 | The video's (width, height) for the `.ass` canvas. |
+| `Session.ass_text(cues, style, override)` | 189 | `.ass` for these cues in the style's look (plus the project's `look` overrides), on the video's canvas. |
+| `Session.start(kind, work)` | 195 | Run `work(job)` in a thread; only one job at a time. |
+| `Session.transcribe(job, options)` | 212 | Run `flosub transcribe` in a child process (it may re-exec for CUDA), relay events. |
+| `Session.export(job, fmt)` | 260 | Write the edited video (`mp4`) or subtitles (`srt`, `vtt`, `ass`) next to the source. |
+| `class Handler` | 289 | Routes for the editor. `self.server.session` is the open video. |
+| `Handler.session()` | 296 | The open video's session (routes that need one are guarded by `_ready`). |
+| `Handler.log_message(format, *args)` | 307 | Quiet: only errors are printed. |
+| `Handler.do_GET()` | 342 | Static app, state, media, font, preview `.ass` and job events. |
+| `Handler.do_PUT()` | 395 | Save the project (validated and normalized); returns what was saved. |
+| `Handler.do_POST()` | 410 | Start a job: `/api/transcribe` {model, language, style} or `/api/export` {format}. |
+| `make_server(video, port, config)` | 573 | A server on 127.0.0.1 (`port` 0 picks a free one), with `video` open if given. |
+| `serve(video, port, open_browser, reporter)` | 584 | Run the editor until Ctrl+C (the browser asks for a video when none is given). |
 
 ### engine/legendaria_engine/transcriber.py — 145 lines
 Speech-to-text. A small backend interface keeps room for other engines (e.g. Apple Silicon).

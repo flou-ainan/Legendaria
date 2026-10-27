@@ -20,6 +20,7 @@ export type Project = {
 /** `size` multiplies the style's font size; `y` is the text centre's height above the bottom (0 to 1). */
 export type Look = {
   font?: string; size?: number; y?: number; color?: string; outline_color?: string; outline?: number; uppercase?: boolean
+  shadow?: number; shadow_on?: boolean; shadow_color?: string; shadow_opacity?: number
   box?: boolean; box_color?: string; box_opacity?: number; box_padding_x?: number; box_padding_y?: number; box_radius?: number
 }
 /** What the style itself sets, for the Look menu (every override has a value here). */
@@ -72,7 +73,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
 }
 
 /** The server API this page was built for (server.py API_VERSION); a different one means `flosub serve` is older. */
-export const API_VERSION = 3
+export const API_VERSION = 4
 
 export const loadState = () => request<State>('GET', '/api/state')
 

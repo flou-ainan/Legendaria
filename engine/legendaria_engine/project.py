@@ -199,6 +199,8 @@ LOOK_SIZE = (0.3, 3.0)
 # more look numbers and their ranges: outline in px at 1080; box values as fractions of the font size
 LOOK_NUMBERS = (
     ("outline", 0.0, 20.0),
+    ("shadow", 0.0, 20.0),
+    ("shadow_opacity", 0.0, 1.0),
     ("box_opacity", 0.0, 1.0),
     ("box_padding_x", 0.0, 2.0),
     ("box_padding_y", 0.0, 1.0),
@@ -220,10 +222,10 @@ def clean_look(raw: Any) -> dict[str, Any]:
     for key, low, high in LOOK_NUMBERS:
         if isinstance(raw.get(key), int | float) and not isinstance(raw[key], bool):
             look[key] = min(max(float(raw[key]), low), high)
-    for key in ("color", "outline_color", "box_color"):
+    for key in ("color", "outline_color", "box_color", "shadow_color"):
         if isinstance(raw.get(key), str) and HEX_COLOR.fullmatch(raw[key]):
             look[key] = raw[key].lower()
-    for key in ("box", "uppercase"):
+    for key in ("box", "uppercase", "shadow_on"):
         if isinstance(raw.get(key), bool):
             look[key] = raw[key]
     return look

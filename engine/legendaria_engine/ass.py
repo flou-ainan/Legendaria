@@ -39,13 +39,14 @@ DEFAULT_LOOK: dict[str, Any] = {
 
 
 def with_look(base: dict[str, Any] | None, override: dict[str, Any] | None) -> dict[str, Any]:
-    """The style's look with the project's overrides: `font`, `size` (multiplies font, outline and shadow), `y`, colours, `outline`, `box` (+ colour, opacity, padding, radius) and `uppercase`."""
+    """The style's look with the project's overrides: `font`, `size` (multiplies font, outline and shadow), `y`, colours, `outline`, `shadow` (+ colour, opacity, on/off), `box` (+ colour, opacity, padding, radius) and `uppercase`."""
     look = {**DEFAULT_LOOK, **(base or {})}
     override = override or {}
     if "font" in override:
         look["font"] = override["font"]
-    if "outline" in override:
-        look["outline"] = override["outline"]
+    for key in ("outline", "shadow"):
+        if key in override:
+            look[key] = override[key]
     if "size" in override:
         for key in ("font_size", "outline", "shadow"):
             look[key] = look[key] * override["size"]
@@ -55,9 +56,12 @@ def with_look(base: dict[str, Any] | None, override: dict[str, Any] | None) -> d
         "color",
         "outline_color",
         "box_color",
+        "shadow_color",
     ):  # `#rrggbb` in the project; the style's alpha stays
         if key in override:
             look[key] = [*hex_rgb(override[key]), look[key][3] if len(look[key]) > 3 else 1.0]
+    if "shadow_opacity" in override:
+        look["shadow_color"] = [*look["shadow_color"][:3], override["shadow_opacity"]]
     if "box_opacity" in override:
         look["box_color"] = [*look["box_color"][:3], override["box_opacity"]]
     if "box_padding_x" in override or "box_padding_y" in override:
@@ -68,6 +72,12 @@ def with_look(base: dict[str, Any] | None, override: dict[str, Any] | None) -> d
     for key in ("box", "uppercase"):
         if key in override:
             look[key] = bool(override[key])
+    if (
+        override.get("shadow_on") is False
+    ):  # the switch keeps the shadow's size and colour for when it is turned on again
+        look["shadow"] = 0
+    elif override.get("shadow_on") and not look["shadow"]:
+        look["shadow"] = override.get("shadow") or 4
     return look
 
 
