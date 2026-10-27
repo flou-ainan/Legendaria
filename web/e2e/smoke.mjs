@@ -151,6 +151,18 @@ try {
   const looked = await project()
   assert.deepEqual(looked.look, { y: 0.88, font: 'Anton' })
   assert.match(await page.evaluate(() => fetch('/api/preview.ass').then((r) => r.text())), /Style: Default,Anton,/)
+  // colours, the rectangle and ALL CAPS (on in the pop style) reach the preview too
+  await page.getByLabel('Text colour').fill('#ff0000')
+  await page.getByLabel('Outline colour').fill('#00ff00')
+  await page.getByLabel('Rectangle behind the text').check()
+  assert.equal(await page.getByLabel('ALL CAPS').isChecked(), true, 'pop is in caps by default')
+  await page.getByLabel('ALL CAPS').uncheck()
+  await page.waitForTimeout(1000)
+  const preview = await page.evaluate(() => fetch('/api/preview.ass').then((r) => r.text()))
+  const style = preview.split('\n').find((l) => l.startsWith('Style:'))
+  assert.match(style, /,&H000000FF,&H000000FF,/, `text colour in the style: ${style}`)
+  assert.match(style, /,3,[\d.]+,[\d.]+,5,/, 'BorderStyle 3 draws the rectangle')
+  assert.match(preview, /}palavra0/, 'caps off keeps the text as typed')
   await page.getByRole('button', { name: /Subtitle look/ }).click()
 
   // the timeline must not flicker while a drawer tab is open and the video plays (it once re-rendered forever)

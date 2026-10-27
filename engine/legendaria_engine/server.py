@@ -47,6 +47,8 @@ ISOLATION = {
     "Cross-Origin-Resource-Policy": "same-origin",
 }
 CHUNK = 1 << 20
+# Bumped when the editor needs something new from the server; the page compares it to warn about an old server.
+API_VERSION = 2
 mimetypes.add_type("application/wasm", ".wasm")
 mimetypes.add_type("font/woff2", ".woff2")
 mimetypes.add_type("text/javascript", ".js")
@@ -99,6 +101,7 @@ class Session:
         project = self.project()
         base = with_look(self.look(project.style if project else self.config["style"]), None)
         return {
+            "api": API_VERSION,
             "video": self.video.name,
             "path": str(self.video),
             "font": (project.look.get("font") if project else None) or base["font"],
@@ -351,7 +354,9 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if path == "/api/state":
                 if self.session is None:
-                    return self._json({"video": None, **workspace.options(self.server.config)})
+                    return self._json(
+                        {"api": API_VERSION, "video": None, **workspace.options(self.server.config)}
+                    )
                 return self._json(self.session.state())
             if path == "/api/browse":
                 return self._json(workspace.browse((query.get("path") or [None])[0]))

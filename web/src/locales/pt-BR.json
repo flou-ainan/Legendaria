@@ -119,6 +119,8 @@
   "look.outline": "Cor do contorno",
   "look.box": "Fundo retangular atrás do texto",
   "look.uppercase": "TUDO EM MAIÚSCULAS",
+  "look.heading": "Editar legendas globalmente",
+  "server_outdated": "Esta página é mais nova que o servidor em execução. Pare o flosub serve (Ctrl+C) e inicie de novo, senão algumas mudanças não serão salvas.",
   "look.top": "Topo",
   "look.bottom": "Fundo",
   "look.reset": "Restaurar",

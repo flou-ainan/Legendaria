@@ -34,6 +34,7 @@ export type Options = {
 
 /** What the editor needs on load. `video` is null until a file is opened. */
 export type State = Options & {
+  api?: number
   video: string | null
   path?: string // full path of the open video (to reopen it after a restart)
   font: string // family name of the font in use, served by /api/font
@@ -64,6 +65,9 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
   if (!response.ok) throw new Error(data.error ?? response.statusText)
   return data as T
 }
+
+/** The server API this page was built for (server.py API_VERSION); a different one means `flosub serve` is older. */
+export const API_VERSION = 2
 
 export const loadState = () => request<State>('GET', '/api/state')
 

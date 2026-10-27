@@ -17,6 +17,7 @@
 </script>
 
 <div class="look" role="group" aria-label={t('look.title')}>
+  <p class="heading">{t('look.heading')}</p>
   <div class="row presets">
     <button onclick={() => editor.setLook({ y: TOP })} class:on={Math.abs(y - TOP) < 0.005}>⤒ {t('look.top')}</button>
     <button onclick={() => editor.setLook({ y: BOTTOM })} class:on={Math.abs(y - BOTTOM) < 0.005}>⤓ {t('look.bottom')}</button>
@@ -48,6 +49,7 @@
 
 <style>
   .look { display: grid; gap: 0.7rem; min-width: min(18rem, 80vw); }
+  .heading { margin: 0; font-size: 0.85rem; color: var(--text); }
   .row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
   .row button { flex: 1; }
   .row .on { background: var(--accent); color: #15131c; }

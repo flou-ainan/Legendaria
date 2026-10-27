@@ -10,7 +10,7 @@
   import Timeline from './components/Timeline.svelte'
   import Transcribe from './components/Transcribe.svelte'
   import Welcome from './components/Welcome.svelte'
-  import { loadState, openVideo, type State } from './lib/api'
+  import { API_VERSION, loadState, openVideo, type State } from './lib/api'
   import { editor } from './lib/editor.svelte'
   import { t } from './lib/i18n'
   import { ui } from './lib/ui.svelte'
@@ -72,6 +72,10 @@
   )
 </script>
 
+{#if info && info.api !== API_VERSION}
+  <p class="error outdated">{t('server_outdated')}</p>
+{/if}
+
 {#if failure}
   <p class="error center">{t('server_error', { message: failure })}</p>
 {:else if !info}
@@ -127,6 +131,7 @@
   main.drawer { grid-template-columns: minmax(0, 1fr) 25rem; }
   main.drawer :global(aside) { grid-column: 2; grid-row: 1 / span 2; max-height: calc(100vh - 6rem); position: sticky; top: 0.8rem; }
   .lower { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; gap: 0.8rem; background: var(--panel); border-radius: 10px; padding: 0.8rem; }
+  .outdated { margin: 0; padding: 0.5rem 1rem; background: var(--cut); color: #fff; }
   .center { text-align: center; margin-top: 30vh; }
   @media (max-width: 900px) {
     main.drawer { grid-template-columns: minmax(0, 1fr); }
