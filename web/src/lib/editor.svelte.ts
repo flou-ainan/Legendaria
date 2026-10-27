@@ -4,11 +4,12 @@
 // (ADR-015 player rule); only the index of the cue under the playhead is.
 import { previewAss, saveProject, type Cue, type FontEntry, type Look, type Project, type Suggestion } from './api'
 import { remember, type VideoInfo } from './recovery'
+import { settings } from './settings'
 import { removeRange, restoreRange, type Range } from './timeline'
 
-const GROUP_MS = 800 // edits of the same thing within this window undo together (OpenReel pattern)
-const SAVE_MS = 400
-const HISTORY = 200
+const GROUP_MS = settings.undoGroupMs // edits of the same thing within this window undo together (OpenReel pattern)
+const SAVE_MS = settings.autosaveMs
+const HISTORY = settings.undoSteps
 
 class Editor {
   project = $state<Project | null>(null)

@@ -67,15 +67,17 @@ try {
   await region(3).click({ position: { x: 20, y: 30 } })
   await page.waitForTimeout(300)
   box = await region(3).boundingBox()
+  const near = (await region(4).boundingBox()).x + 1 // 3 px before the next block's start: inside the 4 px magnet
+  const reach = near - (box.x + box.width - 2)
   await page.mouse.move(box.x + box.width - 2, box.y + box.height / 2)
-  await page.mouse.down(); await page.mouse.move(box.x + box.width + 18, box.y + box.height / 2, { steps: 8 })
+  await page.mouse.down(); await page.mouse.move(box.x + box.width - 2 + reach, box.y + box.height / 2, { steps: 8 })
   assert.equal(await page.locator('[part~="guide"]').count(), 1, 'a guide line shows while snapping')
   // the magnet lets go: moving the pointer well away makes the edge follow it again
   await page.mouse.move(box.x + box.width + 120, box.y + box.height / 2, { steps: 8 })
   assert.equal(await page.locator('[part~="guide"]').count(), 0, 'the guide goes away once the pointer leaves')
   const far = await region(3).boundingBox()
   assert.ok(far.x + far.width > box.x + box.width + 100, 'the edge follows the pointer after leaving the magnet')
-  await page.mouse.move(box.x + box.width + 18, box.y + box.height / 2, { steps: 8 }) // back to the magnet
+  await page.mouse.move(box.x + box.width - 2 + reach, box.y + box.height / 2, { steps: 8 }) // back to the magnet
   assert.equal(await page.locator('[part~="guide"]').count(), 1)
   await page.mouse.up()
   await page.waitForTimeout(1000)
@@ -89,8 +91,9 @@ try {
   await region(5).click({ position: { x: 20, y: 30 } })
   await page.waitForTimeout(300)
   const b5 = await region(5).boundingBox()
+  const reach5 = (await region(6).boundingBox()).x + 1 - (b5.x + b5.width - 2)
   await page.mouse.move(b5.x + b5.width - 2, b5.y + b5.height / 2)
-  await page.mouse.down(); await page.mouse.move(b5.x + b5.width + 18, b5.y + b5.height / 2, { steps: 8 })
+  await page.mouse.down(); await page.mouse.move(b5.x + b5.width - 2 + reach5, b5.y + b5.height / 2, { steps: 8 })
   assert.equal(await page.locator('[part~="guide"]').count(), 0, 'no guide with the magnet off')
   await page.mouse.up()
   await page.waitForTimeout(800)
@@ -141,14 +144,14 @@ try {
   assert.equal(reviewed.cues[5].text, 'Quinta'); assert.equal(reviewed.cues[7].text, 'Sétima')
 
   // the Look menu: Top preset, a bundled font; both reach the project and the preview `.ass`
-  await page.getByRole('button', { name: /Look/ }).click()
+  await page.getByRole('button', { name: /Subtitle look/ }).click()
   await page.getByRole('button', { name: /Top/ }).click()
   await page.getByLabel('Font').selectOption('Anton')
   await page.waitForTimeout(1000)
   const looked = await project()
   assert.deepEqual(looked.look, { y: 0.88, font: 'Anton' })
   assert.match(await page.evaluate(() => fetch('/api/preview.ass').then((r) => r.text())), /Style: Default,Anton,/)
-  await page.getByRole('button', { name: /Look/ }).click()
+  await page.getByRole('button', { name: /Subtitle look/ }).click()
 
   // the timeline must not flicker while a drawer tab is open and the video plays (it once re-rendered forever)
   await page.getByRole('button', { name: 'Subtitles' }).first().click()
@@ -175,9 +178,9 @@ try {
     await page.screenshot({ path: join(process.env.E2E_SHOTS, 'narrow.png') })
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: '✕' }).click() // the drawer is a bottom sheet here
-    await page.getByRole('button', { name: /Look/ }).click()
+    await page.getByRole('button', { name: /Subtitle look/ }).click()
     await page.screenshot({ path: join(process.env.E2E_SHOTS, 'narrow-look.png') })
-    await page.getByRole('button', { name: /Look/ }).click()
+    await page.getByRole('button', { name: /Subtitle look/ }).click()
     await page.setViewportSize({ width: 1400, height: 1000 })
   }
 
@@ -190,6 +193,39 @@ try {
     }
   }))
   assert.equal(kept.name, 'clip.webm'); assert.ok(kept.cues > 0 && kept.dirty === false)
+
+  // the arrow on the playhead: dragging it seeks
+  const arrow = page.locator('.cursor > div').first()
+  const arrowBox = await arrow.boundingBox()
+  const t0 = await page.evaluate(() => document.querySelector('video').currentTime)
+  await page.mouse.move(arrowBox.x + 10, arrowBox.y + 6)
+  await page.mouse.down(); await page.mouse.move(arrowBox.x + 130, arrowBox.y + 6, { steps: 6 }); await page.mouse.up()
+  const t1 = await page.evaluate(() => document.querySelector('video').currentTime)
+  assert.ok(t1 - t0 > 0.3, `dragging the arrow seeks (${t0} -> ${t1})`)
+
+  // touch screens: the playhead stays in the centre, the timeline slides, and swiping it seeks
+  const touch = await browser.newPage({ viewport: { width: 390, height: 800 }, hasTouch: true, isMobile: true, locale: 'en-US' })
+  await touch.goto(base)
+  await touch.locator('[part~="c3"]').first().waitFor({ timeout: 15000 })
+  const geometry = () => touch.evaluate(() => {
+    const wrapper = document.querySelector('.wave > div').shadowRoot.querySelector('.wrapper')
+    const scroll = wrapper.parentElement
+    return { margin: parseFloat(wrapper.style.marginLeft), left: scroll.scrollLeft, view: scroll.clientWidth, time: document.querySelector('video').currentTime }
+  })
+  let g = await geometry()
+  assert.ok(Math.abs(g.margin - g.view / 2) < 2, 'empty space before the start, half a screen')
+  await touch.evaluate(() => (document.querySelector('video').currentTime = 3))
+  await touch.waitForTimeout(300)
+  g = await geometry()
+  assert.ok(g.left > 100, `the timeline scrolls to keep the playhead centred (${g.left})`)
+  await touch.evaluate(() => {
+    const scroll = document.querySelector('.wave > div').shadowRoot.querySelector('.wrapper').parentElement
+    scroll.scrollLeft = 60
+  })
+  await touch.waitForTimeout(300)
+  g = await geometry()
+  assert.ok(g.time < 2, `swiping the timeline seeks (${g.time})`)
+  await touch.close()
 
   // export SRT
   await page.getByRole('button', { name: 'Export' }).first().click()

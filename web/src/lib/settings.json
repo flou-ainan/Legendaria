@@ -1,0 +1,16 @@
+{
+  "_comment": "Editor settings. 'basic' is meant for the future Settings screen; 'advanced' sits behind its Advanced tab. Edit the values here until then.",
+  "basic": {
+    "playhead": "auto",
+    "_playhead": "auto: a draggable arrow on a pointer device, a fixed centre line on a touch screen. Or force 'arrow' or 'center'."
+  },
+  "advanced": {
+    "snapPx": 4,
+    "_snapPx": "How close (in screen pixels) an edge must be to a target for the magnet to take it.",
+    "autosaveMs": 400,
+    "undoGroupMs": 800,
+    "undoSteps": 200,
+    "zoomStartPxPerSec": 60,
+    "zoomMaxPxPerSec": 1000
+  }
+}

@@ -1,7 +1,9 @@
 <script lang="ts">
   // The timeline: waveform (peaks from the server), one draggable region per cue, the cuts and
   // the in/out mark. wavesurfer.js draws it and follows the <video>. Ctrl + wheel zooms around
-  // the pointer; edges snap to nearby cue edges, words, cuts and the playhead (8 px).
+  // the pointer; edges snap to nearby cue edges, words, cuts and the playhead (settings.json: snapPx).
+  // The playhead has two modes: a draggable arrow on the line (pointer devices), or fixed in the centre while
+  // the timeline scrolls under it, with empty space before the start (touch screens).
   import WaveSurfer from 'wavesurfer.js'
   import RegionsPlugin, { type Region } from 'wavesurfer.js/dist/plugins/regions.esm.js'
   import TimelinePlugin from 'wavesurfer.js/dist/plugins/timeline.esm.js'
@@ -11,9 +13,12 @@
   import { t } from '../lib/i18n'
   import { player } from '../lib/player'
   import { cutsOf, snap, snapPoints } from '../lib/timeline'
+  import { settings } from '../lib/settings'
   import { ui } from '../lib/ui.svelte'
 
-  const SNAP_PX = 8
+  const SNAP_PX = settings.snapPx
+  // touch screens: the playhead stays in the centre and the timeline slides under it (like mobile editors)
+  const center = settings.playhead === 'center' || (settings.playhead === 'auto' && matchMedia('(pointer: coarse)').matches)
   const COLOR = 'rgba(110, 86, 207, 0.55)'
   const CURRENT = 'rgba(255, 210, 63, 0.6)'
   const SELECTED = 'rgba(160, 135, 255, 0.85)'
@@ -36,10 +41,61 @@
 
   const project = $derived(editor.project!)
 
+  let frame = 0
+  let sizeWatch: ResizeObserver | undefined
+  let scroller: HTMLElement
+  let setScrollTo = 0 // the scroll position we set ourselves, to tell it from the user's swipe
+
+  /** The arrow on the playhead (drag it to seek) or, on touch screens, the centred playhead that follows the swipe. */
+  function setupPlayhead() {
+    const wrapper = ws!.getWrapper()
+    scroller = wrapper.parentElement!
+    const cursor = wrapper.querySelector<HTMLElement>('.cursor')
+    const arrow = document.createElement('div')
+    arrow.style.cssText = 'position:absolute;top:0;left:-9px;width:20px;height:16px;background:#ffd23f;clip-path:polygon(0 0,100% 0,50% 100%);touch-action:none;' +
+      (center ? '' : 'pointer-events:auto;cursor:ew-resize;')
+    cursor?.appendChild(arrow)
+    if (center) {
+      const layout = () => {
+        wrapper.style.marginLeft = wrapper.style.marginRight = `${container.clientWidth / 2}px`
+      }
+      layout()
+      sizeWatch = new ResizeObserver(layout)
+      sizeWatch.observe(container)
+      const follow = () => {
+        const want = Math.max(0, player.time() * pxPerSec)
+        if (Math.abs(scroller.scrollLeft - want) > 0.5) scroller.scrollLeft = setScrollTo = want
+        frame = requestAnimationFrame(follow)
+      }
+      follow()
+      scroller.addEventListener('scroll', () => {
+        if (Math.abs(scroller.scrollLeft - setScrollTo) > 1.5) player.seek(scroller.scrollLeft / pxPerSec) // the user swiped
+      })
+    } else {
+      arrow.addEventListener('pointerdown', (event) => {
+        event.stopPropagation()
+        arrow.setPointerCapture(event.pointerId)
+        const move = (e: PointerEvent) => {
+          const box = scroller.getBoundingClientRect()
+          if (e.clientX > box.right - 24) scroller.scrollLeft += 14 // near an edge: keep the timeline moving
+          else if (e.clientX < box.left + 24) scroller.scrollLeft -= 14
+          const at = (e.clientX - wrapper.getBoundingClientRect().left) / pxPerSec
+          player.seek(Math.min(project.duration, Math.max(0, at)))
+        }
+        const stop = () => {
+          arrow.removeEventListener('pointermove', move)
+          arrow.removeEventListener('pointerup', stop)
+        }
+        arrow.addEventListener('pointermove', move)
+        arrow.addEventListener('pointerup', stop)
+      })
+    }
+  }
+
   onMount(async () => {
     const peaks = await loadPeaks()
     minPx = Math.max(1, container.clientWidth / peaks.duration)
-    pxPerSec = Math.max(minPx, 60)
+    pxPerSec = Math.max(minPx, settings.zoomStartPxPerSec)
     regions = RegionsPlugin.create()
     ws = WaveSurfer.create({
       container,
@@ -48,7 +104,10 @@
       minPxPerSec: pxPerSec,
       waveColor: '#5fa57a',
       progressColor: '#8fd3a8',
-      cursorColor: '#ffffff',
+      cursorColor: '#ffd23f',
+      cursorWidth: 2,
+      autoCenter: !center,
+      autoScroll: !center,
       peaks: [peaks.peaks],
       duration: peaks.duration,
       plugins: [regions, TimelinePlugin.create()],
@@ -72,9 +131,12 @@
     container.addEventListener('wheel', onWheel, { passive: false })
     await new Promise<void>((done) => ws!.once('ready', () => done()))
     ready = true
+    setupPlayhead()
   })
 
   onDestroy(() => {
+    cancelAnimationFrame(frame)
+    sizeWatch?.disconnect()
     container?.removeEventListener('wheel', onWheel)
     ws?.destroy()
   })
@@ -211,9 +273,9 @@
     if (!ws) return
     const x = anchorX ?? container.clientWidth / 2
     const timeAt = (ws.getScroll() + x) / pxPerSec
-    pxPerSec = Math.min(1000, Math.max(minPx, px))
+    pxPerSec = Math.min(settings.zoomMaxPxPerSec, Math.max(minPx, px))
     ws.zoom(pxPerSec)
-    ws.setScroll(Math.max(0, timeAt * pxPerSec - x))
+    if (!center) ws.setScroll(Math.max(0, timeAt * pxPerSec - x)) // centred mode follows the playhead instead
   }
 
   function onWheel(event: WheelEvent) {

@@ -82,6 +82,7 @@ engine/ (`flosub`) ── faster-whisper (GPU → CPU fallback) ──► transc
 | [018](dev-docs/decisions/ADR-018-local-recovery-and-relink.md) | Local recovery copy (IndexedDB) and relinking a moved video | accepted |
 | [019](dev-docs/decisions/ADR-019-subtitle-look-and-bundled-fonts.md) | Subtitle look overrides in the project (`look`) and bundled open-licence fonts | accepted |
 | [020](dev-docs/decisions/ADR-020-solar-icons.md) | Solar Linear icons (CC BY 4.0), copied one by one into `lib/icons.ts` | accepted |
+| [021](dev-docs/decisions/ADR-021-playhead-modes-and-settings.md) | Two playhead modes (draggable arrow / centred line) and `settings.json` | accepted |
 
 ## 5. Folder structure
 
@@ -188,17 +189,18 @@ Layout (step 33): a header, the video with a tool row under it (play, in, out, c
 | `components/Transcribe.svelte` | 74 | Drop-down lists for model (shows size and whether it is downloaded), language and style; runs the transcribe job with progress. |
 | `components/Player.svelte` | 124 | `<video>` + JASSUB (font preloaded, repaint on paused seeks); a `requestVideoFrameCallback` loop skips cut parts and tracks the current cue without reactive state at frame rate; keyboard shortcuts from `lib/shortcuts.json`. |
 | `components/LookMenu.svelte` | 43 | Quick menu for the whole subtitle look: Top / Bottom presets, height and size sliders, font drop-down, reset (stored as the project's `look`, ADR-019). |
-| `components/Toolbar.svelte` | 70 | The tool row under the video: Undo, Redo first, then contextual tools (at most 5: Play, In, Out, Cut, Look; with a block selected: Play, Split, Merge, Delete, Look) and Snap; one sliding row on narrow screens. |
+| `components/Toolbar.svelte` | 67 | The tool row under the video: Undo, Redo first, then contextual tools (at most 5: Play, In, Out, Cut, Look; with a block selected: Play, Split, Merge, Delete, Look) and Snap; one sliding row on narrow screens. |
 | `components/Icon.svelte`, `lib/icons.ts` | 8, 20 | Solar Linear icons (ADR-020): `icons.ts` holds the SVG paths, `Icon` draws one by name in the text colour. |
 | `components/Inspector.svelte` | 44 | Edits the selected block's text (Esc leaves the box) and its start/end; shown only while a block is selected. |
-| `components/Timeline.svelte` | 244 | wavesurfer.js waveform from the server's peaks; one draggable/resizable region per cue (diffed against the project), cuts and the in/out mark as overlays. Only the selected block can be dragged or resized. While dragging, edges stick (8 px, a magnet that lets go when the pointer leaves) to other cues' edges, the cue's own words, kept-range edges and the playhead, with a guide line; click selects and seeks, double-click jumps to the text; Ctrl + wheel zooms around the pointer. |
+| `components/Timeline.svelte` | 306 | wavesurfer.js waveform from the server's peaks; one draggable/resizable region per cue (diffed against the project), cuts and the in/out mark as overlays. Playhead: a draggable yellow arrow on pointer devices, or fixed in the centre while the timeline slides under it (empty half-screen before the start; swiping seeks) on touch screens (ADR-021). Only the selected block can be dragged or resized. While dragging, edges stick (8 px, a magnet that lets go when the pointer leaves) to other cues' edges, the cue's own words, kept-range edges and the playhead, with a guide line; click selects and seeks, double-click jumps to the text; Ctrl + wheel zooms around the pointer. |
 | `components/Drawer.svelte` | 43 | The optional side panel with tabs: `CueList`, `Glossary` + `Review`, `Cuts`, `Export`. |
 | `components/CueList.svelte` | 74 | All cues as rows (text, times, split, merge, delete, add at playhead); dims cues inside cuts. |
 | `components/Glossary.svelte` | 92 | Glossary library: choose or create the active one, add a word or `wrong -> right`, import a `.txt`, export. |
 | `components/Review.svelte` | 57 | "Check" runs the glossary review on the current cues; apply or ignore each suggestion, or apply all (one undo step). |
 | `components/Cuts.svelte`, `Export.svelte` | 31, 42 | Removed ranges with restore; MP4 / SRT / VTT / ASS export jobs with progress. |
-| `lib/editor.svelte.ts` | 217 | `editor`: the project in `$state`, selection, snapshot undo/redo with grouping (800 ms per field), debounced autosave that then refreshes the preview `.ass`; commands `setText`, `setTimes`, `remove`, `split` (uses the words only while they still spell the text), `mergeNext`, `addAt`, `cut`, `restore`, `applySuggestions`; the in/out marks. |
+| `lib/editor.svelte.ts` | 218 | `editor`: the project in `$state`, selection, snapshot undo/redo with grouping (800 ms per field), debounced autosave that then refreshes the preview `.ass`; commands `setText`, `setTimes`, `remove`, `split` (uses the words only while they still spell the text), `mergeNext`, `addAt`, `cut`, `restore`, `applySuggestions`; the in/out marks. |
 | `lib/recovery.ts` | 67 | IndexedDB copy of the work (project, video path and size, `dirty` flag): `remember`, `lastWork`, `forget`, and `sameVideo` (the relink rule, ADR-018). |
+| `lib/settings.json`, `settings.ts` | 16, 9 | Editor settings, `basic` and `advanced` (snap distance 4 px, autosave, undo, zoom, playhead mode); a Settings screen will edit them later. |
 | `lib/ui.svelte.ts` | 13 | Interface switches: snap on/off, which drawer panel is open. |
 | `lib/player.ts` | 39 | Non-reactive handle on the `<video>` plus playback commands: `time`, `seek`, `togglePlay`, `cut`, `splitAtPlayhead`. |
 | `lib/timeline.ts` | 103 | Kept-range math mirroring `project.py`: `normalize`, `removeRange`, `cutsOf`, `restoreRange`, `skipTarget`, `outputDuration`, `clock`; `snapPoints` / `snap` (binary search). Tested in `timeline.test.ts` (Vitest, incl. a random property test). |

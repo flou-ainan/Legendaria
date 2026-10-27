@@ -1,6 +1,6 @@
 # Chat context (hand-off)
 
-**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 37.
+**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 38.
 **Policy:** `AGENTS.md` and `docs/dev-docs/README.md` ("chat-context.md"). This is a snapshot that gets replaced, never appended. It is public: no secrets and no private data.
 
 ## Summary of the conversation so far
@@ -65,6 +65,8 @@
 14. **Step 36 (2026-10-27), same PR #29:** the owner asked to remove the permanent tips (an interactive tutorial comes after the MVP) and to continue: plan 08 step 1 done, a contextual toolbar (5 tools max, changes with the selection).
 
 15. **Step 37 (2026-10-27), same PR #29:** owner's corrections: touch scrolling on the timeline moved and resized blocks, so only the selected block can be dragged now; the snap stuck far from the pointer, so it is a real magnet now (keeps the pointer's position apart from the drawn one); Undo/Redo first in the toolbar; Solar Linear icons (ADR-020, CC BY 4.0).
+
+16. **Step 38 (2026-10-27), same PR #29:** `settings.json` (basic/advanced, snap 4 px), toolbar without labels and dark selected icons, draggable playhead arrow and a centred-playhead mode for touch screens (ADR-021).
 
 **Open and next**
 - **Next:** plan 08 step 2 (orange subtitle track), then the generate-captions sheet and per-cue style; the owner keeps testing (`cd engine && uv run flosub serve`) and sends more corrections; mobile polish comes later.
