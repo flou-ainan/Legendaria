@@ -40,7 +40,11 @@ def browse(path: str | Path | None = None) -> dict[str, Any]:
             is_dir = child.is_dir()
             if is_dir or child.suffix.lower() in MEDIA_EXTENSIONS:
                 entries.append(
-                    {"name": child.name, "dir": is_dir, "size": 0 if is_dir else child.stat().st_size}
+                    {
+                        "name": child.name,
+                        "dir": is_dir,
+                        "size": 0 if is_dir else child.stat().st_size,
+                    }
                 )
         except OSError:
             continue  # broken link or no permission: skip it
