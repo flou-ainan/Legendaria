@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Legendária">
+  <title>Legendária</title>
+  <defs><linearGradient id="sg" gradientUnits="userSpaceOnUse" x1="200" y1="110" x2="330" y2="420">
+      <stop offset="0" stop-color="#FF8A3D"/><stop offset="0.45" stop-color="#D0607E"/>
+      <stop offset="1" stop-color="#6418CB"/></linearGradient></defs>
+  <rect width="512" height="512" rx="112" fill="#111822"/>
+  <g fill="none" stroke="url(#sg)" stroke-width="38" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M76 216V296M140 160V352M204 100V412M268 170V342"/>
+    <path d="M326 140Q356 236 412 256H448"/>
+    <path d="M326 372Q356 276 412 256"/>
+    <path d="M410 166H448M410 346H448"/>
+  </g>
+</svg>

@@ -99,6 +99,7 @@ class Session:
         project = self.project()
         return {
             "video": self.video.name,
+            "path": str(self.video),
             "font": self.look(project.style if project else self.config["style"]).get(
                 "font", "Arial"
             ),
@@ -427,7 +428,12 @@ class Handler(BaseHTTPRequestHandler):
         return self._json({"job": job.id})
 
     def _open(self, video: Path) -> None:
-        """Open `video` as the session (a project file next to it is loaded if it exists)."""
+        """Open `video` as the session (a project file next to it is loaded if it exists).
+
+        A path to the project file itself (`<video>.legendaria.json`) opens its video.
+        """
+        if video.name.endswith(workspace.PROJECT_SUFFIX):
+            video = video.with_name(video.name.removesuffix(workspace.PROJECT_SUFFIX))
         if not video.is_file():
             return self._error(HTTPStatus.BAD_REQUEST, f"File not found: {video}")
         try:

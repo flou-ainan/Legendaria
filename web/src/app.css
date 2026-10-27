@@ -13,6 +13,7 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+html { scrollbar-gutter: stable; } /* a scrollbar that comes and goes would resize the timeline over and over */
 body { margin: 0; }
 button {
   font: inherit;
@@ -40,3 +41,5 @@ h2 { font-size: 0.95rem; margin: 0 0 0.6rem; color: var(--muted); text-transform
 
 /* Timeline: wavesurfer draws inside a shadow root, so its parts are styled from here. */
 .wave > div::part(region-content) { font-size: 11px; padding: 2px 4px; overflow: hidden; white-space: nowrap; }
+
+.wave { overflow: hidden; min-width: 0; }

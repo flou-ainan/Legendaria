@@ -29,6 +29,7 @@ export type Options = {
 /** What the editor needs on load. `video` is null until a file is opened. */
 export type State = Options & {
   video: string | null
+  path?: string // full path of the open video (to reopen it after a restart)
   font: string // family name of the style's font, served by /api/font
   media: { width: number | null; height: number | null; fps: number | null; duration: number; has_audio: boolean }
   project: Project | null

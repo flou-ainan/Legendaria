@@ -134,7 +134,7 @@ def empty_server():
 def test_starts_without_a_video_and_offers_choices(empty_server):
     state = json.loads(call(empty_server + "/api/state")[2])
     assert state["video"] is None and "small" in [m["name"] for m in state["models"]]
-    assert {"code": "pt", "name": "Português"} in state["languages"]
+    assert {"code": "pt", "name": "Português (Brasil / Portugal)"} in state["languages"]
     with pytest.raises(urllib.error.HTTPError) as err:
         call(empty_server + "/api/peaks")
     assert err.value.code == 409
@@ -162,6 +162,14 @@ def test_open_by_path_and_by_upload(empty_server, tmp_path):
     with pytest.raises(urllib.error.HTTPError) as err:
         call(empty_server + "/api/open", "POST", {"path": str(tmp_path / "missing.mp4")})
     assert err.value.code == 400
+    # the project file opens its video, and the browser lists it
+    again = json.loads(
+        call(empty_server + "/api/open", "POST", {"path": str(video) + ".legendaria.json"})[2]
+    )
+    assert again["video"] == "v.mp4"
+    (tmp_path / "v.mp4.legendaria.json").write_text("{}", encoding="utf-8")
+    listing = json.loads(call(empty_server + f"/api/browse?path={tmp_path}")[2])
+    assert "v.mp4.legendaria.json" in [e["name"] for e in listing["entries"]]
     request = urllib.request.Request(
         empty_server + "/api/upload?name=dropped.mp4", video.read_bytes(), method="POST"
     )

@@ -50,7 +50,7 @@
         {#each listing.entries as entry (entry.name)}
           <li>
             <button class="entry" onclick={() => (entry.dir ? go(join(listing!.path, entry.name)) : onPick(join(listing!.path, entry.name)))}>
-              <span>{entry.dir ? '📁' : '🎞'} {entry.name}</span>
+              <span>{entry.dir ? '📁' : entry.name.endsWith('.legendaria.json') ? '📝' : '🎞'} {entry.name}</span>
               {#if !entry.dir}<span class="muted">{size(entry.size)}</span>{/if}
             </button>
           </li>

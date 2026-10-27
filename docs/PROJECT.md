@@ -79,6 +79,7 @@ engine/ (`flosub`) ── faster-whisper (GPU → CPU fallback) ──► transc
 | [015](dev-docs/decisions/ADR-015-web-frontend-svelte.md) | Web editor front end: Svelte 5 + Vite + TypeScript (MIT) | accepted |
 | [016](dev-docs/decisions/ADR-016-project-file.md) | Project file `<video>.legendaria.json`: own JSON, cuts as kept ranges, cues in source time; `.ass`/SRT/VTT are exports | accepted |
 | [017](dev-docs/decisions/ADR-017-opening-files-in-the-browser.md) | Opening a video from the browser: a server-side file browser (opens in place) and drag-and-drop upload (stores a copy) | accepted |
+| [018](dev-docs/decisions/ADR-018-local-recovery-and-relink.md) | Local recovery copy (IndexedDB) and relinking a moved video | accepted |
 
 ## 5. Folder structure
 
@@ -177,8 +178,9 @@ Layout (step 33): a header, the video with a tool row under it (play, in, out, c
 | File | Lines | What it does |
 |---|---|---|
 | `main.ts` | 5 | Mounts `App.svelte`. `app.css`: theme tokens, base controls, and the style of wavesurfer's cue text (it draws in a shadow root). |
-| `App.svelte` | 85 | Loads `/api/state`; Welcome when no video is open, Transcribe until a project exists, then the editor layout and the header (save status, panel buttons, Export). |
-| `components/Welcome.svelte` | 65 | Start screen: drop a video on the page (uploaded) or "Choose a file…" (opened in place). |
+| `App.svelte` | 128 | Loads `/api/state`; Welcome when no video is open, Transcribe until a project exists, then the editor layout and the header (menu, logo, save status, panel buttons, Export); Save now and Download a copy. |
+| `components/Welcome.svelte` | 141 | Start screen: drop a video on the page (uploaded) or "Choose a file…" (opened in place); "Continue where you left off" from the browser's recovery copy, and relinking a moved video (same duration ±0.5 s and screen proportion ±1 %). |
+| `components/Menu.svelte` | 65 | File menu (open video/project, close, save, download a copy, export), panels on narrow screens and the interface language; a hamburger under 900 px. |
 | `components/Browse.svelte` | 77 | File browser dialog over the computer running the server (`/api/browse`), with an editable folder path. |
 | `components/Transcribe.svelte` | 74 | Drop-down lists for model (shows size and whether it is downloaded), language and style; runs the transcribe job with progress. |
 | `components/Player.svelte` | 121 | `<video>` + JASSUB (font preloaded, repaint on paused seeks); a `requestVideoFrameCallback` loop skips cut parts and tracks the current cue without reactive state at frame rate; keyboard shortcuts from `lib/shortcuts.json`. |
@@ -190,14 +192,15 @@ Layout (step 33): a header, the video with a tool row under it (play, in, out, c
 | `components/Glossary.svelte` | 92 | Glossary library: choose or create the active one, add a word or `wrong -> right`, import a `.txt`, export. |
 | `components/Review.svelte` | 57 | "Check" runs the glossary review on the current cues; apply or ignore each suggestion, or apply all (one undo step). |
 | `components/Cuts.svelte`, `Export.svelte` | 31, 42 | Removed ranges with restore; MP4 / SRT / VTT / ASS export jobs with progress. |
-| `lib/editor.svelte.ts` | 183 | `editor`: the project in `$state`, selection, snapshot undo/redo with grouping (800 ms per field), debounced autosave that then refreshes the preview `.ass`; commands `setText`, `setTimes`, `remove`, `split` (uses the words only while they still spell the text), `mergeNext`, `addAt`, `cut`, `restore`, `applySuggestions`; the in/out marks. |
+| `lib/editor.svelte.ts` | 203 | `editor`: the project in `$state`, selection, snapshot undo/redo with grouping (800 ms per field), debounced autosave that then refreshes the preview `.ass`; commands `setText`, `setTimes`, `remove`, `split` (uses the words only while they still spell the text), `mergeNext`, `addAt`, `cut`, `restore`, `applySuggestions`; the in/out marks. |
+| `lib/recovery.ts` | 67 | IndexedDB copy of the work (project, video path and size, `dirty` flag): `remember`, `lastWork`, `forget`, and `sameVideo` (the relink rule, ADR-018). |
 | `lib/ui.svelte.ts` | 13 | Interface switches: snap on/off, which drawer panel is open. |
 | `lib/player.ts` | 39 | Non-reactive handle on the `<video>` plus playback commands: `time`, `seek`, `togglePlay`, `cut`, `splitAtPlayhead`. |
 | `lib/timeline.ts` | 103 | Kept-range math mirroring `project.py`: `normalize`, `removeRange`, `cutsOf`, `restoreRange`, `skipTarget`, `outputDuration`, `clock`; `snapPoints` / `snap` (binary search). Tested in `timeline.test.ts` (Vitest, incl. a random property test). |
-| `lib/api.ts` | 121 | Types and calls: state, browse, open, upload (XHR with progress), glossary, peaks, review, save, preview `.ass`, `runJob` (POST + EventSource). |
-| `lib/i18n.ts` | 16 | `t(key, vars)` over `locales/en.json` / `pt-BR.json` (picked from the browser language). |
+| `lib/api.ts` | 122 | Types and calls: state, browse, open, upload (XHR with progress), glossary, peaks, review, save, preview `.ass`, `runJob` (POST + EventSource). |
+| `lib/i18n.ts` | 38 | `t(key, vars)` over `locales/en.json` / `pt-BR.json` (language from the menu, remembered, else the browser's); `setLang`, `interfaceLanguages`. |
 | `lib/shortcuts.json` | — | Editable key table: play, mark in/out, cut, split, snap, seek ±1 s, undo, redo. |
-| `e2e/smoke.mjs` | 126 | Playwright test (`npm run e2e`, also in CI): starts `flosub serve` with no video, opens the clip through the file browser, then checks live snapping and its guide, the magnet button, double-click to edit, cut, undo, glossary add + apply, SRT export. |
+| `e2e/smoke.mjs` | 162 | Playwright test (`npm run e2e`, also in CI): starts `flosub serve` with no video, opens the clip through the file browser, then checks live snapping and its guide, the magnet button, double-click to edit, cut, undo, glossary add + apply, SRT export. |
 
 ### engine/legendaria_engine/__init__.py — 3 lines
 Legendária transcription engine.
@@ -384,7 +387,7 @@ Transcript format (JSON v1): the contract between the engine and the Blender add
 | `Transcript.save(path)` | 108 | Write as pretty UTF-8 JSON. |
 | `Transcript.load(path)` | 113 | Read a transcript JSON file. |
 
-### engine/legendaria_engine/server.py — 568 lines
+### engine/legendaria_engine/server.py — 574 lines
 `flosub serve`: the local web editor's backend (plan 07, ADR-014).
 
 | Function / class | Line | What it does |
@@ -426,7 +429,7 @@ Speech-to-text. A small backend interface keeps room for other engines (e.g. App
 | `FasterWhisperBackend.transcribe(media, options, reporter)` | 59 | Try each device in turn; in `auto` mode a GPU failure falls back to the CPU. |
 | `get_backend(name)` | 141 | Instantiate a backend by name. |
 
-### engine/legendaria_engine/workspace.py — 118 lines
+### engine/legendaria_engine/workspace.py — 129 lines
 What the web editor needs besides the open video: a file browser, the model and language
 
 | Function / class | Line | What it does |

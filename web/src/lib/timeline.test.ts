@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { sameVideo } from './recovery'
 import { clock, cutsOf, normalize, outputDuration, removeRange, restoreRange, skipTarget, snap, snapPoints } from './timeline'
 
 describe('kept ranges', () => {
@@ -55,5 +56,16 @@ describe('kept ranges', () => {
     expect(snap(4.9, points, 0.2)).toBe(5)
     expect(snap(0.5, [], 0.2)).toBe(0.5)
     expect(snap(9, points, 0.2)).toBe(9)
+  })
+})
+
+describe('recognizing the video again', () => {
+  const saved = { duration: 60, width: 1920, height: 1080 }
+  it('accepts the same length and shape, even at another resolution', () => {
+    expect(sameVideo(saved, { duration: 60.3, width: 1280, height: 720 }).ok).toBe(true)
+  })
+  it('refuses another length or another screen shape', () => {
+    expect(sameVideo(saved, { duration: 62, width: 1920, height: 1080 })).toEqual({ ok: false, reason: 'duration' })
+    expect(sameVideo(saved, { duration: 60, width: 1080, height: 1920 })).toEqual({ ok: false, reason: 'shape' })
   })
 })

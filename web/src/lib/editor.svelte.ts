@@ -3,6 +3,7 @@
 // (https://svelte.dev/docs/svelte/$state). The video's current time is NOT kept here
 // (ADR-015 player rule); only the index of the cue under the playhead is.
 import { previewAss, saveProject, type Cue, type Project, type Suggestion } from './api'
+import { remember, type VideoInfo } from './recovery'
 import { removeRange, restoreRange, type Range } from './timeline'
 
 const GROUP_MS = 800 // edits of the same thing within this window undo together (OpenReel pattern)
@@ -11,6 +12,7 @@ const HISTORY = 200
 
 class Editor {
   project = $state<Project | null>(null)
+  video: VideoInfo | null = null // which video the project belongs to, for the local recovery copy
   current = $state(-1) // cue under the playhead
   selected = $state(-1) // cue picked on the timeline (shown in the inspector)
   focusText = $state(0) // bumped to focus the inspector's text box
@@ -29,8 +31,11 @@ class Editor {
   private lastAt = 0
   private timer: ReturnType<typeof setTimeout> | undefined
 
-  load(project: Project | null) {
+  load(project: Project | null, video: VideoInfo | null = this.video, dirty = false) {
+    clearTimeout(this.timer)
     this.project = project
+    this.video = video
+    if (project) this.remember(dirty)
     this.selected = -1
     this.markIn = this.markOut = null
     this.past = []
@@ -78,8 +83,22 @@ class Editor {
     this.canRedo = this.future.length > 0
   }
 
+  /** Keep a copy in the browser; `dirty` stays true until the server confirms the save. */
+  private remember(dirty: boolean) {
+    if (this.video && this.project) {
+      void remember({ video: this.video, project: $state.snapshot(this.project) as Project, dirty, savedAt: Date.now() })
+    }
+  }
+
+  /** Save now instead of waiting for the timer (the menu's Save). */
+  saveNow() {
+    clearTimeout(this.timer)
+    return this.save()
+  }
+
   private scheduleSave() {
     this.saveStatus = 'saving'
+    this.remember(true)
     clearTimeout(this.timer)
     this.timer = setTimeout(() => this.save(), SAVE_MS)
   }
@@ -90,6 +109,7 @@ class Editor {
       // $state.snapshot gives a plain object (no reactive proxy) to send.
       await saveProject($state.snapshot(this.project) as Project)
       this.saveStatus = 'saved'
+      this.remember(false)
       this.onPreview(await previewAss())
     } catch (error) {
       this.saveStatus = 'error'

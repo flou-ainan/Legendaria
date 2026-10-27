@@ -48,7 +48,7 @@ try {
   await page.getByRole('button', { name: 'Choose a file…' }).click()
   await page.getByLabel('Folder path').fill(dir)
   await page.getByLabel('Folder path').press('Enter')
-  await page.getByRole('button', { name: /clip\.webm/ }).click()
+  await page.getByRole('button', { name: /clip\.webm \d/ }).click()
   const region = (i) => page.locator(`[part~="c${i}"]`).first()
   await region(3).waitFor({ timeout: 15000 })
   assert.equal(await page.evaluate(() => crossOriginIsolated), true, 'page must be cross-origin isolated')
@@ -112,6 +112,42 @@ try {
   await page.waitForTimeout(1000)
   const reviewed = await project()
   assert.equal(reviewed.cues[5].text, 'Quinta'); assert.equal(reviewed.cues[7].text, 'Sétima')
+
+  // the timeline must not flicker while a drawer tab is open and the video plays (it once re-rendered forever)
+  await page.getByRole('button', { name: 'Subtitles' }).first().click()
+  await page.locator('body').click({ position: { x: 5, y: 5 } }) // Space on a focused button would click it
+  await page.keyboard.press('Space')
+  const samples = []
+  for (let n = 0; n < 15; n++) {
+    samples.push(await page.evaluate(() => {
+      const wave = document.querySelector('.wave')
+      return `${document.querySelector('main').className}|${!!document.querySelector('aside')}|${document.documentElement.scrollHeight}/${innerHeight}|${Math.round(wave.getBoundingClientRect().width)}x${Math.round(wave.getBoundingClientRect().height)}:${wave.firstElementChild?.shadowRoot?.querySelectorAll('[part~="region"]').length}`
+    }))
+    await page.waitForTimeout(120)
+  }
+  await page.keyboard.press('Space')
+  assert.equal(new Set(samples).size, 1, `timeline stays put: ${samples.join(" ")}`)
+
+  if (process.env.E2E_SHOTS) {
+    await page.getByRole('button', { name: 'Menu' }).click()
+    await page.screenshot({ path: join(process.env.E2E_SHOTS, 'wide.png') })
+    await page.keyboard.press('Escape')
+    await page.setViewportSize({ width: 390, height: 800 })
+    await page.getByRole('button', { name: 'Menu' }).click()
+    await page.screenshot({ path: join(process.env.E2E_SHOTS, 'narrow.png') })
+    await page.keyboard.press('Escape')
+    await page.setViewportSize({ width: 1400, height: 1000 })
+  }
+
+  // the browser keeps a recovery copy of the project (IndexedDB)
+  const kept = await page.evaluate(() => new Promise((resolve) => {
+    const open = indexedDB.open('legendaria', 1)
+    open.onsuccess = () => {
+      const get = open.result.transaction('kv').objectStore('kv').get('last')
+      get.onsuccess = () => resolve({ cues: get.result.project.cues.length, name: get.result.video.name, dirty: get.result.dirty })
+    }
+  }))
+  assert.equal(kept.name, 'clip.webm'); assert.ok(kept.cues > 0 && kept.dirty === false)
 
   // export SRT
   await page.getByRole('button', { name: 'Export' }).first().click()

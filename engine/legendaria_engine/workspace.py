@@ -17,6 +17,11 @@ MEDIA_EXTENSIONS = {
 }  # fmt: skip
 
 
+PROJECT_SUFFIX = (
+    ".legendaria.json"  # a project file sits next to its video: `<video>.legendaria.json`
+)
+
+
 def uploads_dir() -> Path:
     """Where dropped files are stored: `<data dir>/uploads/` (a browser cannot give us the original path)."""
     return paths.data_dir() / "uploads"
@@ -38,7 +43,11 @@ def browse(path: str | Path | None = None) -> dict[str, Any]:
             continue
         try:
             is_dir = child.is_dir()
-            if is_dir or child.suffix.lower() in MEDIA_EXTENSIONS:
+            if (
+                is_dir
+                or child.suffix.lower() in MEDIA_EXTENSIONS
+                or child.name.endswith(PROJECT_SUFFIX)
+            ):
                 entries.append(
                     {
                         "name": child.name,

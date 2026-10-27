@@ -58,8 +58,10 @@
 
 11. **Step 33 (2026-10-27), same PR #29:** the owner's first 8 corrections: `flosub serve` with no path (file browser + drop, ADR-017), drop-down lists, glossary tools, live snapping with a magnet button, double-click edits, optional side drawer, a Kdenlive/CapCut-style layout. The owner wants the desktop to look like Kdenlive, with CapCut/InShot-style strong editing elements so mobile can follow later.
 
+12. **Step 34 (2026-10-27), same PR #29:** round 2: fixed the timeline flicker (implicit grid column sized by the waveform; the e2e now samples it), logo and favicon, "Português (Brasil / Portugal)", File menu (hamburger on narrow screens), IndexedDB recovery copy and relinking a moved video (owner chose: same duration ±0.5 s and screen proportion ±1 %, ADR-018), interface language en/pt-BR from the menu, plan 08 from the owner's UX PDF.
+
 **Open and next**
-- **Next:** the owner keeps testing (`cd engine && uv run flosub serve`) and sends more corrections; mobile polish comes later.
+- **Next:** plan 08 step 1 (contextual toolbar, 5 icons max) when the owner asks; the owner keeps testing (`cd engine && uv run flosub serve`) and sends more corrections; mobile polish comes later.
 - **Known gaps:** touch dragging on the timeline, `.ass`/`.srt` import, fonts on Windows/macOS, an LLM pass in the review panel, cleaning old uploads, drive list on Windows.
 - **Pending owner decisions:** import `.ass`/`.srt` + `flosub align --srt` (plan 04 §11.3, item 4).
 - **Not published:** engine 0.1.0.dev4 is not on PyPI; the tag needs the owner's approval.
@@ -67,27 +69,7 @@
 
 ## Last two complete replies (verbatim)
 
-### Reply 1 (2026-10-27): timeline, review, browser test
-
-> O MVP está completo: a lista do plano 07 inteira está feita. Falta o seu teste manual.
->
-> **Novo nesta etapa**
-> - **Timeline com forma de onda:** os picos vêm do servidor. Cada legenda é um bloco que se arrasta e se redimensiona. Duplo clique divide no cursor. Ctrl + roda dá zoom em volta do mouse, e há botões −, Ajustar e +.
-> - **Encaixe:** as bordas grudam (8 px) nas bordas de outros blocos, nas palavras da própria legenda, nos cortes e no cursor.
-> - **Revisão do glossário no editor:** "Verificar" usa o glossário ativo e sugere correções. Aplica uma, ignora, ou aplica todas num só passo de desfazer.
-> - **Corrigi** o "dividir" depois de editar o texto: ele trazia o texto antigo de volta.
-> - **Teste automático no navegador**, que também roda no CI.
->
-> **O CI do PR #29 tinha falhado** por erros do ruff (um comentário inválido, travessões e um arquivo aberto sem fechar). Eu tinha rodado o pre-commit antes das últimas edições. Está corrigido.
->
-> **Testes:** 123 do motor, 6 do app, o teste de navegador e o pre-commit passaram. O encaixe só tem teste unitário, e um vídeo de 10 minutos com ~500 legendas não foi testado no app real.
->
-> **Para testar:** `cd engine && uv run flosub serve "<caminho do vídeo>"`. Quando tiver a sua lista, mande que eu aplico.
->
-> **Next task:** as mudanças da sua lista — tier: **standard** (Sonnet), effort: **low** a **medium**. Se alguma pedir uma decisão de formato ou arquitetura, aviso e subo para **top**.
-
-### Reply 2 (2026-10-27): the owner's first corrections
-
+### Reply 1 (2026-10-27): the owner's first corrections
 > As 8 correções estão feitas. Para abrir: `cd engine && uv run flosub serve`, sem caminho.
 >
 > 1. **Sem caminho:** o editor abre numa tela inicial que pede o vídeo.
@@ -102,3 +84,9 @@
 > **Testes:** 127 do motor, 6 do app, o teste de navegador atualizado e o pre-commit passaram. Conferi capturas em tela larga e estreita.
 >
 > **Next task:** a próxima rodada de correções — tier: **standard** (Sonnet), effort: **low** a **medium**.
+
+### Reply 2 (2026-10-27): round 2
+
+> Feito: piscar da timeline, logo e favicon, "Português (Brasil / Portugal)", menu Arquivo (hambúrguer no celular), recuperação local (IndexedDB) com religar vídeo movido (mesma duração ±0,5 s e proporção ±1 %), idioma da interface en/pt-BR, plano 08 com o PDF de UX, CI (o e-mail era o erro de formatação do `workspace.py`, já corrigido).
+>
+> **Next task:** passo 1 do plano 08 (barra de ferramentas contextual) — tier: **standard** (Sonnet), effort: **medium**.
