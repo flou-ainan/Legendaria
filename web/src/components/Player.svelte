@@ -20,7 +20,7 @@
   let subs: JASSUB | undefined
   let frame = 0
 
-  let { font, fonts }: { font: string; fonts: FontEntry[] } = $props()
+  let { font, fonts, onMissing }: { font: string; fonts: FontEntry[]; onMissing?: () => void } = $props()
 
   const project = $derived(editor.project!)
   // where the selected subtitle (or the track) sits: above the middle of the picture or below it
@@ -115,6 +115,16 @@
     }
   }
 
+  // The video cannot play: if the server no longer has the file, say so at once (a codec the browser lacks is another story).
+  async function checkMissing() {
+    try {
+      const response = await fetch('/api/media', { headers: { Range: 'bytes=0-0' } })
+      if (!response.ok) onMissing?.()
+    } catch {
+      /* the server itself is unreachable: App already shows that */
+    }
+  }
+
   function onKey(event: KeyboardEvent) {
     const target = event.target as HTMLElement
     if (target.closest('input, textarea, select')) return
@@ -153,7 +163,7 @@
     <div class="viewport" class:crop={ui.sheet} class:high={subtitlesHigh}>
       <div class="frame">
         <!-- svelte-ignore a11y_media_has_caption: the captions are drawn by JASSUB -->
-        <video bind:this={video} src="/api/media" controls controlslist="nofullscreen" preload="auto" ondblclick={toggleFullscreen}></video>
+        <video bind:this={video} src="/api/media" controls controlslist="nofullscreen" preload="auto" ondblclick={toggleFullscreen} onerror={checkMissing}></video>
       </div>
     </div>
     <button class="fs" onclick={toggleFullscreen} title={t('tool.fullscreen')} aria-label={t('tool.fullscreen')}>

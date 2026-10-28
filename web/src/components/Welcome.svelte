@@ -9,7 +9,8 @@
   import Browse from './Browse.svelte'
 
   // `restored`: the project comes from the copy kept in this browser, so it must be saved again.
-  let { onOpen }: { onOpen: (state: State, restored?: boolean) => void } = $props()
+  // `missing`: the open video vanished from the server, so go straight to asking for it again.
+  let { onOpen, missing = false }: { onOpen: (state: State, restored?: boolean) => void; missing?: boolean } = $props()
 
   let dragging = $state(false)
   let busy = $state(false)
@@ -20,7 +21,10 @@
   let relinking = $state(false) // its video is gone: ask for it again
   let picking = $state<'new' | 'relink'>('new')
 
-  onMount(async () => (last = await lastWork()))
+  onMount(async () => {
+    last = await lastWork()
+    if (missing && last) relinking = true
+  })
 
   const ratio = (w: number | null, h: number | null) => (w && h ? (w / h).toFixed(2) : '?')
 

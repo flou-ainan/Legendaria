@@ -3,7 +3,7 @@
 // Run: `npm run e2e`. The clip is WebM because Playwright's Chromium has no H.264.
 import assert from 'node:assert/strict'
 import { spawn, spawnSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -381,6 +381,12 @@ try {
   await page.waitForSelector('text=clip.edited.srt', { timeout: 15000 })
   assert.match(readFileSync(join(dir, 'clip.edited.srt'), 'utf8'), /Sétima/)
   assert.deepEqual(errors, [], 'no console errors')
+
+  // the video file vanishes: the editor must say so by itself (no click needed) and offer to pick it again
+  renameSync(video, `${video}.gone`)
+  await page.reload()
+  await page.getByText('The video was moved or removed').waitFor({ timeout: 15000 })
+  renameSync(`${video}.gone`, video)
   console.log('e2e smoke: ok')
 } finally {
   await browser?.close()

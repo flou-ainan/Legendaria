@@ -41,6 +41,12 @@
   // Back to the start screen (the project stays saved next to the video).
   const closeVideo = () => info && show({ ...info, video: null, project: null })
 
+  let missing = $state(false) // the video file disappeared while the editor was open
+  function videoMissing() {
+    missing = true
+    closeVideo()
+  }
+
   let generating = $state(false) // the Generate captions sheet over the editor
   let browsing = $state(false) // the file browser opened from the menu
 
@@ -104,7 +110,7 @@
 {:else if !info}
   <p class="muted center">{t('loading')}</p>
 {:else if !info.video}
-  <Welcome onOpen={show} />
+  <Welcome onOpen={(state, restored) => { missing = false; show(state, restored) }} {missing} />
 {:else if !editor.project}
   <Transcribe {info} onDone={(project) => editor.load(project)} onChange={closeVideo} />
 {:else}
@@ -121,7 +127,7 @@
     <button class="primary export" onclick={() => ui.toggle('export')}>{t('panel.export')}</button>
   </header>
   <main class:drawer={ui.panel} class:sheet={ui.sheet}>
-    <div class="stage"><Player font={info.font} fonts={info.fonts} /></div>
+    <div class="stage"><Player font={info.font} fonts={info.fonts} onMissing={videoMissing} /></div>
     <Drawer />
     <div class="lower">
       <Timeline />
