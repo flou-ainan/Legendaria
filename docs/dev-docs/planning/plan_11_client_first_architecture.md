@@ -1,6 +1,6 @@
 # Plan 11 — Client-first architecture (less network, one session per device, PWA autonomy)
 
-**Status:** proposed (owner approved the scope on 2026-10-28)
+**Status:** in progress. A, B and D are the current scope; C is postponed (owner, 2026-10-28)
 **Related:** plan 08 (PWA section), ADR-014, ADR-016, step 50 (tunnels), plan 10
 
 ## Why
@@ -27,7 +27,18 @@ Goal: the user's own editor, tied to their computer, that spends little network,
 - Needs an ADR (API contract change, bump `API_VERSION`).
 - **Status:** the per-browser session is done (step 57, ADR-023, a cookie instead of a header so `<video>` and `EventSource` carry it). The warning for two browsers on the same project file is still open.
 
-## C. Move to the client what the browser can do alone
+## D. Files from both sides, results to both sides (added 2026-10-28)
+
+The focus of the open project is local use: the editor runs on the user's computer and the phone is another screen for it (over Tailscale or a tunnel). Full independence of the phone is not a goal for now.
+
+- **Open from the computer or from the phone.** On a phone the start screen and File ▸ Open offer both: "Computer files" (the server's file browser, nothing is uploaded) and "This device" (the phone's picker, the video is uploaded).
+- **Save to the computer or to the phone.** Exports are written next to the source on the computer as today, and each finished export also offers "Save to this device" (a download of the same file). The project file (`.legendaria.json`) can be downloaded too (already in the File menu).
+- Uploaded files stay in the uploads folder on the computer and can be opened again from "Computer files".
+- Done when: from the phone alone the owner can edit a video that lives on the computer, or one from the phone, and end up with the result on either side.
+
+## C. Move to the client what the browser can do alone (postponed)
+
+Not in the current scope: the owner prefers to keep the project local-first and to revisit phone independence when the project is mature (an installable shell, local storage and on-device processing included). The list is kept as the starting point.
 
 Order matters: each step is useful by itself and leaves the server path working.
 
@@ -42,7 +53,7 @@ Stays on the server in this plan: transcription (faster-whisper), export (FFmpeg
 
 ## Order
 
-A and B first (they fix real bugs and shrink traffic), then C1, C2, C3, C4, C5. C6 whenever the owner wants to evaluate it.
+A, B and D now (real bugs, less traffic, the files flow the owner asked for). C only when the owner asks.
 
 ## Not in scope
 

@@ -54,7 +54,7 @@ Goal: when the project is ready, the editor installs from the mobile browser ("A
 - **Constraint:** browsers only offer install on HTTPS or localhost. Through ngrok it works; on plain `http://` over the local network it does not.
 - **Fluidity checklist** (what makes CapCut feel good, to check on a real phone): safe-area insets and `100dvh`, no page bounce or pull-to-refresh, no accidental text selection or zoom, touch targets of 44 px or more, haptics or visual feedback on tap, 60 fps timeline scrolling and pinch, screen kept awake while playing, orientation handled, and a fast first load from the cache.
 - **Order:** after the desktop extras and the touch dragging on the timeline, since fluid touch editing is what the install is meant to deliver.
-- The offline-capable shell, local project storage and the rest of the client-first work are planned in plan 11.
+- The offline-capable shell and local project storage belong to the postponed part of plan 11 (C); the installable, full-screen shell itself stays here.
 - Open question: what the app shows when the backend is unreachable (a clear "start flosub serve" screen).
 
 ## Later: subtitle tracks
