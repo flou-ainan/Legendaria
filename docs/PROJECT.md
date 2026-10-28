@@ -199,7 +199,7 @@ Layout (step 33): a header, the video with a tool row under it (play, in, out, c
 | `components/CueList.svelte` | 88 | All cues as rows (text, times, split, merge, delete, add at playhead); dims cues inside cuts; search box filters the rows and "Replace all" rewrites the matches. |
 | `components/Glossary.svelte` | 92 | Glossary library: choose or create the active one, add a word or `wrong -> right`, import a `.txt`, export. |
 | `components/Review.svelte` | 57 | "Check" runs the glossary review on the current cues; apply or ignore each suggestion, or apply all (one undo step). |
-| `components/Cuts.svelte`, `Export.svelte` | 31, 42 | Removed ranges with restore; MP4 / SRT / VTT / ASS export jobs with progress. |
+| `components/Cuts.svelte`, `Export.svelte` | 31, 47 | Removed ranges with restore; MP4 / SRT / VTT / ASS export jobs with progress (from another device, "Save to this device" downloads the result). |
 | `lib/editor.svelte.ts` | 272 | `editor`: the project in `$state`, selection, snapshot undo/redo with grouping (800 ms per field), debounced autosave that then refreshes the preview `.ass`; commands `setText`, `setTimes`, `remove`, `split` (uses the words only while they still spell the text), `mergeNext`, `addAt`, `cut`, `restore`, `applySuggestions`, `replaceAll` (case-insensitive, one undo step), `setLook`, `setCueLook`, `applyToAll`; the in/out marks. |
 | `lib/recovery.ts` | 67 | IndexedDB copy of the work (project, video path and size, `dirty` flag): `remember`, `lastWork`, `forget`, and `sameVideo` (the relink rule, ADR-018). |
 | `lib/settings.json`, `settings.ts` | 16, 9 | Editor settings, `basic` and `advanced` (snap distance 4 px, autosave, undo, zoom, playhead mode); a Settings screen will edit them later. |
