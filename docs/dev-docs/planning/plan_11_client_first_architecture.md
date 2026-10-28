@@ -18,6 +18,7 @@ Goal: the user's own editor, tied to their computer, that spends little network,
 - Keep the `File`/`Blob` across reloads in OPFS (or IndexedDB) so a reload does not need the upload again.
 - On the computer that runs the server, keep streaming from the server (no extra copy).
 - Done when: a phone session moves the video once (the upload), and playing, seeking and editing cost no video bytes.
+- **Status:** playing the uploaded file from an object URL is done (step 59). Keeping the file across a reload (OPFS) is open: after a reload the server's copy is streamed.
 
 ## B. One session per client
 

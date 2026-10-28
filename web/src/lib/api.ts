@@ -1,5 +1,6 @@
 // Talks to `flosub serve` (engine/legendaria_engine/server.py).
 import type { Range } from './timeline'
+import { useLocalFile } from './localmedia.svelte'
 
 export type Word = { start: number; end: number; word: string; probability?: number }
 export type Cue = { start: number; end: number; text: string; words?: Word[]; look?: Look } // `look`: this cue's own overrides (ADR-022)
@@ -79,7 +80,11 @@ export const loadState = () => request<State>('GET', '/api/state')
 
 export const browse = (path?: string) => request<Listing>('GET', `/api/browse${path ? `?path=${encodeURIComponent(path)}` : ''}`)
 
-export const openVideo = (path: string) => request<State>('POST', '/api/open', { path })
+export const openVideo = async (path: string) => {
+  const state = await request<State>('POST', '/api/open', { path })
+  useLocalFile(null) // a file on the computer is streamed by the server
+  return state
+}
 
 /** Send a dropped file to the server (it cannot see the original path), with progress 0..1. */
 export function uploadVideo(file: File, onProgress: (fraction: number) => void): Promise<State> {
@@ -89,7 +94,10 @@ export function uploadVideo(file: File, onProgress: (fraction: number) => void):
     xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total)
     xhr.onload = () => {
       const data = JSON.parse(xhr.responseText)
-      if (xhr.status >= 200 && xhr.status < 300) resolve(data as State)
+      if (xhr.status >= 200 && xhr.status < 300) {
+        useLocalFile(file) // play the picked file here; the upload is only for the server's jobs
+        resolve(data as State)
+      }
       else reject(new Error(data.error ?? xhr.statusText))
     }
     xhr.onerror = () => reject(new Error('Upload failed.'))

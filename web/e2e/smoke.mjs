@@ -385,6 +385,32 @@ try {
   assert.match(readFileSync(join(dir, 'clip.edited.srt'), 'utf8'), /Sétima/)
   assert.deepEqual(errors, [], 'no console errors')
 
+  // a video dropped from a device is played from the device itself: the server never streams it back (plan 11, A)
+  const device = await (await browser.newContext({ viewport: { width: 1000, height: 800 }, locale: 'en-US' })).newPage()
+  const streamed = []
+  device.on('request', (r) => r.url().includes('/api/media') && streamed.push(r.url()))
+  // The server answers an upload with no project yet (the next step is transcribing); give it the fixture's, so the editor opens.
+  await device.route('**/api/upload*', async (route) => {
+    const response = await route.fetch()
+    const state = await response.json()
+    await route.fulfill({ response, json: { ...state, project: JSON.parse(readFileSync(`${video}.legendaria.json`, 'utf8')) } })
+  })
+  await device.goto(base)
+  await device.getByRole('button', { name: 'Choose a file…' }).waitFor()
+  await device.evaluate(async (b64) => {
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
+    const data = new DataTransfer()
+    data.items.add(new File([bytes], 'dropped.webm', { type: 'video/webm' }))
+    document.querySelector('main').dispatchEvent(new DragEvent('drop', { dataTransfer: data, bubbles: true, cancelable: true }))
+  }, readFileSync(video).toString('base64'))
+  await device.locator('video').waitFor({ timeout: 15000 })
+  await device.waitForFunction(() => document.querySelector('video')?.readyState >= 2, null, { timeout: 15000 })
+  assert.match(await device.evaluate(() => document.querySelector('video').src), /^blob:/, 'plays the local file')
+  await device.evaluate(() => (document.querySelector('video').currentTime = 4))
+  await device.waitForTimeout(500)
+  assert.deepEqual(streamed, [], 'no video bytes came back from the server')
+  await device.context().close()
+
   // the video file vanishes: the editor must say so by itself (no click needed) and offer to pick it again
   renameSync(video, `${video}.gone`)
   await page.reload()
