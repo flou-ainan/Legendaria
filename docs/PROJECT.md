@@ -85,6 +85,7 @@ engine/ (`flosub`) ── faster-whisper (GPU → CPU fallback) ──► transc
 | [021](dev-docs/decisions/ADR-021-playhead-modes-and-settings.md) | Two playhead modes (draggable arrow / centred line) and `settings.json` | accepted |
 | [022](dev-docs/decisions/ADR-022-per-cue-look.md) | Per-cue look overrides (style → track → cue), one `Style:` line per distinct look | accepted |
 | [023](dev-docs/decisions/ADR-023-session-per-client.md) | One server session per browser (a cookie), no global open video | accepted |
+| [024](dev-docs/decisions/ADR-024-access-lan-default-tailscale-recommended.md) | Phone access: LAN by default, Tailscale recommended, own login | accepted |
 
 ## 5. Folder structure
 
