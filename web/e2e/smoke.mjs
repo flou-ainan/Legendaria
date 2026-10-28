@@ -153,7 +153,9 @@ try {
   // the Look menu: Top preset, a bundled font; both reach the project and the preview `.ass`
   await page.getByRole('button', { name: /Subtitle look/ }).click()
   await page.getByRole('button', { name: /Top/ }).click()
-  await page.getByLabel('Font').selectOption('Anton')
+  await page.locator('.fontbtn').click()
+  await page.getByRole('option', { name: /Anton/ }).click()
+  assert.ok(await page.evaluate(() => document.fonts.check("16px 'Anton'")), 'the bundled font is loaded into the page for its preview')
   await page.waitForTimeout(1000)
   const looked = await project()
   assert.deepEqual(looked.look, { y: 0.88, font: 'Anton' })
@@ -338,6 +340,17 @@ try {
   assert.ok(rotated.canvas.h === 390 && rotated.canvas.x >= 0 && rotated.canvas.x + rotated.canvas.w <= 800, 'the subtitle canvas follows it')
   await touch.evaluate((path) => fetch('/api/open', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path }) }), video) // back to the main clip
   await touch.close()
+
+  // timeline blocks carry no text (thin, CapCut-like); regenerating asks before replacing the subtitles
+  assert.equal((await region(2).textContent()).trim(), '', 'a plain block shows no text')
+  { const h = (await page.locator('.wave').boundingBox()).height; assert.ok(h < 90, `the timeline strip is thin (${h}px)`) }
+  await page.getByRole('button', { name: /Subtitle look/ }).click() // close the look menu again
+  await page.getByRole('button', { name: 'Menu' }).click()
+  await page.getByRole('menuitem', { name: /Generate captions/ }).click()
+  await page.getByRole('button', { name: 'Transcribe', exact: true }).click()
+  await page.getByRole('alertdialog').waitFor()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Cancel' }).click()
+  await page.getByRole('button', { name: 'Cancel' }).click()
 
   // full screen keeps the subtitles: the box with the video and JASSUB's canvas goes full screen, not the <video>
   await page.getByRole('button', { name: /Full screen/ }).click()

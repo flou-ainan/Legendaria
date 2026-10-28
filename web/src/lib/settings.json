@@ -5,6 +5,8 @@
     "_playhead": "auto: a draggable arrow on a pointer device, a fixed centre line on a touch screen. Or force 'arrow' or 'center'."
   },
   "advanced": {
+    "timelineHeight": 52,
+    "_timelineHeight": "Height in pixels of the waveform strip; subtitle blocks cover it without text.",
     "snapPx": 4,
     "_snapPx": "How close (in screen pixels) an edge must be to a target for the magnet to take it.",
     "autosaveMs": 400,

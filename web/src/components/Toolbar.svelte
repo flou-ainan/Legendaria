@@ -6,6 +6,7 @@
   import { clock, outputDuration } from '../lib/timeline'
   import { ui } from '../lib/ui.svelte'
   import { fly } from 'svelte/transition'
+  import { tip } from '../lib/tip'
   import Icon from './Icon.svelte'
   import LookMenu from './LookMenu.svelte'
 
@@ -17,25 +18,25 @@
 </script>
 
 <div class="toolbar" role="toolbar">
-  <button class="tool" disabled={!editor.canUndo} onclick={() => editor.undo()} title={t('undo')}><Icon name="undo" /></button>
-  <button class="tool" disabled={!editor.canRedo} onclick={() => editor.redo()} title={t('redo')}><Icon name="redo" /></button>
+  <button use:tip class="tool" disabled={!editor.canUndo} onclick={() => editor.undo()} title={t('undo')}><Icon name="undo" /></button>
+  <button use:tip class="tool" disabled={!editor.canRedo} onclick={() => editor.redo()} title={t('redo')}><Icon name="redo" /></button>
   <span class="sep"></span>
-  <button class="tool" onclick={() => player.togglePlay()} title={t('tool.play')}><Icon name="play" /></button>
+  <button use:tip class="tool" onclick={() => player.togglePlay()} title={t('tool.play')}><Icon name="play" /></button>
   <span class="time" bind:this={clockEl}>0:00.00</span>
   <span class="sep"></span>
   <!-- contextual: at most 5 tools, they change with the selection (plan 08) -->
   {#if selected}
-    <button class="tool" onclick={() => editor.split(editor.selected, player.time())} title={t('tool.split')}><Icon name="split" /></button>
-    <button class="tool" disabled={editor.selected >= project.cues.length - 1} onclick={() => editor.mergeNext(editor.selected)} title={t('cues.merge')}><Icon name="merge" /></button>
-    <button class="tool danger" onclick={() => { editor.remove(editor.selected); editor.selected = -1 }} title={t('cues.delete')}><Icon name="remove" /></button>
+    <button use:tip class="tool" onclick={() => editor.split(editor.selected, player.time())} title={t('tool.split')}><Icon name="split" /></button>
+    <button use:tip class="tool" disabled={editor.selected >= project.cues.length - 1} onclick={() => editor.mergeNext(editor.selected)} title={t('cues.merge')}><Icon name="merge" /></button>
+    <button use:tip class="tool danger" onclick={() => { editor.remove(editor.selected); editor.selected = -1 }} title={t('cues.delete')}><Icon name="remove" /></button>
   {:else}
-    <button class="tool" onclick={() => (editor.markIn = player.time())} title={t('tool.in')}><Icon name="markIn" /></button>
-    <button class="tool" onclick={() => (editor.markOut = player.time())} title={t('tool.out')}><Icon name="markOut" /></button>
-    <button class="tool cut" disabled={!canCut} onclick={() => player.cut()} title={t('tool.cut')}><Icon name="cut" /></button>
+    <button use:tip class="tool" onclick={() => (editor.markIn = player.time())} title={t('tool.in')}><Icon name="markIn" /></button>
+    <button use:tip class="tool" onclick={() => (editor.markOut = player.time())} title={t('tool.out')}><Icon name="markOut" /></button>
+    <button use:tip class="tool cut" disabled={!canCut} onclick={() => player.cut()} title={t('tool.cut')}><Icon name="cut" /></button>
   {/if}
-  <button class="tool" class:on={ui.look} aria-expanded={ui.look} onclick={() => (ui.look = !ui.look)} title={t('look.title')}><Icon name="look" /></button>
+  <button use:tip class="tool" class:on={ui.look} aria-expanded={ui.look} onclick={() => (ui.look = !ui.look)} title={t('look.title')}><Icon name="look" /></button>
   <span class="sep"></span>
-  <button class="tool" class:on={ui.snap} aria-pressed={ui.snap} onclick={() => (ui.snap = !ui.snap)} title={ui.snap ? t('tool.snap_on') : t('tool.snap_off')}>
+  <button use:tip class="tool" class:on={ui.snap} aria-pressed={ui.snap} onclick={() => (ui.snap = !ui.snap)} title={ui.snap ? t('tool.snap_on') : t('tool.snap_off')}>
     <Icon name="snap" />
   </button>
   <span class="spacer"></span>

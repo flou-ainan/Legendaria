@@ -1,7 +1,8 @@
 <script lang="ts">
   // First screen when no video is open: drop a file here, or choose one from the computer.
   import { onMount } from 'svelte'
-  import { openVideo, uploadVideo, type State } from '../lib/api'
+  import { openVideo, pickFile, uploadVideo, type State } from '../lib/api'
+  import { ui } from '../lib/ui.svelte'
   import { t } from '../lib/i18n'
   import { clock } from '../lib/timeline'
   import { forget, lastWork, sameVideo, type Snapshot } from '../lib/recovery'
@@ -39,12 +40,12 @@
   }
 
   /** The user picked a replacement video: accept it only if it has the same length and screen shape. */
-  async function relink(path: string) {
+  async function relink(path: string | File) {
     if (!last) return
     busy = true
     error = ''
     try {
-      const state = await openVideo(path)
+      const state = typeof path === 'string' ? await openVideo(path) : await uploadVideo(path, (fraction) => (progress = fraction))
       const verdict = sameVideo(last.video, state.media)
       if (verdict.ok) {
         onOpen({ ...state, project: { ...last.project, source: state.video ?? last.project.source } }, true)
@@ -81,6 +82,19 @@
     }
   }
 
+  /** Choose a video: the server's file browser on this computer, the device's own picker through a tunnel. */
+  async function choose(mode: 'new' | 'relink') {
+    if (!ui.remote) {
+      picking = mode
+      browsing = true
+      return
+    }
+    const file = await pickFile()
+    if (!file) return
+    if (mode === 'relink') await relink(file)
+    else await run(uploadVideo(file, (fraction) => (progress = fraction)))
+  }
+
   function onDrop(event: DragEvent) {
     event.preventDefault()
     dragging = false
@@ -102,7 +116,7 @@
       <div class="resume">
         <strong>{t('relink.title')}</strong>
         <p class="muted">{t('relink.body', { name: last.video.name, path: last.video.path })}</p>
-        <button class="primary" onclick={() => { picking = 'relink'; browsing = true }} disabled={busy}>{t('relink.choose')}</button>
+        <button class="primary" onclick={() => choose('relink')} disabled={busy}>{t('relink.choose')}</button>
         <button class="link" onclick={discard}>{t('relink.forget')}</button>
       </div>
     {:else if last}
@@ -115,7 +129,7 @@
     {/if}
     <p class="drop">{dragging ? t('welcome.release') : t('welcome.drop')}</p>
     <p class="muted">{t('welcome.or')}</p>
-    <button class="primary big" onclick={() => { picking = 'new'; browsing = true }} disabled={busy}>{t('welcome.choose')}</button>
+    <button class="primary big" onclick={() => choose('new')} disabled={busy}>{t('welcome.choose')}</button>
     {#if busy}<progress max="1" value={progress || undefined}></progress>{/if}
     {#if error}<p class="error">{error}</p>{/if}
     <p class="muted small">{t('welcome.note')}</p>

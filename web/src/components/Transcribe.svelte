@@ -3,6 +3,7 @@
   // a sheet over the editor afterwards (`sheet`), where it keeps the cuts and the look and replaces the cues.
   import { untrack } from 'svelte'
   import { runJob, type Project, type State } from '../lib/api'
+  import { editor } from '../lib/editor.svelte'
   import { t } from '../lib/i18n'
 
   let { info, onDone, onChange, sheet = false }: { info: State; onDone: (project: Project) => void; onChange: () => void; sheet?: boolean } = $props()
@@ -13,12 +14,14 @@
   let status = $state('')
   let error = $state('')
   let busy = $state(false)
+  let confirming = $state(false) // sheet only: asking before the cues are replaced
 
   const label = (m: State['models'][number]) =>
     `${m.name} · ${m.size_mb ? `${m.size_mb} MB · ` : ''}${m.installed ? t('model.installed') : t('model.download')}`
   const note = $derived(info.models.find((m) => m.name === model)?.notes ?? '')
 
   async function start() {
+    confirming = false
     busy = true
     error = ''
     const last = await runJob('/api/transcribe', { model, language, style }, (e) => {
@@ -59,9 +62,19 @@
     </select>
   </label>
   <div class="row">
-    <button class="primary" onclick={start} disabled={busy}>{t('transcribe.start')}</button>
+    <button class="primary" onclick={() => (sheet && editor.project?.cues.length ? (confirming = true) : start())} disabled={busy || confirming}>{t('transcribe.start')}</button>
     <button onclick={onChange} disabled={busy}>{sheet ? t('cancel') : t('header.open')}</button>
   </div>
+  {#if confirming}
+    <div class="confirm" role="alertdialog" aria-label={t('transcribe.confirm_title')}>
+      <strong>{t('transcribe.confirm_title')}</strong>
+      <p>{t('transcribe.confirm_body', { count: editor.project?.cues.length ?? 0 })}</p>
+      <div class="row">
+        <button class="danger" onclick={start}>{t('transcribe.confirm_yes')}</button>
+        <button onclick={() => (confirming = false)}>{t('cancel')}</button>
+      </div>
+    </div>
+  {/if}
   {#if busy}<p>{status || t('loading')}</p>{/if}
   {#if error}<p class="error">{error}</p>{/if}
   {#if sheet}<p class="muted small">{t('transcribe.replaces')}</p>{/if}
@@ -77,4 +90,7 @@
   .sheet { margin: 0; width: min(32rem, 94vw); max-height: 92vh; overflow-y: auto; }
   .small { font-size: 0.8rem; }
   .row { display: flex; gap: 0.5rem; }
+  .confirm { margin-top: 0.8rem; padding: 0.8rem; border: 1px solid var(--cut); border-radius: 8px; }
+  .confirm p { margin: 0.4rem 0 0.7rem; }
+  .danger { background: var(--cut); color: #fff; }
 </style>

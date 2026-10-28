@@ -155,5 +155,9 @@
   "font.serif": "com serifa",
   "font.script": "manuscrita",
   "tool.merge_short": "Juntar",
-  "tool.delete_short": "Apagar"
+  "tool.delete_short": "Apagar",
+  "uploading": "Enviando o vídeo… {pct}%",
+  "transcribe.confirm_title": "Substituir todas as legendas?",
+  "transcribe.confirm_body": "As {count} legendas serão escritas de novo a partir do áudio, e as edições que você fez no texto e nos tempos serão perdidas. Os cortes e o estilo das legendas são mantidos.",
+  "transcribe.confirm_yes": "Sim, substituir"
 }

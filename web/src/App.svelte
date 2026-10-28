@@ -10,7 +10,7 @@
   import Timeline from './components/Timeline.svelte'
   import Transcribe from './components/Transcribe.svelte'
   import Welcome from './components/Welcome.svelte'
-  import { API_VERSION, loadState, openVideo, type State } from './lib/api'
+  import { API_VERSION, loadState, openVideo, pickFile, uploadVideo, type State } from './lib/api'
   import { editor } from './lib/editor.svelte'
   import { t } from './lib/i18n'
   import { ui } from './lib/ui.svelte'
@@ -44,13 +44,25 @@
   let generating = $state(false) // the Generate captions sheet over the editor
   let browsing = $state(false) // the file browser opened from the menu
 
-  async function openFromMenu(path: string) {
+  let uploading = $state<number | null>(null) // progress 0..1 of a video sent from this device
+
+  // On this computer the server's file browser; through a tunnel, the device's own picker (the video is uploaded).
+  async function chooseVideo() {
+    if (!ui.remote) return (browsing = true)
+    const file = await pickFile()
+    if (file) await openFromMenu(file)
+  }
+
+  async function openFromMenu(path: string | File) {
     browsing = false
     try {
       await editor.saveNow()
-      show(await openVideo(path))
+      if (typeof path === 'string') show(await openVideo(path))
+      else show(await uploadVideo(path, (fraction) => (uploading = fraction)))
     } catch (error) {
       failure = (error as Error).message
+    } finally {
+      uploading = null
     }
   }
 
@@ -83,6 +95,10 @@
   <p class="error outdated">{t('server_outdated')}</p>
 {/if}
 
+{#if uploading !== null}
+  <p class="muted upload">{t('uploading', { pct: Math.round(uploading * 100) })}</p>
+{/if}
+
 {#if failure}
   <p class="error center">{t('server_error', { message: failure })}</p>
 {:else if !info}
@@ -93,7 +109,7 @@
   <Transcribe {info} onDone={(project) => editor.load(project)} onChange={closeVideo} />
 {:else}
   <header>
-    <Menu onOpenVideo={() => (browsing = true)} onOpenProject={() => (browsing = true)} onNew={closeVideo} onGenerate={() => (generating = true)} onSave={() => editor.saveNow()} onDownload={download} />
+    <Menu onOpenVideo={chooseVideo} onOpenProject={chooseVideo} onNew={closeVideo} onGenerate={() => (generating = true)} onSave={() => editor.saveNow()} onDownload={download} />
     <img class="logo" src="/logo.svg" alt="" />
     <strong class="brand">Legendária</strong>
     <button class="link" onclick={closeVideo} title={t('header.open')}>{info.video}</button>
@@ -115,7 +131,7 @@
 {/if}
 
 {#if generating && info}
-  <Transcribe {info} sheet onDone={(project) => { generating = false; editor.load(project) }} onChange={() => (generating = false)} />
+  <Transcribe {info} sheet onDone={(project) => { generating = false; editor.load(project); void editor.refreshPreview() }} onChange={() => (generating = false)} />
 {/if}
 
 {#if browsing}
@@ -138,6 +154,7 @@
   main.drawer { grid-template-columns: minmax(0, 1fr) 25rem; }
   main.drawer :global(aside) { grid-column: 2; grid-row: 1 / span 2; max-height: calc(100vh - 6rem); position: sticky; top: 0.8rem; }
   .lower { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; gap: 0.8rem; background: var(--panel); border-radius: 10px; padding: 0.8rem; }
+  .upload { margin: 0; padding: 0.5rem 1rem; background: var(--panel); }
   .outdated { margin: 0; padding: 0.5rem 1rem; background: var(--cut); color: #fff; }
   .center { text-align: center; margin-top: 30vh; }
   @media (max-width: 1023px) {

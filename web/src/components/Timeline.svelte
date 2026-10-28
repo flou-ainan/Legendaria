@@ -122,7 +122,7 @@
     ws = WaveSurfer.create({
       container,
       media: player.video!,
-      height: 110,
+      height: settings.timelineHeight,
       minPxPerSec: pxPerSec,
       waveColor: '#5fa57a',
       progressColor: '#8fd3a8',
@@ -176,7 +176,7 @@
     const cues = project.cues
     cues.forEach((cue, i) => {
       const picked = i === editor.selected // only the selected block can be dragged or resized, so scrolling by touch never moves one
-      const label = cue.look ? `✦ ${cue.text}` : cue.text // ✦: this block has its own style
+      const label = cue.look ? '✦' : '' // ✦: this block has its own style; the text stays out of the timeline (thin, CapCut-like)
       const options = { start: cue.start, end: cue.end, content: label, color: picked ? SELECTED : i === editor.current ? CURRENT : COLOR }
       const region = cueRegions[i]
       if (!region) {
@@ -184,7 +184,7 @@
         grip(cueRegions[i], picked)
       } else if (
         region.start !== options.start || region.end !== options.end ||
-        region.content?.textContent !== label || region.color !== options.color ||
+        (region.content?.textContent ?? '') !== label || region.color !== options.color ||
         region.drag !== picked || region.resize !== picked
       ) {
         region.setOptions({ ...options, drag: picked, resize: picked })

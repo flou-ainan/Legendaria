@@ -155,5 +155,9 @@
   "font.serif": "serif",
   "font.script": "script",
   "tool.merge_short": "Merge",
-  "tool.delete_short": "Delete"
+  "tool.delete_short": "Delete",
+  "uploading": "Sending the video… {pct}%",
+  "transcribe.confirm_title": "Replace all subtitles?",
+  "transcribe.confirm_body": "The {count} subtitles will be written again from the audio, and the edits you made to their text and timing are lost. Cuts and the subtitle look are kept.",
+  "transcribe.confirm_yes": "Yes, replace them"
 }

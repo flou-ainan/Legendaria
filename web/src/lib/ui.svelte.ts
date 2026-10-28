@@ -1,7 +1,11 @@
 // Interface switches that are not part of the project.
 export type Panel = 'subtitles' | 'glossary' | 'cuts' | 'export'
 
+/** The page is open through a tunnel or another device: the server's disk is not the user's, so files are uploaded. */
+const remote = !['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)
+
 class UI {
+  readonly remote = remote
   snap = $state(true) // the magnet: timeline edges stick to nearby targets
   panel = $state<Panel | null>(null) // the side drawer; closed by default (everything happens below the video)
 

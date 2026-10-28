@@ -97,6 +97,18 @@ export function uploadVideo(file: File, onProgress: (fraction: number) => void):
   })
 }
 
+/** Open the browser's own file picker (the client's files, not the server's); null if cancelled. */
+export function pickFile(accept = 'video/*,audio/*'): Promise<File | null> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = accept
+    input.onchange = () => resolve(input.files?.[0] ?? null)
+    input.oncancel = () => resolve(null)
+    input.click()
+  })
+}
+
 export const loadGlossary = () => request<GlossaryState>('GET', '/api/glossary')
 export const addGlossaryEntry = (entry: string) => request<{ added: boolean }>('POST', '/api/glossary/add', { entry })
 export const importGlossary = (name: string, text: string) => request<GlossaryState>('POST', '/api/glossary/import', { name, text })

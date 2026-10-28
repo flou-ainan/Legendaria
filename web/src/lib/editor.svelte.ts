@@ -115,6 +115,11 @@ class Editor {
     return this.save()
   }
 
+  /** Draw the saved subtitles again (after the server wrote a new project, e.g. regenerated captions). */
+  async refreshPreview() {
+    this.onPreview(await previewAss())
+  }
+
   private scheduleSave() {
     this.saveStatus = 'saving'
     this.remember(true)

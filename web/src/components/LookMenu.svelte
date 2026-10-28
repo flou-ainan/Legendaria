@@ -5,6 +5,7 @@
   import { editor } from '../lib/editor.svelte'
   import type { BaseLook, Look } from '../lib/api'
   import { t } from '../lib/i18n'
+  import { loadFontFaces } from '../lib/fontfaces'
 
   const TOP = 0.88
   const BOTTOM = 0.1
@@ -26,6 +27,9 @@
   const outline = $derived(value('outline_color'))
   const box = $derived(value('box'))
   const upper = $derived(value('uppercase'))
+  let fontOpen = $state(false) // the font list; native <option> cannot show a font on a phone
+  const pickFont = (family: string) => { set({ font: family || null }); fontOpen = false }
+  const toggleFonts = () => { fontOpen = !fontOpen; if (fontOpen) loadFontFaces(editor.fonts) }
   const percent = (key: keyof BaseLook) => Math.round(Number(value(key)) * 100)
 </script>
 
@@ -51,12 +55,20 @@
   <label>{t('look.size')} <output>{Math.round(size * 100)}%</output>
     <input type="range" min="40" max="250" value={Math.round(size * 100)} oninput={(e) => set({ size: Number(e.currentTarget.value) / 100 })} />
   </label>
-  <label>{t('look.font')}
-    <select value={font} onchange={(e) => set({ font: e.currentTarget.value || null })}>
-      <option value="">{forCue ? t('look.font_track', { font: track.font ?? editor.base.font }) : t('look.font_style', { font: editor.base.font })}</option>
-      {#each editor.fonts as f (f.file)}<option value={f.family} style="font-family: '{f.family}'">{f.family} · {t(`font.${f.category}` as 'font.sans')}</option>{/each}
-    </select>
-  </label>
+  <div class="fontpick">
+    <span class="lbl">{t('look.font')}</span>
+    <button class="fontbtn" aria-expanded={fontOpen} onclick={toggleFonts} style:font-family={font ? `'${font}'` : undefined}>
+      {font || (forCue ? t('look.font_track', { font: track.font ?? editor.base.font }) : t('look.font_style', { font: editor.base.font }))}
+    </button>
+    {#if fontOpen}
+      <ul class="fontlist" role="listbox" aria-label={t('look.font')}>
+        <li><button role="option" aria-selected={!font} onclick={() => pickFont('')}>{forCue ? t('look.font_track', { font: track.font ?? editor.base.font }) : t('look.font_style', { font: editor.base.font })}</button></li>
+        {#each editor.fonts as f (f.file)}
+          <li><button role="option" aria-selected={font === f.family} class:on={font === f.family} onclick={() => pickFont(f.family)} style:font-family={`'${f.family}'`}>{f.family}<small>{t(`font.${f.category}` as 'font.sans')}</small></button></li>
+        {/each}
+      </ul>
+    {/if}
+  </div>
   <div class="row colors">
     <label>{t('look.color')}
       <input type="color" value={color} oninput={(e) => set({ color: e.currentTarget.value })} />
@@ -116,6 +128,13 @@
   .row .on { background: var(--accent); color: #15131c; }
   label { display: grid; gap: 0.25rem; font-size: 0.8rem; color: var(--muted); }
   .colors label { flex: 1; }
+  .fontpick { display: grid; gap: 0.25rem; }
+  .lbl { font-size: 0.8rem; color: var(--muted); }
+  .fontbtn { text-align: left; font-size: 1.05rem; }
+  .fontlist { list-style: none; margin: 0; padding: 0; max-height: 11rem; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
+  .fontlist button { display: flex; justify-content: space-between; align-items: baseline; width: 100%; border-radius: 0; background: none; font-size: 1.15rem; text-align: left; }
+  .fontlist button.on { background: var(--accent); color: #15131c; }
+  .fontlist small { font-size: 0.7rem; opacity: 0.7; font-family: system-ui, sans-serif; }
   input[type='color'] { width: 100%; height: 2rem; padding: 0; border: 1px solid var(--line); background: none; }
   .check { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--text); }
   output { float: right; color: var(--text); }
