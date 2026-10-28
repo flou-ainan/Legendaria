@@ -46,6 +46,16 @@
 5. **Breakpoint at 1024 px** and a real mobile layout (bottom toolbar, bottom sheets with a slide transition, touch dragging and pinch zoom on the timeline).
 6. **Desktop extras:** caption list always visible with search and replace, right-click menu, Ctrl+B split. *Step 52: search and replace, right-click menu and Ctrl+B done; the always-visible list is still open.*
 
+## Installable on the phone (PWA), owner request 2026-10-28
+
+Goal: when the project is ready, the editor installs from the mobile browser ("Add to home screen") and opens full screen, with an experience as fluid as CapCut's.
+
+- **What it is:** an installable shell (web app manifest, icons, `display: standalone`, theme colour, a service worker that caches the app files). The editor still talks to the `flosub serve` backend, so this is not the standalone offline PWA that ADR-014 left out of scope. If that changes, it gets its own ADR.
+- **Constraint:** browsers only offer install on HTTPS or localhost. Through ngrok it works; on plain `http://` over the local network it does not.
+- **Fluidity checklist** (what makes CapCut feel good, to check on a real phone): safe-area insets and `100dvh`, no page bounce or pull-to-refresh, no accidental text selection or zoom, touch targets of 44 px or more, haptics or visual feedback on tap, 60 fps timeline scrolling and pinch, screen kept awake while playing, orientation handled, and a fast first load from the cache.
+- **Order:** after the desktop extras and the touch dragging on the timeline, since fluid touch editing is what the install is meant to deliver.
+- Open question: what the app shows when the backend is unreachable (a clear "start flosub serve" screen).
+
 ## Later: subtitle tracks
 
 The project has one subtitle track today, and the Look menu edits it ("Edit this track's subtitles"). The plan is several subtitle tracks (for example a speaker or a second language each), each with its own global look, then per-cue overrides inside a track. The project file will need a list of tracks, each with its `look` and cues (a version bump, ADR then).
