@@ -53,7 +53,7 @@
    * Position the playhead every frame (the time is read from the <video>, ADR-015).
    * Arrow mode: it sits where the time is and the arrow can be dragged.
    * Centred mode: it stays in the middle; the timeline scrolls under it, and a shift to the right leaves
-   * empty space before the start (the waveform is only moved, never re-laid out, so wavesurfer still draws all of it).
+   * empty space before the start and after the end (the waveform is only moved, never re-laid out, so wavesurfer still draws all of it).
    */
   function follow() {
     const view = scroller.clientWidth
@@ -61,7 +61,9 @@
     let x = at - scroller.scrollLeft
     if (center) {
       scroller.scrollLeft = Math.max(0, at - view / 2)
-      const shift = Math.max(0, view / 2 - at)
+      // empty space before the start (shift right) and after the end (shift left, once the scroll cannot go further)
+      const reach = Math.max(0, scroller.scrollWidth - view)
+      const shift = Math.max(0, view / 2 - at) - Math.max(0, at - view / 2 - reach)
       wrap.style.transform = `translateX(${shift}px)`
       x = view / 2
     }

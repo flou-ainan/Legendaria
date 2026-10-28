@@ -291,6 +291,14 @@ try {
   await touch.waitForTimeout(300)
   g = await geometry()
   assert.ok(Math.abs(g.head - (g.wave.x + g.view / 2)) < 3 && g.left === 0, 'at the start the playhead is still in the middle, over empty space')
+  // the end of the video must be reachable: the playhead stays in the middle over empty space after the last frame
+  await touch.evaluate(() => (document.querySelector('video').currentTime = document.querySelector('video').duration))
+  await touch.waitForTimeout(400)
+  const end = await touch.evaluate(() => ({
+    head: document.querySelector('.head').getBoundingClientRect().x,
+    edge: document.querySelector('.wave > div').shadowRoot.querySelector('.wrapper').getBoundingClientRect().right,
+  }))
+  assert.ok(Math.abs(end.head - end.edge) < 4, `at the end the playhead sits on the waveform's last edge (${end.head} vs ${end.edge})`)
   const y = g.wave.y + g.wave.height / 2
   await touch.mouse.move(g.wave.x + 250, y); await touch.mouse.down(); await touch.mouse.move(g.wave.x + 150, y, { steps: 5 }); await touch.mouse.up()
   g = await geometry()
