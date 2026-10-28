@@ -43,6 +43,8 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["legendaria_engine"]
+# The web editor build (web/ → npm run build) is gitignored but must ship in the wheel.
+artifacts = ["legendaria_engine/web/**"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -11,7 +11,7 @@ Thanks for helping! Every contribution counts: code, translations, docs, bug rep
 
 ## Setup
 
-You need git, [uv](https://docs.astral.sh/uv/) and, for the add-on, Blender 4.2 or newer.
+You need git, [uv](https://docs.astral.sh/uv/), FFmpeg for the editor's export, [Node.js](https://nodejs.org/) 22+ only if you change the web editor, and, for the frozen add-on, Blender 4.2 or newer.
 
 ```bash
 git clone https://github.com/flou-ainan/Legendaria.git
@@ -31,7 +31,23 @@ uv run flosub transcribe some-clip.mp3 --format srt
 
 `uv` creates `engine/.venv` with Python 3.11, whatever Python your system has. Models download to your per-user data folder (`flosub models list` shows where).
 
-### Blender add-on (`blender_addon/`)
+### Web editor (`web/`)
+
+Svelte 5 + Vite + TypeScript (ADR-015). `npm run build` writes the app into `engine/legendaria_engine/web/`, which `flosub serve` serves and the wheel ships, so users never need Node.js.
+
+```bash
+cd web
+npm ci
+npm run build                 # then: cd ../engine && uv run flosub serve   (the browser asks for a video)
+npm run check                 # type check (svelte-check)
+npm test                      # Vitest
+npm run e2e                   # browser smoke test: needs ffmpeg, uv and `npx playwright install chromium`
+npm run dev                   # live reload; first run `uv run flosub serve --no-browser` (port 8765)
+```
+
+The live preview (JASSUB) is only reliable in the built app; check it with `npm run build` before you push. UI strings live in `web/src/locales/en.json` and `pt-BR.json` (same keys in both).
+
+### Blender add-on (`blender_addon/`, frozen)
 
 The add-on finds `flosub` on your PATH, so install the engine as a tool first: `uv tool install --editable "./engine[cuda]"` (drop `[cuda]` without an NVIDIA GPU).
 
@@ -85,6 +101,7 @@ Every user-visible string must be in `blender_addon/legendaria/locales/pt_BR.jso
 English is the source language and Brazilian Portuguese (`pt_BR`) is always maintained. To add or fix a language:
 
 - **README:** copy `README.md` to `README.<lang>.md`, translate it, and add a link in the language line at the top of every README.
+- **Web editor:** copy `web/src/locales/en.json` to `<lang>.json`, translate it, and register it in `web/src/lib/i18n.ts`.
 - **Blender add-on:** add `blender_addon/legendaria/locales/<lang>.json` (format described in `locales/README.md`, once the add-on exists).
 - **Brand taglines:** add an entry to `TAGLINES` in `assets/brand/source/generate_hero.py`.
 

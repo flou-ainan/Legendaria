@@ -1,0 +1,116 @@
+[
+  {
+    "family": "Montserrat",
+    "file": "Montserrat-Bold.ttf",
+    "bold": true,
+    "category": "sans"
+  },
+  {
+    "family": "Lato",
+    "file": "Lato-Bold.ttf",
+    "bold": true,
+    "category": "sans"
+  },
+  {
+    "family": "Raleway",
+    "file": "Raleway-Bold.ttf",
+    "bold": true,
+    "category": "sans"
+  },
+  {
+    "family": "Nunito",
+    "file": "Nunito-Bold.ttf",
+    "bold": true,
+    "category": "rounded"
+  },
+  {
+    "family": "Comfortaa",
+    "file": "Comfortaa-Bold.ttf",
+    "bold": true,
+    "category": "rounded"
+  },
+  {
+    "family": "Fredoka One",
+    "file": "FredokaOne-Regular.ttf",
+    "bold": false,
+    "category": "rounded"
+  },
+  {
+    "family": "Oswald",
+    "file": "Oswald-Bold.ttf",
+    "bold": true,
+    "category": "condensed"
+  },
+  {
+    "family": "Anton",
+    "file": "Anton.ttf",
+    "bold": false,
+    "category": "condensed"
+  },
+  {
+    "family": "Bebas Neue",
+    "file": "BebasNeue-Regular.ttf",
+    "bold": false,
+    "category": "condensed"
+  },
+  {
+    "family": "Passion One",
+    "file": "PassionOne-Bold.ttf",
+    "bold": true,
+    "category": "condensed"
+  },
+  {
+    "family": "Archivo Black",
+    "file": "ArchivoBlack-Regular.ttf",
+    "bold": false,
+    "category": "heavy"
+  },
+  {
+    "family": "Titan One",
+    "file": "TitanOne-Regular.ttf",
+    "bold": false,
+    "category": "heavy"
+  },
+  {
+    "family": "Righteous",
+    "file": "Righteous-Regular.ttf",
+    "bold": false,
+    "category": "display"
+  },
+  {
+    "family": "Bangers",
+    "file": "Bangers.ttf",
+    "bold": false,
+    "category": "comic"
+  },
+  {
+    "family": "Orbitron",
+    "file": "Orbitron-Bold.ttf",
+    "bold": true,
+    "category": "tech"
+  },
+  {
+    "family": "Press Start 2P",
+    "file": "PressStart2P-Regular.ttf",
+    "bold": false,
+    "category": "pixel"
+  },
+  {
+    "family": "Playfair Display",
+    "file": "PlayfairDisplay-Bold.ttf",
+    "bold": true,
+    "category": "serif"
+  },
+  {
+    "family": "Merriweather",
+    "file": "Merriweather-Bold.ttf",
+    "bold": true,
+    "category": "serif"
+  },
+  {
+    "family": "Pacifico",
+    "file": "Pacifico.ttf",
+    "bold": false,
+    "category": "script"
+  }
+]

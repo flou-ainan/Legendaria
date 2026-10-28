@@ -1,4 +1,4 @@
-"""FFmpeg: find it, read a video's size, burn subtitles in, render a transparent overlay.
+"""FFmpeg: find it, read a video's size, burn subtitles in, cut + burn, render a transparent overlay.
 
 FFmpeg (with libass) is only needed for the styled path (`.ass` burn-in and overlay); plain
 transcription does not use it. Subtitle files are passed to the `ass` filter by a bare file
@@ -13,10 +13,12 @@ import subprocess
 import sys
 import tempfile
 import threading
+from array import array
 from pathlib import Path
 from typing import Any
 
 from legendaria_engine.events import Reporter
+from legendaria_engine.fonts import FONTS_DIR
 
 EXE = ".exe" if sys.platform == "win32" else ""
 
@@ -44,7 +46,7 @@ def find_tool(config: dict[str, Any], name: str = "ffmpeg") -> Path:
 
 
 def probe(path: Path, config: dict[str, Any]) -> dict[str, Any]:
-    """Width, height, fps and duration of a media file (width/height are None for audio)."""
+    """Width, height, fps, duration and has_audio of a media file (width/height are None for audio)."""
     result = subprocess.run(
         [
             str(find_tool(config, "ffprobe")),
@@ -69,6 +71,7 @@ def probe(path: Path, config: dict[str, Any]) -> dict[str, Any]:
         "height": None,
         "fps": None,
         "duration": float(data.get("format", {}).get("duration") or 0),
+        "has_audio": any(s.get("codec_type") == "audio" for s in data.get("streams", [])),
     }
     if video:
         info["width"], info["height"] = int(video["width"]), int(video["height"])
@@ -136,7 +139,8 @@ def _staged(ass_text: str) -> tuple[Path, str]:
     """Write the subtitles to a temp folder; returns (folder, file name for the filter)."""
     folder = Path(tempfile.mkdtemp(prefix="legendaria-"))
     (folder / "subs.ass").write_text(ass_text, encoding="utf-8")
-    return folder, "subs.ass"
+    shutil.copytree(FONTS_DIR, folder / "fonts", ignore=shutil.ignore_patterns("*.json", "*.md"))
+    return folder, "subs.ass:fontsdir=fonts"  # the bundled fonts, next to the subtitles
 
 
 def burn(
@@ -202,3 +206,101 @@ def overlay(
     finally:
         shutil.rmtree(folder, ignore_errors=True)
     return output
+
+
+def cut_graph(keep: list[tuple[float, float]], audio: bool, subs: str | None) -> str:
+    """Filter graph: trim each kept range, concat them, then burn `subs` (outputs [vo], [ao])."""
+    parts, pairs = [], ""
+    for i, (start, end) in enumerate(keep):
+        parts.append(f"[0:v]trim=start={start}:end={end},setpts=PTS-STARTPTS[v{i}]")
+        pairs += f"[v{i}]"
+        if audio:
+            parts.append(f"[0:a]atrim=start={start}:end={end},asetpts=PTS-STARTPTS[a{i}]")
+            pairs += f"[a{i}]"
+    outputs = "[vc][ao]" if audio else "[vc]"
+    parts.append(f"{pairs}concat=n={len(keep)}:v=1:a={int(audio)}{outputs}")
+    parts.append(f"[vc]ass={subs}[vo]" if subs else "[vc]null[vo]")
+    return ";".join(parts)
+
+
+def render(
+    config: dict[str, Any],
+    video: Path,
+    keep: list[tuple[float, float]],
+    ass_text: str | None,
+    output: Path,
+    reporter: Reporter,
+) -> Path:
+    """One FFmpeg pass: keep only `keep` (source seconds), burn `ass_text` (output time) if given.
+
+    Audio is re-encoded (AAC by default, config `burn.render_audio_args`) since it is cut.
+    """
+    if not keep:
+        raise MediaError("Nothing to render: every part of the video was cut.")
+    video, output = Path(video).resolve(), Path(output).resolve()  # FFmpeg runs in a temp dir
+    settings = config.get("burn", {})
+    audio = probe(video, config)["has_audio"]
+    duration = sum(b - a for a, b in keep)
+    folder, name = _staged(ass_text or "")
+    maps = ["-map", "[vo]", *(["-map", "[ao]"] if audio else [])]
+    try:
+        run_ffmpeg(
+            config,
+            [
+                "-i",
+                str(video),
+                "-filter_complex",
+                cut_graph(keep, audio, name if ass_text else None),
+                *maps,
+                *settings.get("video_args", ["-c:v", "libx264", "-crf", "18", "-preset", "medium"]),
+                *(
+                    settings.get("render_audio_args", ["-c:a", "aac", "-b:a", "192k"])
+                    if audio
+                    else []
+                ),
+                str(output),
+            ],
+            duration,
+            reporter,
+            folder,
+        )
+    finally:
+        shutil.rmtree(folder, ignore_errors=True)
+    return output
+
+
+def peaks(config: dict[str, Any], path: Path, per_sec: int = 100, rate: int = 8000) -> list[float]:
+    """Waveform peaks: the largest |sample| (0 to 1) in each 1/`per_sec` s, decoded by FFmpeg.
+
+    Streams 8 kHz mono PCM through a pipe, so a long video never sits in memory. Empty when
+    the media has no audio.
+    """
+    step = rate // per_sec
+    process = subprocess.Popen(
+        [
+            str(find_tool(config)),
+            "-v",
+            "error",
+            "-i",
+            str(path),
+            "-vn",
+            "-ac",
+            "1",
+            "-ar",
+            str(rate),
+            "-f",
+            "s16le",
+            "-",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    )
+    out: list[float] = []
+    while chunk := process.stdout.read(step * 2 * 2000):
+        samples = array("h")
+        samples.frombytes(chunk[: len(chunk) // 2 * 2])
+        for i in range(0, len(samples), step):
+            window = samples[i : i + step]
+            out.append(round(max(max(window), -min(window)) / 32768, 3))
+    process.wait()
+    return out

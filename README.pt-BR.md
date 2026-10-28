@@ -15,20 +15,20 @@ O nome junta *legenda* com *legendary* (lendária, em inglês). A ferramenta de 
 ## O que ele vai fazer
 
 - **Transcrever automaticamente**, no seu próprio computador (acelerado pela placa de vídeo quando houver, ou pelo processador). Sem nuvem, sem conta, sem coleta de dados.
-- **Editar visualmente no Blender:** cada legenda é um bloco na linha do tempo. Clique para corrigir o texto, arraste para ajustar o tempo e estilize do seu jeito.
-- **Exportar** SRT/VTT para o YouTube e outras plataformas, ou renderizar o vídeo com as legendas gravadas.
+- **Editar visualmente no navegador:** um editor local que abre no seu navegador (nada é enviado para a internet). Cada legenda é um bloco na linha do tempo: clique para corrigir o texto, arraste para ajustar o tempo, corte as partes do vídeo que não quer e veja o visual final ao vivo.
+- **Exportar** SRT, VTT ou ASS para o YouTube e outras plataformas, ou o vídeo com as legendas gravadas.
 - **Legendas animadas palavra por palavra** (estilo CapCut), depois da primeira versão.
 
 ## Objetivos
 
-- Instalador simples: avançar → avançar → concluir, abrir o Blender, colocar o vídeo e clicar em **Gerar legendas**.
+- Instalador simples: avançar → avançar → concluir, abrir o editor no navegador, colocar o vídeo, clicar em **Gerar legendas** e editar.
 - Funciona em **Linux, macOS e Windows 10+**.
 - Disponível em **inglês e português do Brasil**. Outros idiomas são bem-vindos.
 - **Personalizável:** padrões, modelos, estilos e traduções ficam em arquivos JSON que você pode editar.
 
 ## Status e próximos passos
 
-O [plano](docs/dev-docs/planning/plan_01_mvp_engine_blender.md) tem o roadmap (a documentação técnica é em inglês). Um site de documentação e um vídeo tutorial virão com a primeira versão.
+O motor de transcrição já funciona pela linha de comando (`flosub`). O editor no navegador está sendo construído ([plano 07](docs/dev-docs/planning/plan_07_web_editor.md), documentação técnica em inglês). Um add-on anterior para o Blender está congelado e deve ser aposentado ([ADR-014](docs/dev-docs/decisions/ADR-014-web-editor-blender-frozen.md)). Um site de documentação e um vídeo tutorial virão com a primeira versão.
 
 ## Como contribuir
 
@@ -37,4 +37,5 @@ Contribuições são bem-vindas, inclusive traduções. Leia o [CONTRIBUTING.md]
 ## Licença
 
 - Motor de transcrição e repositório: [MIT](LICENSE)
-- Add-on do Blender: GPL-3.0-or-later (exigência da plataforma de extensões do Blender)
+- Add-on do Blender (congelado): GPL-3.0-or-later (exigência da plataforma de extensões do Blender)
+- Ícones do editor: [Solar Linear](https://www.figma.com/community/file/1166831539721848736), de 480 Design, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)

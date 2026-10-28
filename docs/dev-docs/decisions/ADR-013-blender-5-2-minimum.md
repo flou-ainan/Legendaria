@@ -1,6 +1,6 @@
 # ADR 013 — Blender 5.2 LTS is the minimum supported version
 
-**Status:** accepted (owner, 2026-10-26). Implementation waits until the owner's manual test feedback.
+**Status:** suspended by ADR-014 (the add-on is frozen; not implemented).
 **Date:** 2026-10-26
 **Supersedes:** the "Blender 4.2+" support decided in plan 01/02.
 

@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/flou-ainan/Legendaria/main/engine/schemas/project.schema.json",
+  "title": "Legendária project (v1)",
+  "description": "The web editor's document, <video>.legendaria.json (ADR-016): the source video, the kept ranges after the cuts and the cues. All times are seconds in source time.",
+  "type": "object",
+  "required": [
+    "format",
+    "version",
+    "source",
+    "duration",
+    "style",
+    "language",
+    "keep",
+    "cues"
+  ],
+  "properties": {
+    "format": {
+      "const": "legendaria-project"
+    },
+    "version": {
+      "const": 1
+    },
+    "source": {
+      "type": "string",
+      "description": "The video, relative to the project file when it sits next to it."
+    },
+    "duration": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Length of the source video."
+    },
+    "style": {
+      "type": "string",
+      "description": "A style name from the config's \"styles\"."
+    },
+    "language": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "keep": {
+      "type": "array",
+      "description": "Kept [start, end] ranges, sorted and not overlapping. Everything else is cut out.",
+      "items": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "type": "number",
+            "minimum": 0
+          },
+          {
+            "type": "number",
+            "minimum": 0
+          }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+      }
+    },
+    "cues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "start",
+          "end",
+          "text"
+        ],
+        "properties": {
+          "start": {
+            "type": "number",
+            "minimum": 0
+          },
+          "end": {
+            "type": "number",
+            "minimum": 0
+          },
+          "text": {
+            "type": "string"
+          },
+          "words": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "start",
+                "end",
+                "word"
+              ],
+              "properties": {
+                "start": {
+                  "type": "number"
+                },
+                "end": {
+                  "type": "number"
+                },
+                "word": {
+                  "type": "string"
+                },
+                "probability": {
+                  "type": "number"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "look": {
+            "$ref": "#/properties/look",
+            "description": "This cue's own look overrides (ADR-022); absent means it follows the track."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "look": {
+      "type": "object",
+      "description": "Optional overrides of the style's look for the whole track (ADR-019); a cue may override them again (ADR-022).",
+      "additionalProperties": false,
+      "properties": {
+        "font": {
+          "type": "string"
+        },
+        "size": {
+          "type": "number",
+          "minimum": 0.3,
+          "maximum": 3
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "outline_color": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "box": {
+          "type": "boolean"
+        },
+        "box_color": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "outline": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "shadow": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "shadow_on": {
+          "type": "boolean"
+        },
+        "shadow_color": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "shadow_opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "box_opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "box_padding_x": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "box_padding_y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "box_radius": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "uppercase": {
+          "type": "boolean"
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Height of the text centre above the bottom edge, as a fraction of the video height (0 bottom, 1 top)."
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
