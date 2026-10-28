@@ -3,19 +3,23 @@
   import { runJob } from '../lib/api'
   import { editor } from '../lib/editor.svelte'
   import { t } from '../lib/i18n'
+  import { ui } from '../lib/ui.svelte'
 
   let busy = $state(false)
   let progress = $state(0)
   let message = $state('')
+  let saved = $state('') // the exported file's name, to offer it for download on another device
 
   async function exportAs(format: string) {
     busy = true
     progress = 0
     message = ''
+    saved = ''
     const last = await runJob('/api/export', { format }, (e) => {
       if (e.event === 'progress') progress = Math.round((100 * Number(e.t)) / Number(e.total || 1))
     })
     busy = false
+    if (last.event === 'done') saved = String((last.outputs as string[])[0]).split(/[\\/]/).pop() ?? ''
     message =
       last.event === 'done'
         ? t('export.done', { path: String((last.outputs as string[])[0]) })
@@ -33,6 +37,7 @@
   </div>
   {#if busy}<progress max="100" value={progress}></progress> <span class="muted">{t('export.running', { pct: progress })}</span>{/if}
   {#if message}<p class="muted">{message}</p>{/if}
+  {#if saved && ui.remote}<a class="button" href={`/api/output?name=${encodeURIComponent(saved)}`} download={saved}>{t('export.save_here')}</a>{/if}
 </section>
 
 <style>

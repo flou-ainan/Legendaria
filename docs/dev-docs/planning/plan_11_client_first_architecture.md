@@ -36,6 +36,12 @@ The focus of the open project is local use: the editor runs on the user's comput
 - Uploaded files stay in the uploads folder on the computer and can be opened again from "Computer files".
 - Done when: from the phone alone the owner can edit a video that lives on the computer, or one from the phone, and end up with the result on either side.
 
+**Status:** open from either side and "Save to this device" are done (step 58); not tried on a phone yet.
+
+## E. A projects folder (owner idea, 2026-10-28; to refine before building)
+
+Keep the projects in one folder on the computer, with a list to open and switch between them, and let the phone create new ones. Today a project is a `<video>.legendaria.json` next to its video. Open questions: does the video move into the project's folder or stay where it was, and where is the folder (a setting)?
+
 ## C. Move to the client what the browser can do alone (postponed)
 
 Not in the current scope: the owner prefers to keep the project local-first and to revisit phone independence when the project is mature (an installable shell, local storage and on-device processing included). The list is kept as the starting point.

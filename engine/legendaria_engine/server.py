@@ -24,7 +24,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from collections.abc import Iterable
 from typing import Any
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, quote, urlsplit
 
 from legendaria_engine import fonts, formats, media, workspace
 from legendaria_engine.ass import rgb_hex, to_ass, with_look
@@ -407,6 +407,14 @@ class Handler(BaseHTTPRequestHandler):
                 if match.group(1) not in {e["file"] for e in fonts.catalog()}:
                     return self._error(HTTPStatus.NOT_FOUND, "Unknown font.")
                 return self._file(bundled)
+            if path == "/api/output":
+                # an export made earlier, so a phone can save it on itself (only `<video>.edited.<ext>` of the open video)
+                name = parse_qs(urlsplit(self.path).query).get("name", [""])[0]
+                allowed = {f"{self.session.video.stem}.edited.{ext}" for ext in ("mp4", "srt", "vtt", "ass")}
+                target = self.session.video.parent / name
+                if name not in allowed or not target.is_file():
+                    return self._error(HTTPStatus.NOT_FOUND, "No such export.")
+                return self._file(target, attachment=True)
             if path == "/api/preview.ass":
                 project = self.session.project()
                 if project is None:
@@ -557,8 +565,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._error(HTTPStatus.NOT_FOUND, message)
         return self._file(target)
 
-    def _file(self, path: Path) -> None:
-        """Send a file, honoring a single `Range: bytes=a-b` (video seeking)."""
+    def _file(self, path: Path, attachment: bool = False) -> None:
+        """Send a file, honoring a single `Range: bytes=a-b` (video seeking); `attachment` makes the browser save it."""
         size = path.stat().st_size
         content_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
         start, end, status = 0, size - 1, 200
@@ -580,6 +588,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         self.send_header("Accept-Ranges", "bytes")
         self.send_header("Content-Length", str(end - start + 1))
+        if attachment:
+            self.send_header("Content-Disposition", f"attachment; filename*=UTF-8''{quote(path.name)}")
         if status == 206:
             self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
         for key, value in ISOLATION.items():

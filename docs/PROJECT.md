@@ -185,8 +185,8 @@ Layout (step 33): a header, the video with a tool row under it (play, in, out, c
 |---|---|---|
 | `main.ts` | 5 | Mounts `App.svelte`. `app.css`: theme tokens, base controls, and the style of wavesurfer's cue text (it draws in a shadow root). |
 | `App.svelte` | 173 | Loads `/api/state`; Welcome when no video is open, Transcribe until a project exists, then the editor layout and the header (menu, logo, save status, panel buttons, Export); Save now and Download a copy. |
-| `components/Welcome.svelte` | 159 | Start screen: drop a video on the page (uploaded) or "Choose a file…" (opened in place); "Continue where you left off" from the browser's recovery copy, and relinking a moved video (same duration ±0.5 s and screen proportion ±1 %). |
-| `components/Menu.svelte` | 65 | File menu (open video/project, close, save, download a copy, export), panels on narrow screens and the interface language; a hamburger under 900 px. |
+| `components/Welcome.svelte` | 161 | Start screen (from a phone it offers the device's picker and the computer's files): drop a video on the page (uploaded) or "Choose a file…" (opened in place); "Continue where you left off" from the browser's recovery copy, and relinking a moved video (same duration ±0.5 s and screen proportion ±1 %). |
+| `components/Menu.svelte` | 67 | File menu (open video/project, close, save, download a copy, export), panels on narrow screens and the interface language; a hamburger under 900 px. |
 | `components/Browse.svelte` | 77 | File browser dialog over the computer running the server (`/api/browse`), with an editable folder path. |
 | `components/Transcribe.svelte` | 96 | Drop-down lists for model (shows size and whether it is downloaded), language and style; runs the transcribe job with progress. |
 | `components/Player.svelte` | 193 | `<video>` + JASSUB (font preloaded, repaint on paused seeks); a `requestVideoFrameCallback` loop skips cut parts and tracks the current cue without reactive state at frame rate; keyboard shortcuts from `lib/shortcuts.json` (S or Ctrl+B splits); the frame callback reports the displayed video size to JASSUB (rotated phone videos); if the video fails to play and the server no longer has the file, it asks `App` to show the relink screen. |
@@ -416,7 +416,7 @@ Transcript format (JSON v1): the contract between the engine and the Blender add
 | `Transcript.save(path)` | 108 | Write as pretty UTF-8 JSON. |
 | `Transcript.load(path)` | 113 | Read a transcript JSON file. |
 
-### engine/legendaria_engine/server.py — 641 lines
+### engine/legendaria_engine/server.py — 651 lines
 `flosub serve`: the local web editor's backend (plan 07, ADR-014).
 
 | Function / class | Line | What it does |
@@ -440,10 +440,10 @@ Transcript format (JSON v1): the contract between the engine and the Blender add
 | `Handler.session()` | 316 | This browser's session (routes that need one are guarded by `_ready`). |
 | `Handler.log_message(format, *args)` | 335 | Quiet: only errors are printed. |
 | `Handler.do_GET()` | 371 | Static app, state, media, font, preview `.ass` and job events. |
-| `Handler.do_PUT()` | 424 | Save the project (validated and normalized); returns what was saved. |
-| `Handler.do_POST()` | 439 | Start a job: `/api/transcribe` {model, language, style} or `/api/export` {format}. |
-| `make_server(video, port, config, allow_hosts)` | 604 | A server on 127.0.0.1 (`port` 0 picks a free one), with `video` open if given. |
-| `serve(video, port, open_browser, reporter, allow_hosts)` | 624 | Run the editor until Ctrl+C (the browser asks for a video when none is given). |
+| `Handler.do_PUT()` | 432 | Save the project (validated and normalized); returns what was saved. |
+| `Handler.do_POST()` | 447 | Start a job: `/api/transcribe` {model, language, style} or `/api/export` {format}. |
+| `make_server(video, port, config, allow_hosts)` | 614 | A server on 127.0.0.1 (`port` 0 picks a free one), with `video` open if given. |
+| `serve(video, port, open_browser, reporter, allow_hosts)` | 634 | Run the editor until Ctrl+C (the browser asks for a video when none is given). |
 
 ### engine/legendaria_engine/transcriber.py — 145 lines
 Speech-to-text. A small backend interface keeps room for other engines (e.g. Apple Silicon).

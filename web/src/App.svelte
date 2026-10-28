@@ -115,7 +115,7 @@
   <Transcribe {info} onDone={(project) => editor.load(project)} onChange={closeVideo} />
 {:else}
   <header>
-    <Menu onOpenVideo={chooseVideo} onOpenProject={chooseVideo} onNew={closeVideo} onGenerate={() => (generating = true)} onSave={() => editor.saveNow()} onDownload={download} />
+    <Menu onOpenVideo={chooseVideo} onOpenFromComputer={() => (browsing = true)} onOpenProject={chooseVideo} onNew={closeVideo} onGenerate={() => (generating = true)} onSave={() => editor.saveNow()} onDownload={download} />
     <img class="logo" src="/logo.svg" alt="" />
     <strong class="brand">Legendária</strong>
     <button class="link" onclick={closeVideo} title={t('header.open')}>{info.video}</button>

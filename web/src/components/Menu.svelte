@@ -4,8 +4,8 @@
   import { ui, type Panel } from '../lib/ui.svelte'
 
   let {
-    onOpenVideo, onOpenProject, onNew, onGenerate, onSave, onDownload,
-  }: { onGenerate: () => void; onOpenVideo: () => void; onOpenProject: () => void; onNew: () => void; onSave: () => void; onDownload: () => void } = $props()
+    onOpenVideo, onOpenFromComputer, onOpenProject, onNew, onGenerate, onSave, onDownload,
+  }: { onGenerate: () => void; onOpenVideo: () => void; onOpenFromComputer: () => void; onOpenProject: () => void; onNew: () => void; onSave: () => void; onDownload: () => void } = $props()
 
   let open = $state(false)
   const panels: Panel[] = ['subtitles', 'glossary', 'cuts', 'export']
@@ -25,7 +25,8 @@
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
     <div class="shade" onclick={() => (open = false)}></div>
     <div class="list" role="menu">
-      <button role="menuitem" onclick={run(onOpenVideo)}>{t('menu.open_video')}</button>
+      <button role="menuitem" onclick={run(onOpenVideo)}>{ui.remote ? t('menu.open_device') : t('menu.open_video')}</button>
+      {#if ui.remote}<button role="menuitem" onclick={run(onOpenFromComputer)}>{t('menu.open_computer')}</button>{/if}
       <button role="menuitem" onclick={run(onOpenProject)}>{t('menu.open_project')}</button>
       <button role="menuitem" onclick={run(onNew)}>{t('menu.new')}</button>
       <hr />

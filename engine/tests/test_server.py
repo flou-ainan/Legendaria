@@ -260,3 +260,14 @@ def test_opening_a_video_does_not_change_another_browser(server, tmp_path):
     call(base + "/api/open", "POST", {"path": str(other)})  # this browser now has other.mp4
     assert json.loads(call(base + "/api/state")[2])["video"] == "other.mp4"
     assert json.loads(call(base + "/api/state", fresh=True)[2])["video"] == "clip.mp4"
+
+
+def test_output_download_is_limited_to_exports(server, tmp_path):
+    _, base = server
+    (tmp_path / "clip.edited.srt").write_text("1\n", encoding="utf-8")
+    status, headers, body = call(base + "/api/output?name=clip.edited.srt")
+    assert status == 200 and body == b"1\n" and "attachment" in headers["Content-Disposition"]
+    for name in ("clip.mp4", "../clip.edited.srt", "clip.legendaria.json", "clip.edited.mp4"):
+        with pytest.raises(urllib.error.HTTPError) as err:
+            call(base + "/api/output?name=" + name)
+        assert err.value.code == 404, name
