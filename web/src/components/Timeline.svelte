@@ -182,6 +182,7 @@
       if (!region) {
         cueRegions[i] = regions!.addRegion({ id: `c${i}`, ...options, drag: picked, resize: picked })
         grip(cueRegions[i], picked)
+        cueRegions[i].element?.addEventListener('contextmenu', (event) => openMenu(event, i))
       } else if (
         region.start !== options.start || region.end !== options.end ||
         (region.content?.textContent ?? '') !== label || region.color !== options.color ||
@@ -210,6 +211,19 @@
       overlays.push(regions!.addRegion({ id: 'mark', start: Math.min(a, b), end: Math.max(a, b) + 0.01, color: MARK, drag: false, resize: false }))
     }
   })
+
+  // Right-click menu on a block: select it, then offer split / merge / delete.
+  let menu = $state<{ x: number; y: number; i: number } | null>(null)
+  function openMenu(event: MouseEvent, i: number) {
+    event.preventDefault()
+    event.stopPropagation()
+    editor.selected = i
+    menu = { x: event.clientX, y: event.clientY, i }
+  }
+  function choose(run: () => void) {
+    run()
+    menu = null
+  }
 
   // A block that is not selected leaves touch gestures to the page (scrolling); the selected one takes them.
   function grip(region: Region, picked: boolean) {
@@ -359,7 +373,20 @@
   {#if !ready}<p class="muted">{t('loading')}</p>{/if}
 </section>
 
+<svelte:window onclick={() => (menu = null)} onkeydown={(e) => e.key === 'Escape' && (menu = null)} />
+{#if menu}
+  {@const at = menu}
+  <div class="context" role="menu" style:left="{at.x}px" style:top="{at.y}px">
+    <button role="menuitem" onclick={() => choose(() => editor.split(at.i, player.time()))}>{t('cues.split')}</button>
+    <button role="menuitem" disabled={at.i >= project.cues.length - 1} onclick={() => choose(() => editor.mergeNext(at.i))}>{t('cues.merge')}</button>
+    <button role="menuitem" onclick={() => choose(() => editor.remove(at.i))}>{t('cues.delete')}</button>
+  </div>
+{/if}
+
 <style>
+  .context { position: fixed; z-index: 30; display: grid; min-width: 11rem; padding: 0.25rem; background: var(--panel, #222); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 6px 20px #0008; }
+  .context button { text-align: left; border: 0; background: none; padding: 0.4rem 0.6rem; }
+  .context button:hover:not(:disabled) { background: var(--line); }
   .bar { display: flex; gap: 0.5rem; align-items: baseline; }
   .bar h2 { margin: 0 0.5rem 0.4rem 0; }
   .spacer { flex: 1; }

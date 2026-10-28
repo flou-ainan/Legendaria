@@ -44,7 +44,7 @@
 3. **"Generate captions" like CapCut:** a sheet with the source (all audio / voice only later), language, model and Generate. Today's Transcribe screen already has language and model; it becomes a sheet over the editor.
 4. **Style sheet with "apply to all":** font, size, colour, position; needs per-cue overrides in the project file.
 5. **Breakpoint at 1024 px** and a real mobile layout (bottom toolbar, bottom sheets with a slide transition, touch dragging and pinch zoom on the timeline).
-6. **Desktop extras:** caption list always visible with search and replace, right-click menu, Ctrl+B split.
+6. **Desktop extras:** caption list always visible with search and replace, right-click menu, Ctrl+B split. *Step 52: search and replace, right-click menu and Ctrl+B done; the always-visible list is still open.*
 
 ## Later: subtitle tracks
 

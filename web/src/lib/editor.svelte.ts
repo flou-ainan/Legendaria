@@ -186,6 +186,20 @@ class Editor {
     })
   }
 
+  /** Replace `find` by `with` in every cue's text (case-insensitive) as one undo step; returns how many cues changed. */
+  replaceAll(find: string, replacement: string): number {
+    if (!find || !this.project) return 0
+    const pattern = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+    let changed = 0
+    this.edit((p) => {
+      for (const cue of p.cues) {
+        const text = cue.text.replace(pattern, () => replacement)
+        if (text !== cue.text) { cue.text = text; changed++ }
+      }
+    })
+    return changed
+  }
+
   /** Apply glossary suggestions as one undo step; each goes to the cue that holds its time and text. */
   applySuggestions(items: Suggestion[]) {
     this.edit((p) => {

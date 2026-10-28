@@ -119,6 +119,7 @@
       mark_out: () => (editor.markOut = video.currentTime),
       cut: () => player.cut(),
       split: () => player.splitAtPlayhead(),
+      split_ctrl_b: () => player.splitAtPlayhead(),
       snap: () => (ui.snap = !ui.snap),
       deselect: () => (editor.selected = -1),
       back: () => player.seek(video.currentTime - 1),

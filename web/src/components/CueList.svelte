@@ -6,6 +6,11 @@
   import { skipTarget } from '../lib/timeline'
 
   const project = $derived(editor.project!)
+  let query = $state('')
+  let replacement = $state('')
+  const needle = $derived(query.trim().toLowerCase())
+  const matching = (text: string) => !needle || text.toLowerCase().includes(needle)
+  const hits = $derived(needle ? project.cues.filter((c) => matching(c.text)).length : 0)
   let list: HTMLOListElement
 
   // $effect re-runs when what it reads changes: keep the current cue in view.
@@ -23,8 +28,14 @@
     <h2>{t('cues.title')} ({project.cues.length})</h2>
     <button onclick={() => editor.addAt(player.time())}>+ {t('cues.add')}</button>
   </header>
+  <div class="find">
+    <input type="search" bind:value={query} placeholder={t('cues.search')} />
+    <input type="text" bind:value={replacement} placeholder={t('cues.replace_with')} />
+    <button disabled={!hits} onclick={() => editor.replaceAll(query.trim(), replacement)}>{t('cues.replace_all')} ({hits})</button>
+  </div>
   <ol bind:this={list}>
     {#each project.cues as cue, i (i)}
+      {#if matching(cue.text)}
       <li class:current={i === editor.current} class:selected={i === editor.selected} onfocusin={() => (editor.selected = i)} class:cut={inCut(cue.start, cue.end)}>
         <div class="times">
           <button class="seek" onclick={() => player.seek(cue.start)} title="▶">▶</button>
@@ -45,11 +56,14 @@
         </div>
         {#if inCut(cue.start, cue.end)}<span class="muted note">{t('cues.in_cut')}</span>{/if}
       </li>
+      {/if}
     {/each}
   </ol>
 </section>
 
 <style>
+  .find { display: flex; gap: 0.3rem; flex-wrap: wrap; margin: 0.3rem 0; }
+  .find input { flex: 1; min-width: 6rem; }
   header { display: flex; justify-content: space-between; align-items: center; }
   ol { list-style: none; margin: 0; padding: 0; max-height: 70vh; overflow-y: auto; }
   li {

@@ -5,6 +5,7 @@
   "mark_out": "o",
   "cut": "x",
   "split": "s",
+  "split_ctrl_b": "ctrl+b",
   "snap": "m",
   "back": "ArrowLeft",
   "forward": "ArrowRight",
