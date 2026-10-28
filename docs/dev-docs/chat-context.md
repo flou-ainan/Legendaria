@@ -1,6 +1,6 @@
 # Chat context (hand-off)
 
-**Last updated:** 2026-10-27, by Claude Code (Sonnet 5.5), after step 49.
+**Last updated:** 2026-10-28, by Claude Code (Sonnet 5.5), after step 59 and plan 12.
 **Policy:** `AGENTS.md` and `docs/dev-docs/README.md` ("chat-context.md"). This is a snapshot that gets replaced, never appended. It is public: no secrets and no private data.
 
 ## Summary of the conversation so far
@@ -90,23 +90,39 @@
 
 27. **Step 49:** robust full-screen sizing after a rotation (to confirm on the phone); a tall video is cropped to the part with the subtitles when a sheet is open.
 
+28. **Steps 50–56 (2026-10-28):** phone testing through tunnels. Fixes: pinch zoom jump, squashed letters on 9:16 (JASSUB canvas size), unreachable end of the video in centred mode, a notice as soon as the video is missing. Plan 08 desktop extras: subtitle list open by default with search and replace, right-click menu on blocks, Ctrl+B split.
+29. **Steps 57–58 (plan 11, ADR-023):** one server session per browser (cookie `legendaria_client`, API version 5); open a video from the computer's files or from the device; "Save to this device" after an export.
+30. **Step 59 (plan 11, A):** a video picked on the device is played from the device (object URL), not streamed back; kept only until a reload (OPFS is the open part).
+31. **Access decisions (ADR-024, plan 12, owner 2026-10-28):** the focus is local use, with the phone as another screen. ngrok ran out of bandwidth, so Tailscale is the recommended way away from home (private network, `tailscale serve` for HTTPS). LAN is the default and needs no third party. An own user name and password is required once the server listens beyond localhost. Headscale is only mentioned. After the MVP: reorganize, slim down, and an end-user installer ("next > next").
+
 **Open and next**
-- **Next:** plan 08 desktop extras (caption list always visible with search and replace, right-click menu, Ctrl+B split); the owner keeps testing (`cd engine && uv run flosub serve`, restart it after pulling).
-- **Known gaps:** touch dragging on the timeline, `.ass`/`.srt` import, fonts on Windows/macOS, an LLM pass in the review panel, cleaning old uploads, drive list on Windows.
-- **Pending owner decisions:** import `.ass`/`.srt` + `flosub align --srt` (plan 04 §11.3, item 4).
-- **Not published:** engine 0.1.0.dev4 is not on PyPI; the tag needs the owner's approval.
-- **Open PRs:** #28 (docs for steps 28–30), #29 (steps 31–32, stacked on #28).
+- **Next:** plan 12 step 1 (LAN mode), then step 2 (login, security-sensitive: threat model first). Plan 11 leftovers: keep the device's video across reloads (OPFS), a warning when two browsers open the same project file, the projects folder idea (E, to refine).
+- **Owner tests by hand** on the phone (over Tailscale) and the desktop, then sends corrections. Known gaps: touch dragging on the timeline, `.ass`/`.srt` import (decision pending), fonts on Windows/macOS, installable PWA shell.
+- **Not published:** engine 0.1.0.dev4 is not on PyPI; tags and releases need the owner's approval. Branch `feat/web-editor-mvp` is not pushed since step 56.
 
 ## Last two complete replies (verbatim)
 
-### Reply 1 (2026-10-27): tips removed, contextual toolbar
+### Reply 1 (2026-10-28): item A done
 
-> Feito: as duas dicas fixas saíram (o espaço do editor de bloco também só aparece com um bloco selecionado) e ficaram anotadas no plano 08 para o tutorial interativo pós-MVP. Continuei de onde parei: **barra de ferramentas contextual**. Sem seleção: Tocar, Início, Fim, Cortar, Estilo. Com um bloco selecionado: Tocar, Dividir, Juntar, Apagar, Estilo. Ímã, Desfazer e Refazer ficam sempre à direita. Esc ou clique na forma de onda vazia desmarca. O editor do bloco foi para baixo da timeline, para ela não se mover quando você seleciona.
+> Item A feito (commit cdb7686, branch feat/web-editor-mvp, sem push).
 >
-> **Next task:** passo 2 do plano 08 (trilha de legendas em laranja, cores de corte e marca) — tier: **standard** (Sonnet), effort: **low**.
-
-### Reply 2 (2026-10-27): timeline touch fix, magnet, icons
-
-> Feito. **Timeline:** só o bloco selecionado se move e redimensiona (os outros deixam o toque rolar a página). **Ímã:** o bloco gruda no alvo enquanto o mouse está a 8 px e volta a seguir o mouse quando ele se afasta. **Barra:** Desfazer e Refazer são os primeiros botões; ícones Solar Linear (CC BY 4.0, crédito nos READMEs, ADR-020). Teste de navegador cobre os três casos; não testei no celular de verdade.
+> O vídeo escolhido no celular agora toca direto do aparelho (blob local). O servidor recebe o upload só para transcrever e exportar, e não manda mais o vídeo de volta. Vídeos do PC continuam vindo do servidor.
 >
-> **Next task:** passo 2 do plano 08 (trilha de legendas em laranja, cores de corte e marca) — tier: **standard** (Sonnet), effort: **low**.
+> Testei com o e2e (confirma que o vídeo é blob: e que nenhum /api/media é pedido, nem ao pular no tempo), svelte-check e Vitest. Não testei no celular de verdade. O build já está servido: recarregue a página no celular para pegar a versão nova.
+>
+> Limite: se você recarregar a página, o arquivo local se perde e ele volta a ser transmitido pelo servidor (guardar no aparelho entre recargas fica para depois).
+>
+> Teste manual: abra o link, escolha um vídeo do aparelho e veja se toca e se pula bem.
+>
+> **Next task:** guardar o vídeo no aparelho entre recargas (OPFS) ou aviso de dois navegadores no mesmo projeto — tier: standard, effort: medium — padrão já definido no plano 11.
+
+### Reply 2 (2026-10-28): access decision recorded
+
+> Decisão registrada (commit 0f1995a, sem push):
+>
+> - ADR-024: LAN como padrão, Tailscale recomendado (não obrigatório), login com usuário e senha no próprio Legendária. Headscale fica só como menção.
+> - Plano 12 com os passos: (1) modo LAN com flag para escutar na rede local; (2) login (senha com hash, cookie próprio, limite de tentativas); (3) seção "Use no celular" no README (en + pt-BR).
+> - Organizar, enxugar e o instalador "next > next" ficam anotados para depois do MVP, como plano próprio.
+> - O login tem que vir junto ou antes do modo LAN, para a rede local não ficar aberta pra qualquer um.
+>
+> **Next task:** plano 12, passo 1 (modo LAN) e depois o passo 2 (login, que mexe em segurança) — tier: standard para o passo 1 e top para o login, effort: medium — o login precisa de modelo de ameaças antes do código.
