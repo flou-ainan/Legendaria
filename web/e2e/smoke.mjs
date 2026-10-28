@@ -59,7 +59,10 @@ try {
   const region = (i) => page.locator(`[part~="c${i}"]`).first()
   await region(3).waitFor({ timeout: 15000 })
   assert.equal(await page.evaluate(() => crossOriginIsolated), true, 'page must be cross-origin isolated')
-  assert.equal(await page.locator('aside').count(), 0, 'the side drawer is closed by default')
+  assert.equal(await page.locator('aside').count(), 1, 'the subtitle list is open by default on a wide screen')
+  assert.ok(await page.getByPlaceholder('Search').isVisible(), 'the list has a search box')
+  await page.getByRole('button', { name: '✕' }).click() // the rest of the run starts with the drawer closed
+  assert.equal(await page.locator('aside').count(), 0)
 
   // 2. only a selected block can be dragged: the same drag on an unselected one changes nothing
   let box = await region(3).boundingBox()

@@ -83,7 +83,9 @@
         if (editor.selected >= 0 && event.composedPath().some((n) => (n as HTMLElement).getAttribute?.('part')?.split(' ').includes(picked))) return // dragging the selected block
         let lastX = event.clientX
         const move = (e: PointerEvent) => {
-          player.seek(Math.min(project.duration, Math.max(0, player.time() - (e.clientX - lastX) / pxPerSec)))
+          if (e.pointerId !== event.pointerId) return // the other finger of a pinch
+          // two fingers are a pinch, not a pan (zoomed out, each pixel is many seconds: the video would jump ahead)
+          if (fingers.size < 2) player.seek(Math.min(project.duration, Math.max(0, player.time() - (e.clientX - lastX) / pxPerSec)))
           lastX = e.clientX
         }
         const stop = () => {

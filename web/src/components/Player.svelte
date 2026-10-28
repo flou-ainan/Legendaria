@@ -37,6 +37,11 @@
     const available: Record<string, string> = Object.fromEntries(fonts.map((f) => [f.family.toLowerCase(), `/api/fonts/${f.file}`]))
     const family = font.toLowerCase()
     if (!(family in available) && (await fetch('/api/font', { method: 'HEAD' })).ok) available[family] = '/api/font'
+    // Chrome reports the stored (unrotated) size in the frame callback of a phone video recorded sideways with a
+    // rotation flag, so JASSUB drew its canvas transposed and the letters came out squashed. Report the displayed size.
+    const nextFrame = video.requestVideoFrameCallback.bind(video)
+    video.requestVideoFrameCallback = (callback) =>
+      nextFrame((now, meta) => callback(now, { ...meta, width: video.videoWidth, height: video.videoHeight }))
     subs = new JASSUB({
       video,
       subContent: await previewAss(),
