@@ -73,7 +73,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
 }
 
 /** The server API this page was built for (server.py API_VERSION); a different one means `flosub serve` is older. */
-export const API_VERSION = 4
+export const API_VERSION = 5
 
 export const loadState = () => request<State>('GET', '/api/state')
 

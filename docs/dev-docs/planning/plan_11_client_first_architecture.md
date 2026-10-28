@@ -25,6 +25,7 @@ Goal: the user's own editor, tied to their computer, that spends little network,
 - Opening a video in one client never changes another client's view. Two clients opening the same project file get a clear warning instead of a silent overwrite (a lock or a version check on save).
 - Server restarts must not lose anything: sessions are rebuilt from the project file on demand.
 - Needs an ADR (API contract change, bump `API_VERSION`).
+- **Status:** the per-browser session is done (step 57, ADR-023, a cookie instead of a header so `<video>` and `EventSource` carry it). The warning for two browsers on the same project file is still open.
 
 ## C. Move to the client what the browser can do alone
 

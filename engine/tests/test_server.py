@@ -47,10 +47,21 @@ def server(tmp_path):
     srv.server_close()
 
 
-def call(url, method="GET", data=None, headers=None):
+COOKIES: dict[str, str] = {}  # the client cookie per server, like a browser's jar
+
+
+def call(url, method="GET", data=None, headers=None, fresh=False):
+    """One request; `fresh=True` behaves like another browser (no cookie sent, none kept)."""
     body = json.dumps(data).encode() if data is not None else None
-    request = urllib.request.Request(url, body, headers or {}, method=method)
+    origin = url.split("/api")[0].split("/", 3)[2]
+    headers = dict(headers or {})
+    if not fresh and origin in COOKIES:
+        headers["Cookie"] = COOKIES[origin]
+    request = urllib.request.Request(url, body, headers, method=method)
     with urllib.request.urlopen(request, timeout=10) as response:
+        cookie = response.headers.get("Set-Cookie")
+        if cookie and not fresh:
+            COOKIES[origin] = cookie.split(";")[0]
         return response.status, dict(response.headers), response.read()
 
 
@@ -230,3 +241,22 @@ def test_glossary_add_import_export(empty_server):
     assert imported["active"] == "Mariana" and "bolsa bet -> bolsa Beth" in imported["text"]
     exported = call(empty_server + "/api/glossary/export?name=Mariana")
     assert "attachment" in exported[1]["Content-Disposition"] and b"Beth" in exported[2]
+
+
+def test_each_browser_has_its_own_session(server):
+    _, base = server
+    first = call(base + "/api/state", fresh=True)
+    second = call(base + "/api/state", fresh=True)
+    assert "legendaria_client=" in first[1]["Set-Cookie"]
+    assert first[1]["Set-Cookie"] != second[1]["Set-Cookie"], "each new browser gets its own id"
+    # the video given on the command line opens for every browser, but as separate sessions
+    assert json.loads(first[2])["video"] == json.loads(second[2])["video"] == "clip.mp4"
+
+
+def test_opening_a_video_does_not_change_another_browser(server, tmp_path):
+    srv, base = server
+    other = tmp_path / "other.mp4"
+    other.write_bytes((tmp_path / "clip.mp4").read_bytes())
+    call(base + "/api/open", "POST", {"path": str(other)})  # this browser now has other.mp4
+    assert json.loads(call(base + "/api/state")[2])["video"] == "other.mp4"
+    assert json.loads(call(base + "/api/state", fresh=True)[2])["video"] == "clip.mp4"

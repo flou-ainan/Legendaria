@@ -38,7 +38,8 @@ const server = spawn('uv', ['run', 'flosub', 'serve', '--port', String(PORT), '-
   { cwd: fileURLToPath(new URL('../../engine', import.meta.url)), stdio: 'inherit',
     env: { ...process.env, LEGENDARIA_CONFIG_DIR: join(dir, 'config'), LEGENDARIA_DATA_DIR: join(dir, 'data') } })
 
-const project = async () => (await (await fetch(`${base}/api/state`)).json()).project
+let jar // the editor page's request context: it carries the session cookie, so this reads the same open video
+const project = async () => (await (await jar.get(`${base}/api/state`)).json()).project
 let browser
 try {
   for (let i = 0; ; i++) {
@@ -46,6 +47,7 @@ try {
   }
   browser = await chromium.launch()
   const page = await browser.newPage({ viewport: { width: 1400, height: 1000 }, locale: 'en-US' })
+  jar = page.context().request
   const errors = []
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
   page.on('pageerror', (e) => errors.push(String(e)))
@@ -275,6 +277,7 @@ try {
 
   // touch screens: the playhead stays in the centre, the timeline slides, and swiping it seeks
   const touch = await browser.newPage({ viewport: { width: 390, height: 800 }, hasTouch: true, isMobile: true, locale: 'en-US' })
+  await touch.context().addCookies(await page.context().cookies()) // the same browser session, on a phone-sized screen
   await touch.goto(base)
   await touch.locator('[part~="c3"]').first().waitFor({ timeout: 15000 })
   const geometry = () => touch.evaluate(() => {

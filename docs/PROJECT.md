@@ -84,6 +84,7 @@ engine/ (`flosub`) ── faster-whisper (GPU → CPU fallback) ──► transc
 | [020](dev-docs/decisions/ADR-020-solar-icons.md) | Solar Linear icons (CC BY 4.0), copied one by one into `lib/icons.ts` | accepted |
 | [021](dev-docs/decisions/ADR-021-playhead-modes-and-settings.md) | Two playhead modes (draggable arrow / centred line) and `settings.json` | accepted |
 | [022](dev-docs/decisions/ADR-022-per-cue-look.md) | Per-cue look overrides (style → track → cue), one `Style:` line per distinct look | accepted |
+| [023](dev-docs/decisions/ADR-023-session-per-client.md) | One server session per browser (a cookie), no global open video | accepted |
 
 ## 5. Folder structure
 
@@ -415,33 +416,34 @@ Transcript format (JSON v1): the contract between the engine and the Blender add
 | `Transcript.save(path)` | 108 | Write as pretty UTF-8 JSON. |
 | `Transcript.load(path)` | 113 | Read a transcript JSON file. |
 
-### engine/legendaria_engine/server.py — 610 lines
+### engine/legendaria_engine/server.py — 641 lines
 `flosub serve`: the local web editor's backend (plan 07, ADR-014).
 
 | Function / class | Line | What it does |
 |---|---|---|
-| `class Job` | 56 | A background task (transcribe, export) that records its events for SSE readers. |
-| `Job.emit(event, **data)` | 66 | Record one event and wake the SSE readers. |
-| `Job.wait(seen, timeout)` | 74 | Events after the first `seen` ones; blocks up to `timeout` for new ones. |
-| `class Session` | 82 | One video being edited: its project file, config and running jobs. |
-| `Session.project()` | 94 | The saved project, or None before the first transcription. |
-| `Session.state()` | 98 | Everything the editor needs on load. |
-| `Session.peaks()` | 131 | Waveform peaks (100 per second), computed once per session. |
-| `Session.review()` | 141 | Glossary suggestions (layer 2, no AI) for the saved cues, as the editor shows them. |
-| `Session.look(style)` | 181 | The style's `.ass` look from the config (empty if unknown). |
-| `Session.size()` | 185 | The video's (width, height) for the `.ass` canvas. |
-| `Session.ass_text(cues, style, override)` | 189 | `.ass` for these cues in the style's look (plus the project's `look` overrides), on the video's canvas. |
-| `Session.start(kind, work)` | 195 | Run `work(job)` in a thread; only one job at a time. |
-| `Session.transcribe(job, options)` | 212 | Run `flosub transcribe` in a child process (it may re-exec for CUDA), relay events. |
-| `Session.export(job, fmt)` | 260 | Write the edited video (`mp4`) or subtitles (`srt`, `vtt`, `ass`) next to the source. |
-| `class Handler` | 289 | Routes for the editor. `self.server.session` is the open video. |
-| `Handler.session()` | 296 | The open video's session (routes that need one are guarded by `_ready`). |
-| `Handler.log_message(format, *args)` | 307 | Quiet: only errors are printed. |
-| `Handler.do_GET()` | 342 | Static app, state, media, font, preview `.ass` and job events. |
-| `Handler.do_PUT()` | 395 | Save the project (validated and normalized); returns what was saved. |
-| `Handler.do_POST()` | 410 | Start a job: `/api/transcribe` {model, language, style} or `/api/export` {format}. |
-| `make_server(video, port, config)` | 573 | A server on 127.0.0.1 (`port` 0 picks a free one), with `video` open if given. |
-| `serve(video, port, open_browser, reporter)` | 584 | Run the editor until Ctrl+C (the browser asks for a video when none is given). |
+| `class Job` | 59 | A background task (transcribe, export) that records its events for SSE readers. |
+| `Job.emit(event, **data)` | 69 | Record one event and wake the SSE readers. |
+| `Job.wait(seen, timeout)` | 77 | Events after the first `seen` ones; blocks up to `timeout` for new ones. |
+| `class Session` | 85 | One video being edited: its project file, config and running jobs. |
+| `Session.project()` | 97 | The saved project, or None before the first transcription. |
+| `Session.state()` | 101 | Everything the editor needs on load. |
+| `Session.peaks()` | 134 | Waveform peaks (100 per second), computed once per session. |
+| `Session.review()` | 144 | Glossary suggestions (layer 2, no AI) for the saved cues, as the editor shows them. |
+| `Session.look(style)` | 184 | The style's `.ass` look from the config (empty if unknown). |
+| `Session.size()` | 188 | The video's (width, height) for the `.ass` canvas. |
+| `Session.ass_text(cues, style, override)` | 192 | `.ass` for these cues in the style's look (plus the project's `look` overrides), on the video's canvas. |
+| `Session.start(kind, work)` | 198 | Run `work(job)` in a thread; only one job at a time. |
+| `Session.transcribe(job, options)` | 215 | Run `flosub transcribe` in a child process (it may re-exec for CUDA), relay events. |
+| `Session.export(job, fmt)` | 263 | Write the edited video (`mp4`) or subtitles (`srt`, `vtt`, `ass`) next to the source. |
+| `class Handler` | 292 | Routes for the editor. Each browser (a cookie) has its own session: the video it opened. |
+| `Handler.end_headers()` | 309 | Every response carries the cookie that tells the browser which session is its own. |
+| `Handler.session()` | 316 | This browser's session (routes that need one are guarded by `_ready`). |
+| `Handler.log_message(format, *args)` | 335 | Quiet: only errors are printed. |
+| `Handler.do_GET()` | 371 | Static app, state, media, font, preview `.ass` and job events. |
+| `Handler.do_PUT()` | 424 | Save the project (validated and normalized); returns what was saved. |
+| `Handler.do_POST()` | 439 | Start a job: `/api/transcribe` {model, language, style} or `/api/export` {format}. |
+| `make_server(video, port, config, allow_hosts)` | 604 | A server on 127.0.0.1 (`port` 0 picks a free one), with `video` open if given. |
+| `serve(video, port, open_browser, reporter, allow_hosts)` | 624 | Run the editor until Ctrl+C (the browser asks for a video when none is given). |
 
 ### engine/legendaria_engine/transcriber.py — 145 lines
 Speech-to-text. A small backend interface keeps room for other engines (e.g. Apple Silicon).

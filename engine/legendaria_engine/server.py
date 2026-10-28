@@ -19,6 +19,7 @@ import threading
 import uuid
 import webbrowser
 from http import HTTPStatus
+from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from collections.abc import Iterable
@@ -48,7 +49,8 @@ ISOLATION = {
 }
 CHUNK = 1 << 20
 # Bumped when the editor needs something new from the server; the page compares it to warn about an old server.
-API_VERSION = 4
+API_VERSION = 5
+CLIENT_COOKIE = "legendaria_client"  # tells the browsers apart: each one has its own open video
 mimetypes.add_type("application/wasm", ".wasm")
 mimetypes.add_type("font/woff2", ".woff2")
 mimetypes.add_type("text/javascript", ".js")
@@ -288,15 +290,40 @@ class Session:
 
 
 class Handler(BaseHTTPRequestHandler):
-    """Routes for the editor. `self.server.session` is the open video."""
+    """Routes for the editor. Each browser (a cookie) has its own session: the video it opened."""
 
     server_version = "Legendaria"
     protocol_version = "HTTP/1.1"
+    _new_client: str | None = None  # set when this request had no client cookie
+
+    def _client(self) -> str:
+        """This browser's id from its cookie; a request without one gets a new id (sent back with the response)."""
+        jar = SimpleCookie(self.headers.get("Cookie") or "")
+        known = jar[CLIENT_COOKIE].value if CLIENT_COOKIE in jar else ""
+        if known:
+            return known
+        if self._new_client is None:
+            self._new_client = uuid.uuid4().hex
+        return self._new_client
+
+    def end_headers(self) -> None:
+        """Every response carries the cookie that tells the browser which session is its own."""
+        if self._new_client:
+            self.send_header("Set-Cookie", f"{CLIENT_COOKIE}={self._new_client}; Path=/; HttpOnly; SameSite=Strict; Max-Age=31536000")
+        super().end_headers()
 
     @property
-    def session(self) -> Session:
-        """The open video's session (routes that need one are guarded by `_ready`)."""
-        return self.server.session  # type: ignore[attr-defined]
+    def session(self) -> Session | None:
+        """This browser's session (routes that need one are guarded by `_ready`).
+
+        A video given on the command line is opened lazily for each browser that connects.
+        """
+        sessions = self.server.sessions  # type: ignore[attr-defined]
+        client = self._client()
+        with self.server.sessions_lock:  # type: ignore[attr-defined]
+            if client not in sessions and self.server.startup_video:  # type: ignore[attr-defined]
+                sessions[client] = Session(self.server.startup_video, self.server.config)  # type: ignore[attr-defined]
+            return sessions.get(client)
 
     def _ready(self, path: str) -> bool:
         """False (after answering 409) when the route needs a video and none is open."""
@@ -459,10 +486,12 @@ class Handler(BaseHTTPRequestHandler):
         if not video.is_file():
             return self._error(HTTPStatus.BAD_REQUEST, f"File not found: {video}")
         try:
-            self.server.session = Session(video.resolve(), self.server.config)  # type: ignore[attr-defined]
+            opened = Session(video.resolve(), self.server.config)  # type: ignore[attr-defined]
         except media.MediaError as exc:
             return self._error(HTTPStatus.BAD_REQUEST, str(exc))
-        return self._json(self.session.state())
+        with self.server.sessions_lock:  # type: ignore[attr-defined]
+            self.server.sessions[self._client()] = opened  # type: ignore[attr-defined]
+        return self._json(opened.state())
 
     def _upload(self, name: str) -> None:
         """Store a dropped file in the uploads folder (streamed) and open it."""
@@ -586,7 +615,9 @@ def make_server(
     server.daemon_threads = True
     server.allow_hosts = {h.lower() for h in allow_hosts}  # type: ignore[attr-defined]
     server.config = config or load_config()  # type: ignore[attr-defined]
-    server.session = Session(video, server.config) if video else None  # type: ignore[attr-defined]
+    server.startup_video = video  # type: ignore[attr-defined]
+    server.sessions = {}  # type: ignore[attr-defined]  # client id -> Session
+    server.sessions_lock = threading.Lock()  # type: ignore[attr-defined]
     return server
 
 
