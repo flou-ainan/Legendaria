@@ -2,13 +2,13 @@
 
 **The one list of what is left.** Start here, not in the latest plan. Each item points to the plan that holds its details. When an item is done, move it to "Done" with its step number; when a plan is finished, set its status line to `done`.
 
-**Last updated:** 2026-10-29. **The "Before the MVP" column is a proposal; the owner confirms it.**
+**Last updated:** 2026-10-29 (plan 13 added). **The "Before the MVP" column is a proposal; the owner confirms it.**
 
 ## Before the MVP (proposed)
 
 | Item | Plan | Notes |
 |---|---|---|
-| Touch dragging on the timeline (move and resize blocks with a finger) | 08 | Only the selected block moves today; check on a real phone. |
+| **UX identity (the essence of the project):** phone clones InShot / CapCut, desktop feels like Kdenlive with its shortcuts | 13 | Draft; step 0 is research with the owner's screenshots. Replaces the old "touch dragging" item: block dragging and the rest of the touch feel are part of it. |
 | Warn when two browsers open the same project file | 11 (B) | Sessions are per browser already (step 57). |
 | LAN mode (listen on the local network, opt-in) | 12 (1) | ADR-024. |
 | Login with user name and password | 12 (2) | Needs a threat model first; required once the server listens beyond localhost. |
@@ -52,5 +52,6 @@ Web editor MVP (steps 31–33), look and fonts (35, 42–46), contextual toolbar
 | 05, 06 | superseded by 07 |
 | 07 | web editor: MVP done, owner testing; leftovers are in the tables above |
 | 08 | reference for the UX study and the PWA; its open items live here |
+| 13 | draft: UX identity (InShot / CapCut phone, Kdenlive desktop); research first |
 | 11 | A, B, D mostly done; E and C after the MVP |
 | 12 | LAN and login; open |
