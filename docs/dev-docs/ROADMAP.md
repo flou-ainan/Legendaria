@@ -8,7 +8,8 @@
 
 | Item | Plan | Notes |
 |---|---|---|
-| **UX identity (the essence of the project):** phone clones InShot / CapCut, desktop feels like Kdenlive with its shortcuts | 13 | Draft; step 0 is research with the owner's screenshots. Replaces the old "touch dragging" item: block dragging and the rest of the touch feel are part of it. |
+| **Raw subtitles + effects:** cues are plain subtitle lines with word timings; pop, word highlight and letter colour become effects that the engine turns into `.ass` | 14 | Draft; touches the project file, so it goes before more UI is built on cues. |
+| **UX identity (the essence of the project):** phone clones InShot / CapCut; the desktop just has to work well on a wide screen (Kdenlive feel and keymap come later) | 13 | Draft; step 0 is research with the owner's screenshots. Replaces the old "touch dragging" item: block dragging and the rest of the touch feel are part of it. |
 | Warn when two browsers open the same project file | 11 (B) | Sessions are per browser already (step 57). |
 | LAN mode (listen on the local network, opt-in) | 12 (1) | ADR-024. |
 | Login with user name and password | 12 (2) | Needs a threat model first; required once the server listens beyond localhost. |
@@ -52,6 +53,7 @@ Web editor MVP (steps 31–33), look and fonts (35, 42–46), contextual toolbar
 | 05, 06 | superseded by 07 |
 | 07 | web editor: MVP done, owner testing; leftovers are in the tables above |
 | 08 | reference for the UX study and the PWA; its open items live here |
+| 14 | draft: raw subtitles + effects layer (ADR-025 proposed) |
 | 13 | draft: UX identity (InShot / CapCut phone, Kdenlive desktop); research first |
 | 11 | A, B, D mostly done; E and C after the MVP |
 | 12 | LAN and login; open |
