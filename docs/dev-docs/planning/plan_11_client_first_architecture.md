@@ -1,6 +1,6 @@
 # Plan 11 — Client-first architecture (less network, one session per device, PWA autonomy)
 
-**Status:** in progress. A, B and D are the current scope; C is postponed (owner, 2026-10-28)
+**Status:** in progress. B and D done, A done until a reload; E and C after the MVP (owner, 2026-10-29). Open items: `ROADMAP.md`.
 **Related:** plan 08 (PWA section), ADR-014, ADR-016, step 50 (tunnels), plan 10
 
 ## Why

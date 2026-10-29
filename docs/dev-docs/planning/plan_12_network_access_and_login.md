@@ -1,6 +1,6 @@
 # Plan 12 — Reach the editor from the phone: LAN mode, login, docs
 
-**Status:** open, not started (owner decision 2026-10-28, ADR-024)
+**Status:** open, not started (owner decision 2026-10-28, ADR-024). Its steps are listed in `ROADMAP.md`.
 **Related:** ADR-024, plan 11, plan 08
 
 ## Goal

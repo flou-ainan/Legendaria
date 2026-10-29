@@ -5,7 +5,7 @@ Applies to every agent (Claude Code, Gemini/Antigravity, OpenCode, Copilot, Code
 ## Before you start
 
 1. Read `docs/PROJECT.md`: overview, stack, decisions, and a file map with line counts and functions.
-2. Read `docs/dev-docs/chat-context.md` (the conversation so far, condensed), the latest step in `docs/dev-docs/devlog/`, and any open plan in `docs/dev-docs/planning/` to see what is in progress.
+2. Read `docs/dev-docs/ROADMAP.md` (the one list of what is left; pick work from it, not from the latest plan), `docs/dev-docs/chat-context.md` (the conversation so far, condensed), the latest step in `docs/dev-docs/devlog/`, and any open plan in `docs/dev-docs/planning/` to see what is in progress.
 3. Only then open the source files related to the task. Do not scan the whole repository when the docs already answer the question.
 
 ## Documentation rules (mandatory)
@@ -13,6 +13,7 @@ Applies to every agent (Claude Code, Gemini/Antigravity, OpenCode, Copilot, Code
 Full conventions: `docs/dev-docs/README.md`. Summary:
 
 - **Every plan becomes a file** in `docs/dev-docs/planning/` before implementation starts.
+- **`docs/dev-docs/ROADMAP.md` is the single list of pending work.** Keep it in step with the plans: a new idea goes in a column, a finished item moves to "Done" with its step number, and a plan whose items are all done gets `Status: done`.
 - **Every change is logged** as a step in `docs/dev-docs/devlog/`: what changed, why, files touched, how it was tested.
 - **Every relevant technical decision** (library, architecture, format) becomes an ADR in `docs/dev-docs/decisions/`.
 - **`docs/PROJECT.md` always reflects the current code.** Any change to files, functions, stack, or folder layout updates `PROJECT.md` in the same commit, including line counts. Generate the file map entries with `python3 tools/project_map.py <files>`; give every public function a one-line docstring so the map stays useful.

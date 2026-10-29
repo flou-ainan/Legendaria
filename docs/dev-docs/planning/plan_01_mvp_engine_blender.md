@@ -1,6 +1,6 @@
 # Plan 01 — MVP: transcription engine + Blender add-on, and the product roadmap
 
-**Status:** approved
+**Status:** done (engine + Blender add-on MVP, steps 01–12). Blender is frozen (ADR-014). What is left: `ROADMAP.md`.
 **Date:** 2026-10-23 (revised 2026-10-24)
 **Origin:** `references/origin_brainstorm.md`
 **Related decisions:** ADR-001 to ADR-009

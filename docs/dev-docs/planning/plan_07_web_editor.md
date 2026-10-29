@@ -1,6 +1,6 @@
 # Plan 07 — Web editor (replaces the Blender add-on as the main UI)
 
-**Status:** in progress. Phase 0 done (step 29). Phase 1 done: Svelte 5 (ADR-015), project file (ADR-016). Phase 2: the MVP list is done (steps 31–33); the owner is testing and sending corrections.
+**Status:** MVP done (steps 31–33), the owner is testing and sending corrections. Phase 0 done (step 29); Phase 1: Svelte 5 (ADR-015), project file (ADR-016). What is left: `ROADMAP.md`.
 **Date:** 2026-10-26
 **Related decisions:** ADR-014 (pivot), ADR-015 (Svelte 5 + Vite + TS), ADR-016 (project file), ADR-012 (`.ass` + libass).
 **Supersedes:** plan 05 (local API + `flosub gui`), plan 06 (Blender UX) and the Blender parts of plan 04 §11.

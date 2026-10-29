@@ -1,6 +1,6 @@
 # Plan 08 — UX roadmap (CapCut-style, responsive, lean)
 
-**Status:** long-term goal, delivered feature by feature
+**Status:** reference for the UX study; most items are done (see the table). The open items live in `ROADMAP.md`, not here.
 **Source:** owner's study `docs/local/Capcut-Svelte-Ux-Responsivo.pdf` (local only, not committed) and the CapCut screenshots (auto captions: "Generate from" Video / Voice; Model; Generate).
 **Related:** plan 07 (web editor), ADR-015
 

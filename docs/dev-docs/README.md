@@ -11,6 +11,7 @@ docs/
 ├── PROJECT.md              # project map, always up to date
 └── dev-docs/
     ├── README.md           # this file
+    ├── ROADMAP.md          # the one list of what is left (start here to pick work)
     ├── chat-context.md     # lean summary of the owner ↔ agent conversation + last two full replies
     ├── planning/           # plans, written before implementing
     ├── devlog/             # one step per change or executed stage

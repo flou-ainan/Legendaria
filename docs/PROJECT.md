@@ -132,6 +132,7 @@ Legendaria/
     ├── PROJECT.md           # this file
     └── dev-docs/
         ├── README.md        # documentation conventions
+        ├── ROADMAP.md       # the one list of what is left: before the MVP, after, ideas
         ├── chat-context.md  # condensed owner ↔ agent conversation + last two full replies (hand-off)
         ├── planning/        # plans (before implementing)
         ├── devlog/          # executed steps
