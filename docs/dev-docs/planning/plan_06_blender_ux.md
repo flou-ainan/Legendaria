@@ -1,6 +1,6 @@
 # Plan 06 — Blender user experience (draft)
 
-**Status:** draft (owner note, 2026-10-26)
+**Status:** superseded by plan 07 (the Blender add-on is frozen, ADR-014)
 **Date:** 2026-10-26
 
 The owner found Blender's Video Sequencer hard to reach and to use: the add-on lives in a sidebar tab (N key) of the sequencer area, which a newcomer does not find on their own. Ideas to evaluate:

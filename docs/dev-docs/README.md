@@ -11,11 +11,27 @@ docs/
 ├── PROJECT.md              # project map, always up to date
 └── dev-docs/
     ├── README.md           # this file
+    ├── chat-context.md     # lean summary of the owner ↔ agent conversation + last two full replies
     ├── planning/           # plans, written before implementing
     ├── devlog/             # one step per change or executed stage
     ├── decisions/          # ADRs: technical decisions and their reasons
     └── references/         # background material (e.g. the origin brainstorm)
 ```
+
+## `chat-context.md`: conversation hand-off
+
+Long agent conversations consume a lot of tokens. `chat-context.md` lets a new session, or another agent, pick up the conversation without the full transcript.
+
+- **Contents:**
+  - a lean summary of the whole owner ↔ agent conversation: what was asked and decided, the owner's preferences, open questions, and what is in progress;
+  - the **last two complete replies** of the agent, verbatim. They stay in the language they were written in; the rest is in English.
+- **When to update:**
+  - when the owner asks;
+  - after long stretches of work (hours);
+  - before ending a long session.
+  - Replace the file. Do not append: it is a snapshot, and git keeps the history.
+- **Privacy:** it is a public file. No secrets or API keys, no private data about third parties, no content from local-only files (`.gitignore`). Refer to the owner's media generically, for example "the owner's test clip".
+- It does not replace plans, devlogs or ADRs. Decisions still go there; the summary only links to them.
 
 ## `docs/PROJECT.md`
 

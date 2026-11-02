@@ -1,6 +1,6 @@
 # Plan 05 — Local HTTP API and the `flosub gui` web interface (draft)
 
-**Status:** draft
+**Status:** superseded by plan 07 (web editor), which folds in the local API and `flosub gui`
 **Date:** 2026-10-25
 **Related decision:** ADR-011
 

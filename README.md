@@ -15,20 +15,20 @@
 ## What it will do
 
 - **Transcribe automatically**, on your own computer (GPU-accelerated when available, CPU otherwise). No cloud, no account, no telemetry.
-- **Edit visually in Blender:** every subtitle is a block on the timeline. Click to fix the text, drag to adjust the timing, style it your way.
-- **Export** SRT/VTT for YouTube and other platforms, or render the video with the subtitles burned in.
+- **Edit visually in your browser:** a local editor that opens in your browser (nothing is uploaded). Every subtitle is a block on the timeline: click to fix the text, drag to adjust the timing, cut out the parts of the video you don't want, and see the final look live.
+- **Export** SRT, VTT or ASS for YouTube and other platforms, or the video with the subtitles burned in.
 - **Word-by-word animated captions** (CapCut style), coming after the first version.
 
 ## Goals
 
-- A simple installer: next → next → finish, open Blender, drop your video in, click **Generate subtitles**.
+- A simple installer: next → next → finish, open the editor in your browser, drop your video in, click **Generate subtitles** and edit.
 - Runs on **Linux, macOS and Windows 10+**.
 - Available in **English and Brazilian Portuguese**. More languages are welcome.
 - **Hackable:** defaults, models, style presets and translations live in JSON files you can edit.
 
 ## Status and roadmap
 
-See the [plan](docs/dev-docs/planning/plan_01_mvp_engine_blender.md) for the roadmap. A documentation website and a video tutorial will come with the first release.
+The transcription engine works today from the command line (`flosub`). The browser editor is being built ([plan 07](docs/dev-docs/planning/plan_07_web_editor.md)). An earlier Blender add-on is frozen and will probably be retired ([ADR-014](docs/dev-docs/decisions/ADR-014-web-editor-blender-frozen.md)). A documentation website and a video tutorial will come with the first release.
 
 ## Contributing
 
@@ -37,4 +37,4 @@ Contributions are welcome, including translations. Read [CONTRIBUTING.md](CONTRI
 ## License
 
 - Transcription engine and repository: [MIT](LICENSE)
-- Blender add-on: GPL-3.0-or-later (required by Blender's extensions platform)
+- Blender add-on (frozen): GPL-3.0-or-later (required by Blender's extensions platform)

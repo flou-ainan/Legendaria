@@ -6,6 +6,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed
+- **Direction:** a local web editor (`flosub serve`, plan 07) becomes the main interface; the Blender add-on is frozen (bug fixes only, ADR-014).
+
 ### Added
 - **Blender add-on** (extension `legendaria` 0.1.0, Blender 4.2+, not yet released): "Legendária" tab in the Video Sequencer; pick model (auto-download), language and style; generate CapCut-style caption strips in the background with progress and cancel; confirmation before replacing captions; re-apply a style without transcribing again; export SRT/VTT from the edited strips; English and Brazilian Portuguese UI; style presets in JSON.
 - Add-on **"Install engine"** button: downloads uv, Python 3.11, the engine (with GPU support when an NVIDIA card is present) and the default model into one folder, with progress and cancel; uninstall and "engine too old" warning with update.

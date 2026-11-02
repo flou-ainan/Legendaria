@@ -4,6 +4,8 @@ Problems seen in real use that are not fixed yet. Each entry has the evidence, t
 
 ## KI-001 — PC froze (RAM exhausted) when choosing the `medium` model in Blender
 
+> **2026-10-26:** the Blender add-on is frozen (ADR-014); the web editor (plan 07) replaces the heavy VSE preview, so the cache-limit mitigation below will not be implemented.
+
 **Reported:** 2026-10-26 by the owner (twice). **Priority:** high: it froze the whole desktop (the first time it needed a hard reboot).
 
 **What the owner saw:** in Blender 5.2 the owner picked `medium` (not yet downloaded) and pressed Generate. The UI was still showing the download. The system monitor attributed about **5.3 GB of RAM to Blender**; then the PC froze and had to be restarted.
