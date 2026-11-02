@@ -1,6 +1,6 @@
 # Plan 12 — Network access: LAN with a password, a launcher, and the docs
 
-**Status:** approved (owner, 2026-11-02, ADR-026); not started
+**Status:** steps 1–6 built (step 62), waiting for the owner's hands-on test; step 7 is later
 **Related:** ADR-026 (the design and the threat model), ADR-024 (partly superseded), plan 11, plan 15
 
 ## Goal
@@ -9,9 +9,9 @@ A user installs Legendária, opens the launcher, sets a password once, and from 
 
 Core principles for every step: easy to use, hackable (a settings JSON, no hidden state), modular, robust.
 
-## What exists today
+## What exists now (step 62)
 
-`flosub serve` binds `127.0.0.1`, checks `Host` and `Origin`, has `--allow-host` and no login. Tailscale already works with `tailscale serve` plus `--allow-host`, with no password.
+Steps 1–6 are built: `access.py`, the gate in `server.py`, the web sign-in and Access dialog, `flosub auth`, the `legendaria` launcher and the guide in `docs/network-access.md` (+ pt-BR). Not yet checked: a real phone, a real Tailscale or Headscale network, the launcher on Windows and macOS.
 
 ## Steps (each leaves the app working)
 
@@ -34,4 +34,4 @@ Accounts with several users and roles, password reset by email, TLS terminated b
 - The whole flow works from the launcher on Linux; Windows and macOS are checked in CI where possible and by the owner otherwise.
 - `PROJECT.md`, the devlog and the READMEs match the code.
 
-**Next task:** step 1 (`access.py` and its tests) — tier: top, effort: medium — security-sensitive; a wrong design is expensive to undo, but the threat model is already written. Steps 3–6 are standard, effort: medium.
+**Next task:** the owner tests it by hand (phone on the Wi-Fi, then Tailscale) and sends corrections — tier: standard, effort: medium — fixes against a written design. Step 7 (optional HTTPS, stricter CSP, upload quota) — tier: top, effort: medium — security-sensitive.

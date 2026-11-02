@@ -16,6 +16,7 @@ Until 1.0, only the latest release gets security fixes.
 
 Legendária runs locally and needs no account. The areas most relevant to security:
 
+- the web editor's access control (`flosub serve`, `access.py`): the access password, sessions, and what a device on the network can reach (ADR-026);
 - the engine installer: it downloads `uv`, Python packages and Whisper models;
 - the way the Blender add-on launches the engine process;
 - the parsing of config, transcript and media files.

@@ -19,6 +19,10 @@ O nome junta *legenda* com *legendary* (lendária, em inglês). A ferramenta de 
 - **Exportar** SRT, VTT ou ASS para o YouTube e outras plataformas, ou o vídeo com as legendas gravadas.
 - **Legendas animadas palavra por palavra** (estilo CapCut), depois da primeira versão.
 
+## Usar no celular
+
+O editor roda no seu computador, e o celular pode abri-lo no mesmo Wi-Fi, ou de qualquer lugar pelo [Tailscale](https://tailscale.com) ou Headscale. Uma senha definida na primeira vez mantém as visitas da sua rede de fora; ela é pedida no celular, nunca no computador. Sem senha, o editor só abre no computador. Detalhes, limites e passos: [guia de acesso pela rede](docs/network-access.pt-BR.md).
+
 ## Objetivos
 
 - Instalador simples: avançar → avançar → concluir, abrir o editor no navegador, colocar o vídeo, clicar em **Gerar legendas** e editar.

@@ -107,11 +107,12 @@ Legendaria/
 ├── .editorconfig / .gitattributes   # LF endings, indentation
 ├── .gitignore
 ├── engine/                  # MIT — transcription engine, Python package "legendaria", CLI `flosub`
-│   ├── pyproject.toml       # deps; extras: cuda (NVIDIA libs), test (pytest, jsonschema); script flosub
+│   ├── pyproject.toml       # deps; extras: cuda (NVIDIA libs), test (pytest, jsonschema); scripts flosub and legendaria (the launcher)
 │   ├── uv.lock / .python-version (3.11)
 │   ├── README.md, LICENSE
 │   ├── legendaria_engine/   # the package (see file map); review/ = glossary, hotwords, fix rules, suggestions (plan 03); fonts/ = bundled open-licence fonts (ADR-019)
-│   │   └── defaults/        # config.json (engine defaults), models.json (model catalog)
+│   │   ├── defaults/        # config.json (engine defaults), models.json (model catalog)
+│   │   └── locales/         # en.json, pt-BR.json: texts of the terminal prompts and the launcher (one JSON per language)
 │   ├── schemas/             # JSON Schemas: config, models, transcript (editor autocomplete)
 │   └── tests/               # pytest suite (no GPU or network needed)
 ├── blender_addon/           # GPL-3.0-or-later — Blender 4.2+ extension
@@ -131,6 +132,7 @@ Legendaria/
 ├── assets/
 │   └── brand/           # brand kit: glowing key art (banner/hero/cover per language), flat symbol/icons/lockups, PNGs, favicon
 └── docs/
+    ├── network-access.md, network-access.pt-BR.md   # user guide: password, Wi-Fi, Tailscale, Headscale (the launcher's (i) links to it)
     ├── PROJECT.md           # this file
     └── dev-docs/
         ├── README.md        # documentation conventions
@@ -147,7 +149,7 @@ Build the add-on package: `blender --command extension build --source-dir blende
 
 User files at runtime (per OS, via `platformdirs`; overridable with `LEGENDARIA_CONFIG_DIR` / `LEGENDARIA_DATA_DIR`):
 - data dir `engine/` (only when installed from Blender): `uv/`, `python/` (uv-managed 3.11), `venv/` (flosub). Deleting it uninstalls.
-- config dir (`~/.config/legendaria` on Linux): `config.json`, `models.json`, `providers.json`, `review_prompt.txt` (user overrides), `glossaries/<name>.txt` (glossary library), `presets/` (add-on style overrides)
+- config dir (`~/.config/legendaria` on Linux): `access.json` (the hashed access password, the session secret and the `lan`, `require_password_here`, `allow_public` switches; mode 0600; ADR-026), `config.json`, `models.json`, `providers.json`, `review_prompt.txt` (user overrides), `glossaries/<name>.txt` (glossary library), `presets/` (add-on style overrides)
 - data dir (`~/.local/share/legendaria` on Linux): `models/<name>/` (downloaded CTranslate2 models)
 
 ## 6. File map
@@ -159,7 +161,7 @@ Generated with `python3 tools/project_map.py <files>` and then reviewed. Regener
 - `engine/legendaria_engine/defaults/config.json`: engine defaults (`review`: mode suggest/auto, profile, glossary_bias, fuzzy_threshold 0.82, low_confidence 0.5, `llm` {enabled false (experimental), provider ollama, model, batch/context lines, max_change_ratio, unload_after}; model `small`, language `auto`, device `auto`, compute types, beam size, VAD, word timestamps, default `style`, cue `styles` (`pop`: one word at a time, two when the first has ≤ 3 letters, glued pieces like "-vindas" kept, gaps ≤ 0.35 s filled — the MVP default in Blender; `captions`: up to 4 words / 22 chars / 2.2 s; `subtitles`: film-style, up to 84 chars / 6 s, 2 lines of 42), output formats, UI language list; each style has an `ass` look block: font, size at 1080 px on the short side, RGBA colors, outline, shadow, box, position, uppercase, `animation` none/pop; `ffmpeg` path and `burn` encoder arguments, incl. `render_audio_args` for cut exports).
 - `engine/legendaria_engine/defaults/models.json`: model catalog (tiny, base, small, medium, large-v3, large-v3-turbo) with HF repo, size, VRAM, notes.
 - `engine/schemas/*.schema.json`: JSON Schemas for config (incl. styles), models, transcript v1, cues v1 and project v1 (ADR-016).
-- `engine/tests/`: `conftest.py` (isolated dirs, sample transcript), `test_cues.py` (chunking rules), `test_formats.py`, `test_schema.py`, `test_config.py`, `test_cli.py`, `test_transcriber.py` (GPU→CPU fallback with a fake run), `test_glossary.py`, `test_fix_rules.py`, `test_llm_review.py` (fake OpenAI-compatible server), `test_glossary_library.py`, `test_ass.py` (the `.ass` writer, export from edited cues, burn and overlay when FFmpeg is on PATH), `test_project.py` (kept ranges, remap incl. a random property test, project file + schema, a real cut + burn), `test_server.py` (`flosub serve` routes: state, Range, local-only guard (+ `--allow-host`), save, export SRT, preview `.ass`, peaks, review; starting without a video, browse, open/upload, glossary add/import/export). 137 tests, no network.
+- `engine/tests/`: `test_access.py` (hashing, tokens, rate limit, local/remote), `test_server_access.py` (the gate over real HTTP: every route as a stranger, remote limits, binding), `test_access_prompt.py` (terminal dialogue, `flosub auth`, locale files), `test_launcher.py` (the window needs a display: `xvfb-run pytest`), `conftest.py` (isolated dirs, sample transcript), `test_cues.py` (chunking rules), `test_formats.py`, `test_schema.py`, `test_config.py`, `test_cli.py`, `test_transcriber.py` (GPU→CPU fallback with a fake run), `test_glossary.py`, `test_fix_rules.py`, `test_llm_review.py` (fake OpenAI-compatible server), `test_glossary_library.py`, `test_ass.py` (the `.ass` writer, export from edited cues, burn and overlay when FFmpeg is on PATH), `test_project.py` (kept ranges, remap incl. a random property test, project file + schema, a real cut + burn), `test_server.py` (`flosub serve` routes: state, Range, local-only guard (+ `--allow-host`), save, export SRT, preview `.ass`, peaks, review; starting without a video, browse, open/upload, glossary add/import/export). 137 tests, no network.
 - `engine/legendaria_engine/defaults/languages.json`: language codes for the transcribe form (a user copy in the config dir wins).
 
 **Glossary and review (plan 03):** glossary files are plain text (`Term` or `wrong -> right`). Sources, merged in order: the **active glossary of the library** (`<config dir>/glossaries/<name>.txt`, config `review.glossary`, `flosub glossary list|new|use|import|export|delete`; an old `glossary.txt` migrates to "default"), the project file `legendaria-glossary.txt` next to the media or transcript, and `--glossary FILE|NAME`. `transcribe` passes the terms to Whisper as `hotwords` (layer 1). `flosub review FILE.json` (or `transcribe --review`) finds explicit fixes and fuzzy matches of uncertain words (layer 2) and writes `<name>.review.json` (mode `suggest`) or applies them (`auto`). `flosub review apply FILE.review.json --ids …|--all [--format srt]` applies the chosen ones, re-timing the words. `flosub glossary path|show|add` is the base of every UI's "Add to glossary". **Layer 3 (stage 3b, EXPERIMENTAL, off by default):** `review --llm` sends batches (with context, uncertain words marked `[[…]]`) to any OpenAI-compatible server (`defaults/providers.json`: ollama, lmstudio, llamacpp, openai, gemini, anthropic, openrouter; keys from env vars) using the editable prompt `defaults/review_prompt.txt` (user copy in the config dir wins); the model returns only changed lines, which are diffed word by word and kept only if the guard allows (accent-only fixes, or similar-sounding changes of uncertain words / to glossary terms; never deletions). `flosub llm check|providers`. Config `review.profile` (light/standard = no LLM) and `review.llm.enabled: auto` degrade gracefully when no server answers.
@@ -179,18 +181,20 @@ Generated with `python3 tools/project_map.py <files>` and then reviewed. Regener
 
 A `warning` followed by a new `start` means the run restarted on the CPU.
 
-**Web editor (`web/`, plan 07):** `flosub serve [VIDEO] [--port 8765] [--no-browser]` serves the built app on 127.0.0.1 with COOP/COEP headers; without a video the browser asks for one. API: `GET /api/state` (video or null, probe, project, font family, and the options for the transcribe form: models with `installed`, languages, styles, defaults), `GET /api/browse?path=` (folders and media files of the computer), `POST /api/open` {path} and `POST /api/upload?name=` (a dropped file is stored in `<data dir>/uploads/`), `GET /api/glossary` and `POST /api/glossary/add|import|use`, `GET /api/glossary/export?name=` (the glossary library; they work without a video, the other routes answer 409 then), `GET /api/media` (HTTP Range), `GET /api/font` (fontconfig match of the style's font, so JASSUB draws like FFmpeg), `GET /api/preview.ass` (project cues in source time), `GET /api/peaks` (waveform peaks, 100 per second, streamed from FFmpeg once per session), `GET /api/review` (glossary suggestions for the saved cues: the engine's layer 2, no AI), `PUT /api/project` (validated, normalized, saved atomically), `POST /api/transcribe` and `POST /api/export` {format mp4|srt|vtt|ass} start a job; `GET /api/jobs/<id>/events` streams its events (SSE, same events as `--progress json`). Requests with a non-local Host or Origin get 403. Transcription runs `flosub transcribe` in a child process. Exports go next to the video as `<stem>.edited.<ext>`. Dev: `npm run dev` in `web/` proxies `/api` to a running `flosub serve … --no-browser`.
+**Web editor (`web/`, plan 07):** `flosub serve [VIDEO] [--port 8765] [--no-browser] [--allow-host NAME] [--no-prompt]` serves the built app with COOP/COEP headers on 127.0.0.1, or on the local network once an access password is set (ADR-026); without a video the browser asks for one. API: `GET /api/state` (video or null, probe, project, font family, and the options for the transcribe form: models with `installed`, languages, styles, defaults), `GET /api/browse?path=` (folders and media files of the computer), `POST /api/open` {path} and `POST /api/upload?name=` (a dropped file is stored in `<data dir>/uploads/`), `GET /api/glossary` and `POST /api/glossary/add|import|use`, `GET /api/glossary/export?name=` (the glossary library; they work without a video, the other routes answer 409 then), `GET /api/media` (HTTP Range), `GET /api/font` (fontconfig match of the style's font, so JASSUB draws like FFmpeg), `GET /api/preview.ass` (project cues in source time), `GET /api/peaks` (waveform peaks, 100 per second, streamed from FFmpeg once per session), `GET /api/review` (glossary suggestions for the saved cues: the engine's layer 2, no AI), `PUT /api/project` (validated, normalized, saved atomically), `POST /api/transcribe` and `POST /api/export` {format mp4|srt|vtt|ass} start a job; `GET /api/jobs/<id>/events` streams its events (SSE, same events as `--progress json`). **Access (ADR-026, `access.py`):** one gate runs before any route. A request from a browser on this computer (loopback peer, loopback Host, no proxy headers) needs nothing; anything else (LAN, Tailscale, tunnels) needs the session cookie `legendaria_auth` from `POST /api/login` {password}, otherwise 401 with `code: sign_in`; with no password set a remote request is 403. `GET /api/access` (open to anyone) says who is asking and where else the editor can be opened, `POST /api/access/password` {current, new} sets the password, `POST /api/logout` clears the cookie. A remote client gets 403 `computer_only` on `/api/browse` and `/api/open` (it uploads instead). A Host or Origin that is not a known name, and a peer on a public address, get 403. `flosub auth status|set|reset` and the `legendaria` launcher manage the password. Transcription runs `flosub transcribe` in a child process. Exports go next to the video as `<stem>.edited.<ext>`. Dev: `npm run dev` in `web/` proxies `/api` to a running `flosub serve … --no-browser`.
 
-### web/src (Svelte 5 + TypeScript, 1617 lines + tests)
+### web/src (Svelte 5 + TypeScript, 2849 lines + tests)
 
 Layout (step 33): a header, the video with a tool row under it (play, in, out, cut, split, snap magnet, undo, redo), an inspector for the selected block, and the timeline. Everything happens there; the side drawer (subtitles list, glossary, cuts, export) is optional and closed by default. On narrow screens the drawer is a bottom sheet.
 
 | File | Lines | What it does |
 |---|---|---|
 | `main.ts` | 5 | Mounts `App.svelte`. `app.css`: theme tokens, base controls, and the style of wavesurfer's cue text (it draws in a shadow root). |
-| `App.svelte` | 173 | Loads `/api/state`; Welcome when no video is open, Transcribe until a project exists, then the editor layout and the header (menu, logo, save status, panel buttons, Export); Save now and Download a copy. |
+| `App.svelte` | 204 | Asks `/api/access` first (the sign-in screen when this device has no session, also when it is lost while editing), then loads `/api/state`; Welcome when no video is open, Transcribe until a project exists, then the editor layout and the header (menu, logo, save status, panel buttons, Export); Save now and Download a copy. |
 | `components/Welcome.svelte` | 161 | Start screen (from a phone it offers the device's picker and the computer's files): drop a video on the page (uploaded) or "Choose a file…" (opened in place); "Continue where you left off" from the browser's recovery copy, and relinking a moved video (same duration ±0.5 s and screen proportion ±1 %). |
-| `components/Menu.svelte` | 67 | File menu (open video/project, close, save, download a copy, export), panels on narrow screens and the interface language; a hamburger under 900 px. |
+| `components/Menu.svelte` | 69 | File menu (open video/project, close, save, download a copy, export, access and password), panels on narrow screens and the interface language; a hamburger under 900 px. |
+| `components/SignIn.svelte` | 47 | The screen a phone sees before it gives the access password (ADR-026): wrong password and "too many tries" messages. |
+| `components/Access.svelte` | 102 | Dialog: who is using the editor, the addresses to open on the phone, change or generate the password, sign out. |
 | `components/Browse.svelte` | 77 | File browser dialog over the computer running the server (`/api/browse`), with an editable folder path. |
 | `components/Transcribe.svelte` | 96 | Drop-down lists for model (shows size and whether it is downloaded), language and style; runs the transcribe job with progress. |
 | `components/Player.svelte` | 195 | `<video>` + JASSUB (font preloaded, repaint on paused seeks); a `requestVideoFrameCallback` loop skips cut parts and tracks the current cue without reactive state at frame rate; keyboard shortcuts from `lib/shortcuts.json` (S or Ctrl+B splits); the frame callback reports the displayed video size to JASSUB (rotated phone videos); if the video fails to play and the server no longer has the file, it asks `App` to show the relink screen; it plays the device's own file when one was uploaded (`lib/localmedia.svelte.ts`). |
@@ -212,16 +216,55 @@ Layout (step 33): a header, the video with a tool row under it (play, in, out, c
 | `lib/timeline.ts` | 103 | Kept-range math mirroring `project.py`: `normalize`, `removeRange`, `cutsOf`, `restoreRange`, `skipTarget`, `outputDuration`, `clock`; `snapPoints` / `snap` (binary search). Tested in `timeline.test.ts` (Vitest, incl. a random property test). |
 | `lib/tip.ts`, `lib/fontfaces.ts` | 63, 14 | `use:tip`: a long press on a touch screen shows the button's title as a bubble; `loadFontFaces` loads the bundled fonts into the page so the Look menu shows each in its own face. |
 | `lib/localmedia.svelte.ts` | 11 | `localMedia.url` and `useLocalFile(file)`: a video picked on this device is played from an object URL, not streamed back by `/api/media` (plan 11, A). |
-| `lib/api.ts` | 160 | Types and calls: state, browse, open, upload (XHR with progress), glossary, peaks, review, save, preview `.ass`, `runJob` (POST + EventSource). |
+| `lib/password.ts` | 8 | `generatePassword()`: the same `xxxx-xxxx-xxxx` as the engine's generator (tested in `password.test.ts`). |
+| `lib/api.ts` | 184 | `ApiError` (status, code, retryAfter), the sign-in event, `loadAccess`, `signIn`, `signOut`, `changePassword`; types and calls: state, browse, open, upload (XHR with progress), glossary, peaks, review, save, preview `.ass`, `runJob` (POST + EventSource). |
 | `lib/i18n.ts` | 44 | `t(key, vars)` over every `locales/*.json`, found automatically (guide: `locales/README.md`; `lib/locales.test.ts` checks keys and placeholders) (language from the menu, remembered, else the browser's); `setLang`, `interfaceLanguages`. |
 | `lib/shortcuts.json` | — | Editable key table: play, mark in/out, cut, split, snap, seek ±1 s, undo, redo. |
-| `e2e/smoke.mjs` | 423 | Playwright test (`npm run e2e`, also in CI): starts `flosub serve` with no video, opens the clip through the file browser, then checks live snapping and its guide, the magnet button, double-click to edit, cut, undo, glossary add + apply, SRT export. |
+| `e2e/smoke.mjs` | 457 | Playwright test (`npm run e2e`, also in CI): starts `flosub serve` with no video, opens the clip through the file browser, then checks live snapping and its guide, the magnet button, double-click to edit, cut, undo, glossary add + apply, SRT export. |
 
 ### engine/legendaria_engine/__init__.py — 3 lines
 Legendária transcription engine.
 
 ### engine/legendaria_engine/__main__.py — 5 lines
 Allow `python -m legendaria_engine`.
+
+### engine/legendaria_engine/access.py — 337 lines
+Network access: the password, sessions and who counts as "this computer" (ADR-026, plan 12).
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `class AccessError` | 56 | A password was refused; `code` is a stable key the interfaces translate. |
+| `access_file()` | 64 | `<config dir>/access.json`. |
+| `check_password(password)` | 69 | None when `password` is acceptable, else a code: `too_short`, `too_long` or `too_common`. |
+| `generate_password()` | 80 | A random password such as `k7mq-x2vd-9tpr` (60 bits), easy to read out and to type. |
+| `class Access` | 98 | The settings in `access.json`: the password hash, the session secret and the switches. |
+| `Access.refresh(force)` | 117 | Re-read the file when it changed on disk. |
+| `Access.save()` | 143 | Write the file (mode 0600 where the OS has it), replacing it atomically. |
+| `Access.has_password()` | 158 | A password is set (the server may then listen on the network). |
+| `Access.set_password(password)` | 162 | Store the hash of `password` and rotate the session secret (everyone is signed out). |
+| `Access.clear_password()` | 177 | Forget the password (the server goes back to this computer only) and sign everyone out. |
+| `Access.verify(password)` | 184 | Constant-time check of `password`; False when none is set. |
+| `Access.make_token(now)` | 196 | A session token: an expiry and a random part, signed with the session secret. |
+| `Access.check_token(token, now)` | 202 | The token was made with this secret and has not expired. |
+| `class RateLimiter` | 221 | Slows down wrong passwords: per address, and across all of them. |
+| `RateLimiter.wait(key, now)` | 231 | Seconds to wait before `key` may try again (0 when it may). |
+| `RateLimiter.fail(key, now)` | 246 | Record a wrong password from `key`. |
+| `RateLimiter.success(key)` | 257 | `key` signed in: its failures are forgotten. |
+| `is_private(value)` | 273 | `value` is an IP literal on a private network: loopback, LAN, link-local or Tailscale (CGNAT). |
+| `peer_allowed(peer, allow_public)` | 286 | A connection from this address may be served: private networks only, unless `allow_public`. |
+| `host_name(header)` | 291 | The name in a `Host` (or `Origin`) value, without port or brackets, lower case. |
+| `host_allowed(name, extra)` | 299 | May a request addressed to `name` be served? |
+| `is_local(peer, host, headers)` | 312 | The request comes from a browser on this computer, not over the network or through a proxy. |
+| `lan_addresses()` | 320 | This computer's private IPv4 addresses, the main one first (what to open on the phone). |
+
+### engine/legendaria_engine/access_prompt.py — 63 lines
+Asking for the access password in a terminal (`flosub serve`, `flosub auth set`).
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `error_text(code)` | 17 | The translated reason a password was refused. |
+| `set_password_interactively(settings, secret, out, tries)` | 22 | Ask for a password (empty answer: generate one) and save it. True when one was saved. |
+| `offer_password(settings, ask, secret, out)` | 49 | When no password is set, explain it and ask whether to set one now (every time, until it is). |
 
 ### engine/legendaria_engine/ass.py — 230 lines
 Styled subtitles: cues → Advanced SubStation Alpha (`.ass`), rendered by libass (ADR-012).
@@ -239,7 +282,7 @@ Styled subtitles: cues → Advanced SubStation Alpha (`.ass`), rendered by libas
 | `style_fields(style, width, scale)` | 144 | The values of an ASS `Style:` line (without its name) for a resolved look. |
 | `to_ass(cues, look, size, line_length)` | 173 | The whole `.ass` file for these cues, drawn on a `size` (width, height) canvas. |
 
-### engine/legendaria_engine/cli.py — 810 lines
+### engine/legendaria_engine/cli.py — 858 lines
 `flosub` command line: transcribe, export, review, glossary, burn, overlay, serve, models, config.
 
 | Function / class | Line | What it does |
@@ -267,10 +310,11 @@ Styled subtitles: cues → Advanced SubStation Alpha (`.ass`), rendered by libas
 | `cmd_burn(args, reporter)` | 533 | `flosub burn VIDEO`: a copy of the video with the subtitles drawn in (FFmpeg + libass). |
 | `cmd_overlay(args, reporter)` | 563 | `flosub overlay SUBS`: the subtitles alone on a transparent video (for editors). |
 | `cmd_serve(args, reporter)` | 595 | `flosub serve [VIDEO]`: open the web editor, with a video or asking for one (plan 07). |
-| `cmd_models(args, reporter)` | 607 | `flosub models list|download`. |
-| `cmd_config(args, reporter)` | 634 | `flosub config show|path`. |
-| `build_parser()` | 643 | The argparse tree for all subcommands. |
-| `main(argv)` | 783 | Entry point: run a subcommand and turn every failure into an `error` event. |
+| `cmd_auth(args, reporter)` | 618 | `flosub auth status|set|reset`: the password that guards the editor on the network (ADR-026). |
+| `cmd_models(args, reporter)` | 644 | `flosub models list|download`. |
+| `cmd_config(args, reporter)` | 671 | `flosub config show|path`. |
+| `build_parser()` | 680 | The argparse tree for all subcommands. |
+| `main(argv)` | 838 | Entry point: run a subcommand and turn every failure into an `error` event. |
 
 ### engine/legendaria_engine/config.py — 135 lines
 Layered JSON configuration: shipped defaults → user file → command-line values.
@@ -347,6 +391,40 @@ The fonts bundled with Legendária (open licence), listed in `fonts/fonts.json`.
 | `class FontMetrics` | 59 | Just enough of a TrueType/OpenType file to measure text: cmap, hmtx and the line height. |
 | `FontMetrics.width(text)` | 131 | Advance width of `text` as a fraction of the ASS font size. |
 
+### engine/legendaria_engine/i18n.py — 56 lines
+Texts the engine shows to people (terminal prompts, the launcher), one JSON file per language.
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `available()` | 29 | The language codes that have a file. |
+| `language(requested)` | 34 | The language to use: `requested`, `LEGENDARIA_LANG`, or the system's, matched to a file (else English). |
+| `t(key, lang, **values)` | 49 | The text for `key` in `lang` (default: `language()`), with `{placeholders}` filled in. |
+
+### engine/legendaria_engine/launcher.py — 335 lines
+The launcher: a small window that starts the editor and opens the browser (ADR-026, plan 12).
+
+| Function / class | Line | What it does |
+|---|---|---|
+| `docs_url(lang)` | 32 | The network guide in `lang` (English when there is no copy in that language). |
+| `check_form(password, repeat, lang)` | 37 | None when the two fields make a good password, else the translated reason they do not. |
+| `class Running` | 46 | The editor server running in this process. |
+| `Running.port()` | 55 | The port it listens on. |
+| `Running.stop()` | 59 | Stop serving and free the port. |
+| `start_editor(settings, port, tries)` | 65 | Start the editor in a thread, on the first free port from `port`. |
+| `run_in_terminal()` | 86 | No window available: do what `flosub serve` does, asking for the password in the terminal. |
+| `class Window` | 105 | The launcher window (tkinter). |
+| `Window.tr(key, **values)` | 144 | A text in the window's language. |
+| `Window.refresh()` | 148 | Show what is true now: running or not, where a phone can open it, what the buttons do. |
+| `Window.open_editor()` | 173 | Ask for the password if there is none, start the editor if needed, open the browser. |
+| `Window.start()` | 182 | Start the server and open the browser. |
+| `Window.restart()` | 194 | Start the editor again on the same port (after the password changed, it may listen on the network now). |
+| `Window.stop()` | 205 | Stop the editor; the window stays. |
+| `Window.quit()` | 212 | Stop the editor and close the window. |
+| `Window.splash(then)` | 217 | A borderless window with the name and "Starting…" while `then` runs (shown at least a moment). |
+| `Window.show_info()` | 234 | The (i) balloon: what the password is for, and a link to the guide. |
+| `Window.ask_password()` | 253 | The dialog to set or change the password. It returns when it is closed. |
+| `main()` | 323 | The `legendaria` command: the launcher window, or the terminal when there is none. |
+
 ### engine/legendaria_engine/media.py — 306 lines
 FFmpeg: find it, read a video's size, burn subtitles in, cut + burn, render a transparent overlay.
 
@@ -421,34 +499,35 @@ Transcript format (JSON v1): the contract between the engine and the Blender add
 | `Transcript.save(path)` | 108 | Write as pretty UTF-8 JSON. |
 | `Transcript.load(path)` | 113 | Read a transcript JSON file. |
 
-### engine/legendaria_engine/server.py — 659 lines
+### engine/legendaria_engine/server.py — 841 lines
 `flosub serve`: the local web editor's backend (plan 07, ADR-014).
 
 | Function / class | Line | What it does |
 |---|---|---|
-| `class Job` | 59 | A background task (transcribe, export) that records its events for SSE readers. |
-| `Job.emit(event, **data)` | 69 | Record one event and wake the SSE readers. |
-| `Job.wait(seen, timeout)` | 77 | Events after the first `seen` ones; blocks up to `timeout` for new ones. |
-| `class Session` | 85 | One video being edited: its project file, config and running jobs. |
-| `Session.project()` | 97 | The saved project, or None before the first transcription. |
-| `Session.state()` | 101 | Everything the editor needs on load. |
-| `Session.peaks()` | 134 | Waveform peaks (100 per second), computed once per session. |
-| `Session.review()` | 144 | Glossary suggestions (layer 2, no AI) for the saved cues, as the editor shows them. |
-| `Session.look(style)` | 184 | The style's `.ass` look from the config (empty if unknown). |
-| `Session.size()` | 188 | The video's (width, height) for the `.ass` canvas. |
-| `Session.ass_text(cues, style, override)` | 192 | `.ass` for these cues in the style's look (plus the project's `look` overrides), on the video's canvas. |
-| `Session.start(kind, work)` | 198 | Run `work(job)` in a thread; only one job at a time. |
-| `Session.transcribe(job, options)` | 215 | Run `flosub transcribe` in a child process (it may re-exec for CUDA), relay events. |
-| `Session.export(job, fmt)` | 263 | Write the edited video (`mp4`) or subtitles (`srt`, `vtt`, `ass`) next to the source. |
-| `class Handler` | 292 | Routes for the editor. Each browser (a cookie) has its own session: the video it opened. |
-| `Handler.end_headers()` | 309 | Every response carries the cookie that tells the browser which session is its own. |
-| `Handler.session()` | 319 | This browser's session (routes that need one are guarded by `_ready`). |
-| `Handler.log_message(format, *args)` | 338 | Quiet: only errors are printed. |
-| `Handler.do_GET()` | 374 | Static app, state, media, font, preview `.ass` and job events. |
-| `Handler.do_PUT()` | 438 | Save the project (validated and normalized); returns what was saved. |
-| `Handler.do_POST()` | 453 | Start a job: `/api/transcribe` {model, language, style} or `/api/export` {format}. |
-| `make_server(video, port, config, allow_hosts)` | 622 | A server on 127.0.0.1 (`port` 0 picks a free one), with `video` open if given. |
-| `serve(video, port, open_browser, reporter, allow_hosts)` | 642 | Run the editor until Ctrl+C (the browser asks for a video when none is given). |
+| `class Job` | 67 | A background task (transcribe, export) that records its events for SSE readers. |
+| `Job.emit(event, **data)` | 77 | Record one event and wake the SSE readers. |
+| `Job.wait(seen, timeout)` | 85 | Events after the first `seen` ones; blocks up to `timeout` for new ones. |
+| `class Session` | 93 | One video being edited: its project file, config and running jobs. |
+| `Session.project()` | 105 | The saved project, or None before the first transcription. |
+| `Session.state()` | 109 | Everything the editor needs on load. |
+| `Session.peaks()` | 142 | Waveform peaks (100 per second), computed once per session. |
+| `Session.review()` | 152 | Glossary suggestions (layer 2, no AI) for the saved cues, as the editor shows them. |
+| `Session.look(style)` | 192 | The style's `.ass` look from the config (empty if unknown). |
+| `Session.size()` | 196 | The video's (width, height) for the `.ass` canvas. |
+| `Session.ass_text(cues, style, override)` | 200 | `.ass` for these cues in the style's look (plus the project's `look` overrides), on the video's canvas. |
+| `Session.start(kind, work)` | 206 | Run `work(job)` in a thread; only one job at a time. |
+| `Session.transcribe(job, options)` | 223 | Run `flosub transcribe` in a child process (it may re-exec for CUDA), relay events. |
+| `Session.export(job, fmt)` | 271 | Write the edited video (`mp4`) or subtitles (`srt`, `vtt`, `ass`) next to the source. |
+| `class Handler` | 300 | Routes for the editor. Each browser (a cookie) has its own session: the video it opened. |
+| `Handler.end_headers()` | 319 | Every response carries the cookie that tells the browser which session is its own. |
+| `Handler.session()` | 329 | This browser's session (routes that need one are guarded by `_ready`). |
+| `Handler.log_message(format, *args)` | 348 | Quiet: only errors are printed. |
+| `Handler.do_GET()` | 459 | Static app, state, media, font, preview `.ass` and job events. |
+| `Handler.do_PUT()` | 525 | Save the project (validated and normalized); returns what was saved. |
+| `Handler.do_POST()` | 541 | Start a job: `/api/transcribe` {model, language, style} or `/api/export` {format}. |
+| `network_urls(server)` | 774 | Where a phone on the same network can open the editor (empty when it listens on this computer only). |
+| `make_server(video, port, config, allow_hosts, settings, host)` | 782 | A server with `video` open if given (`port` 0 picks a free one). |
+| `serve(video, port, open_browser, reporter, allow_hosts, settings)` | 815 | Run the editor until Ctrl+C (the browser asks for a video when none is given). |
 
 ### engine/legendaria_engine/transcriber.py — 145 lines
 Speech-to-text. A small backend interface keeps room for other engines (e.g. Apple Silicon).
@@ -865,7 +944,8 @@ Generate the glowing Legendária key art (hero and banner) as SVG.
 
 ## 7. In progress
 
-- **Now: plan 07 (web editor), phase 2.** Steps 31–33 cover the whole MVP list and the owner's first corrections (step 33): project file (ADR-016), cut + burn export, `flosub serve`, transcribe, JASSUB live preview, cue list, undo, autosave, timeline with waveform / drag / snap / zoom, glossary review, en + pt-BR, Playwright smoke in CI. **Next: the owner's manual test of the MVP**, then the owner's list of changes. Known gaps: font lookup is Linux-only (fontconfig), no `.ass`/`.srt` import, "add to glossary" from a selected word, mobile polish (touch drag on the timeline is untested), a recent-files list. Earlier: phase 0 spikes (step 29), Svelte (ADR-015), OpenReel dissection (step 30). ADR-014: the Blender add-on is frozen.
+- **Now: plan 12 (network access), built in step 62:** `access.py` (hashed password in `access.json`, signed sessions, rate limit, local/remote test), the deny-by-default gate in `server.py`, `flosub auth`, the web sign-in and Access dialog, the `legendaria` tkinter launcher, and the guide `docs/network-access.md` (+ pt-BR). The owner tests it by hand; the launcher is untested on Windows and macOS, and the LAN is plain HTTP (stated in the guide).
+- **Plan 07 (web editor), phase 2.** Steps 31–33 cover the whole MVP list and the owner's first corrections (step 33): project file (ADR-016), cut + burn export, `flosub serve`, transcribe, JASSUB live preview, cue list, undo, autosave, timeline with waveform / drag / snap / zoom, glossary review, en + pt-BR, Playwright smoke in CI. **Next: the owner's manual test of the MVP**, then the owner's list of changes. Known gaps: font lookup is Linux-only (fontconfig), no `.ass`/`.srt` import, "add to glossary" from a selected word, mobile polish (touch drag on the timeline is untested), a recent-files list. Earlier: phase 0 spikes (step 29), Svelte (ADR-015), OpenReel dissection (step 30). ADR-014: the Blender add-on is frozen.
 - Plan 02 (Blender add-on): done (steps 09–12).
 - **Plan 03, accuracy:** done — 3a glossary (step 18), 3b LLM reviewer (step 19, experimental), glossary library (step 20), 3c Blender UI (step 22). Engine 0.1.0.dev4 is not on PyPI yet (needs the owner's tag), so "Install engine" gets it only after that release.
 - **Plan 04, MVP subset (§10):** done in step 23: `.ass` export with the approved pop look, `flosub burn`, `flosub overlay`, and in Blender "Export ASS" and "Exact preview".

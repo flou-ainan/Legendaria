@@ -1,6 +1,6 @@
 # Chat context (hand-off)
 
-**Last updated:** 2026-11-02, by Claude Code (Opus 5.5), after step 61 (ADR-026, plan 12).
+**Last updated:** 2026-11-02, by Claude Code (Opus 5.5), after step 62 (network access built).
 **Policy:** `AGENTS.md` and `docs/dev-docs/README.md` ("chat-context.md"). This is a snapshot that gets replaced, never appended. It is public: no secrets and no private data.
 
 ## Summary of the conversation so far
@@ -98,12 +98,13 @@
 32. **Plans 13 and 14, ADR-025 (2026-10-29):** `ROADMAP.md` became the one list of pending work. Plan 13 proposed cloning CapCut / InShot; plan 14 and ADR-025 proposed plain subtitle lines with effects on top.
 33. **House in order (2026-10-31, plan 15, step 60):** the owner found the plans messy and "clone CapCut" too vague. It is now a direction in `AGENTS.md`, not a plan. The focus is tying together what works, then the owner's list of corrections. Plan 14 is parked. Lint errors that failed PR #29 are fixed.
 
-34. **Access decision (2026-11-02, ADR-026, plan 12):** the owner wants ease of use, hackable, modular and robust above all. LAN is the default but only once a password is set (no password: localhost only). The password applies to every non-local access, tunnels, Tailscale and Headscale included, because a guest on the Wi-Fi must not reach the computer's files. It is set the first time the app runs (a generator helps), stored hashed in a settings JSON (`access.json`), and shared by LAN, Tailscale and Headscale. A small tkinter launcher shows a splash, asks for the password on first run (and on every run until set), opens the browser, and has an (i) balloon linking to an en + pt-BR network doc. READMEs carry a summary and link to it. Remote clients cannot browse the computer's disk. Plain HTTP on the LAN is a stated limit; optional HTTPS comes later. Commits were authorized; push and merge are still waiting.
+34. **Access decision (2026-11-02, ADR-026, plan 12):** the owner wants ease of use, hackable, modular and robust above all. LAN is the default but only once a password is set (no password: localhost only). The password applies to every non-local access, tunnels, Tailscale and Headscale included, because a guest on the Wi-Fi must not reach the computer's files. It is set the first time the app runs (a generator helps), stored hashed in a settings JSON (`access.json`), and shared by LAN, Tailscale and Headscale. A small tkinter launcher shows a splash, asks for the password on first run (and on every run until set), opens the browser, and has an (i) balloon linking to an en + pt-BR network doc. READMEs carry a summary and link to it. Remote clients cannot browse the computer's disk. Plain HTTP on the LAN is a stated limit; optional HTTPS comes later. The owner then authorized the push and the merge: #28 and #29 are in `main` (2026-11-02).
+35. **Network access built (2026-11-02, step 62, plan 12):** `access.py`, the deny-by-default gate, `flosub auth`, the web sign-in and Access dialog, the `legendaria` tkinter launcher, and the guide `docs/network-access.md` (+ pt-BR). The owner said they will test it by hand and suggest what to change.
 
 **Open and next**
-- **Next:** the owner's go-ahead to push and merge #28 and #29, then plan 12 step 1 (`access.py`).
+- **Next:** the owner tests network access by hand (launcher, phone on the Wi-Fi, then Tailscale) and sends corrections.
 - **Then:** the owner sends the list of what is not good yet. No new features before that; everything else is parked in `ROADMAP.md`.
-- **Not published:** engine 0.1.0.dev4 is not on PyPI; tags and releases need the owner's approval. Branch `feat/web-editor-mvp` is not pushed since step 56.
+- **Not published:** engine 0.1.0.dev4 is not on PyPI; tags and releases need the owner's approval. Work happens on branch `feat/network-access`.
 
 ## Last two complete replies (verbatim)
 
