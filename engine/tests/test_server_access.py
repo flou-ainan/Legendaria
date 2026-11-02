@@ -202,7 +202,19 @@ def test_wrong_passwords_are_slowed_down_even_for_the_right_one(running):
     assert client("GET", "/api/state")[0] == 401
 
 
-def test_a_signed_in_phone_cannot_browse_or_open_the_computers_files(running, video):
+def test_a_signed_in_phone_can_browse_and_open_the_computers_files(running, video):
+    client = Client(running)
+    assert client("GET", "/api/browse")[0] == 401, "not before the password"
+    client.sign_in()
+    status, _, listing = client("GET", "/api/browse?path=" + str(video.parent))
+    assert status == 200 and any(entry["name"] == "clip.mp4" for entry in listing["entries"])
+    status, _, state = client("POST", "/api/open", {"path": str(video)})
+    assert status == 200 and state["video"] == "clip.mp4"
+    assert client("GET", "/api/access")[2]["can_browse"] is True
+
+
+def test_browsing_from_other_devices_can_be_turned_off(running, video):
+    running.access.settings["remote_browse"] = False
     client = Client(running)
     client.sign_in()
     for method, path, data in [
@@ -212,7 +224,12 @@ def test_a_signed_in_phone_cannot_browse_or_open_the_computers_files(running, vi
     ]:
         status, _, body = client(method, path, data)
         assert status == 403 and body["code"] == "computer_only", path
-    assert Client(running, remote=False)("GET", "/api/browse")[0] == 200
+    assert client("GET", "/api/access")[2]["can_browse"] is False
+    assert Client(running, remote=False)("GET", "/api/browse")[0] == 200, (
+        "the computer itself still can"
+    )
+    status, *_ = client("POST", "/api/upload?name=phone.mp4", raw=video.read_bytes())
+    assert status == 200, "uploading from the phone still works"
 
 
 def test_a_signed_in_phone_can_upload_and_use_its_own_video(running, video):

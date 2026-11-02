@@ -18,7 +18,7 @@ Quem alcança o editor pode usá-lo, e o editor pode ler vídeos do seu computad
 
 - **Sem senha, o editor só abre neste computador.** Nada escuta na rede.
 - **Com senha, o editor também abre em outros aparelhos**, mas só para quem a conhece. Isso vale para o seu Wi-Fi, o Tailscale, o Headscale e os túneis: uma senha só para todos.
-- **Mesmo conectado, o celular não navega nas pastas do computador.** Ele pode enviar um vídeo do próprio celular para editar e baixar o que exportou. Escolher arquivos do computador só é possível no computador.
+- **Conectado, o celular pode abrir os vídeos do computador**: "Escolher entre os arquivos do computador…" navega pelas pastas, e "Escolher um arquivo deste aparelho…" envia um do celular. Sem a senha ele não faz nada. Quem sabe a senha vê as pastas e os vídeos que o usuário do editor vê, então trate-a como a senha da sua conta. Para limitar os outros aparelhos a enviar arquivos do próprio aparelho, coloque `remote_browse` como `false` (abaixo).
 - Senhas erradas são retardadas (depois de 5 erros a espera cresce, até 15 minutos), então não dá para adivinhar tentando muitas.
 - Conexões de endereços públicos da internet são recusadas, mesmo com a senha certa. Se um dia você abrir uma porta no roteador por engano, isso impede que ela chegue ao editor.
 
@@ -82,6 +82,7 @@ O [Headscale](https://headscale.net) é um servidor de código aberto que faz o 
 | `lan` | `true` | Com senha, escutar na rede local. `false` mantém o editor só neste computador, qualquer que seja a senha. |
 | `require_password_here` | `false` | `true` pede a senha também neste computador (um computador compartilhado). |
 | `allow_public` | `false` | `true` aceita conexões de endereços públicos da internet. Não recomendado. |
+| `remote_browse` | `true` | Aparelhos conectados podem navegar e abrir os vídeos do computador. `false` deixa só enviar um vídeo do aparelho e baixar as exportações. |
 
 ## Nunca abra uma porta no roteador
 

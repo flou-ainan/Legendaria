@@ -6,8 +6,8 @@ transcription and export as jobs whose events stream over Server-Sent Events.
 
 Who may use it (ADR-026): with no password it listens on 127.0.0.1 only. With a password it
 listens on the local network, and every request that is not from a browser on this computer
-(LAN, Tailscale, a tunnel) must carry a signed-in session. Remote clients cannot browse the
-computer's disk. Requests whose Host or Origin is not a known name are refused, so a web page on
+(LAN, Tailscale, a tunnel) must carry a signed-in session. A signed-in remote client may browse the
+computer's files unless `remote_browse` is off. Requests whose Host or Origin is not a known name are refused, so a web page on
 the internet cannot drive it (DNS rebinding, cross-site requests).
 """
 
@@ -416,12 +416,17 @@ class Handler(BaseHTTPRequestHandler):
             return False
         return True
 
-    def _computer_only(self) -> bool:
-        """False (after answering 403) for a remote client: the computer's disk is not for it."""
-        if self.remote:
+    def _disk_access(self) -> bool:
+        """False (after answering 403) when this client may not browse the computer's disk.
+
+        A signed-in remote client may (it is the owner on their phone), unless `remote_browse`
+        is turned off in `access.json`.
+        """
+        settings: access.Access = self.server.access  # type: ignore[attr-defined]
+        if self.remote and not settings.settings["remote_browse"]:
             self._error(
                 HTTPStatus.FORBIDDEN,
-                "Files on the computer can only be opened from the computer itself.",
+                "Browsing the computer's files from other devices is turned off.",
                 "computer_only",
             )
             return False
@@ -472,7 +477,7 @@ class Handler(BaseHTTPRequestHandler):
                     )
                 return self._json(self.session.state())
             if path == "/api/browse":
-                if not self._computer_only():
+                if not self._disk_access():
                     return None
                 return self._json(workspace.browse((query.get("path") or [None])[0]))
             if path == "/api/glossary":
@@ -556,7 +561,7 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/access/password":
                 return self._change_password(options)
             if path == "/api/open":
-                if not self._computer_only():
+                if not self._disk_access():
                     return None
                 return self._open(Path(str(options.get("path", ""))).expanduser())
             if path == "/api/glossary/add":
@@ -591,7 +596,8 @@ class Handler(BaseHTTPRequestHandler):
             "password_set": settings.has_password,
             "signed_in": self.signed_in,
             "remote": self.remote,
-            "can_browse": not self.remote,
+            "can_browse": self.signed_in
+            and (not self.remote or settings.settings["remote_browse"]),
             "addresses": network_urls(self.server) if self.signed_in else [],
         }
 

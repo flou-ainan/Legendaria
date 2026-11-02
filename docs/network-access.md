@@ -18,7 +18,7 @@ Anyone who can reach the editor can use it, and the editor can read videos on yo
 
 - **Without a password, the editor can only be opened on this computer.** Nothing listens on the network.
 - **With a password, the editor is also reachable from other devices**, but only for someone who knows it. This applies to your Wi-Fi, to Tailscale, to Headscale and to tunnels alike: one password for all of them.
-- **Even signed in, a phone cannot browse your computer's folders.** It can send a video from the phone to be edited and download what it exports. Choosing files on the computer is only possible on the computer.
+- **Signed in, the phone can open the computer's videos**: "Choose from the computer's files…" browses the folders, and "Choose a file from this device…" sends one from the phone. Without the password it can do nothing. Whoever knows the password can see the folders and videos the editor's user can see, so treat it like your account's password. To limit other devices to sending files from the device, set `remote_browse` to `false` (below).
 - Wrong guesses are slowed down (after 5 mistakes the wait grows, up to 15 minutes), so the password cannot be guessed by trying many.
 - Connections from public internet addresses are refused, even with the right password. If you ever open a port on your router by mistake, this stops it from reaching the editor.
 
@@ -82,6 +82,7 @@ Do **not** use `tailscale funnel`: it publishes the editor on the whole internet
 | `lan` | `true` | With a password, listen on the local network. `false` keeps the editor on this computer only, whatever the password. |
 | `require_password_here` | `false` | `true` asks for the password on this computer too (a shared computer). |
 | `allow_public` | `false` | `true` accepts connections from public internet addresses. Not recommended. |
+| `remote_browse` | `true` | Signed-in devices may browse and open the computer's videos. `false` lets them only send a video from the device and download their exports. |
 
 ## Never open a port on your router
 

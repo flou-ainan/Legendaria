@@ -6,6 +6,7 @@ const remote = !['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)
 
 class UI {
   readonly remote = remote
+  canBrowse = $state(true) // the server lets this device browse the computer's files (`remote_browse` in access.json)
   snap = $state(true) // the magnet: timeline edges stick to nearby targets
   // The side drawer: the subtitle list is open from the start on wide screens (desktop); on narrow ones it is a bottom sheet, closed.
   panel = $state<Panel | null>(matchMedia('(min-width: 1024px)').matches ? 'subtitles' : null)

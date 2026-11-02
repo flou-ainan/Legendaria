@@ -50,7 +50,12 @@ LOGIN_FREE_FAILURES = 5
 LOGIN_MAX_DELAY = 900.0  # seconds
 GLOBAL_FAILURES = 30  # failures from anywhere within GLOBAL_WINDOW lock every sign-in
 GLOBAL_WINDOW = 600.0
-DEFAULTS: dict[str, Any] = {"lan": True, "require_password_here": False, "allow_public": False}
+DEFAULTS: dict[str, Any] = {
+    "lan": True,
+    "require_password_here": False,
+    "allow_public": False,
+    "remote_browse": True,
+}
 
 
 class AccessError(ValueError):

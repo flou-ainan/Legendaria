@@ -26,7 +26,7 @@
     <div class="shade" onclick={() => (open = false)}></div>
     <div class="list" role="menu">
       <button role="menuitem" onclick={run(onOpenVideo)}>{ui.remote ? t('menu.open_device') : t('menu.open_video')}</button>
-      {#if ui.remote}<button role="menuitem" onclick={run(onOpenFromComputer)}>{t('menu.open_computer')}</button>{/if}
+      {#if ui.remote && ui.canBrowse}<button role="menuitem" onclick={run(onOpenFromComputer)}>{t('menu.open_computer')}</button>{/if}
       <button role="menuitem" onclick={run(onOpenProject)}>{t('menu.open_project')}</button>
       <button role="menuitem" onclick={run(onNew)}>{t('menu.new')}</button>
       <hr />

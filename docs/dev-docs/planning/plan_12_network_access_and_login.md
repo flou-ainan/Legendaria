@@ -5,7 +5,7 @@
 
 ## Goal
 
-A user installs Legendária, opens the launcher, sets a password once, and from then on reaches the editor from a phone on the same Wi-Fi without any command line. Nobody without the password can use it, and a guest on the Wi-Fi can never browse the computer's files. Tailscale or Headscale work with the same password.
+A user installs Legendária, opens the launcher, sets a password once, and from then on reaches the editor from a phone on the same Wi-Fi without any command line. Nobody without the password can use it, and a guest on the Wi-Fi who does not know the password can never reach the computer's files; with the password, the phone can open the computer's videos (`remote_browse`). Tailscale or Headscale work with the same password.
 
 Core principles for every step: easy to use, hackable (a settings JSON, no hidden state), modular, robust.
 

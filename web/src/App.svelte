@@ -28,6 +28,7 @@
     try {
       const access = await loadAccess().catch(() => null) // an older server has no sign-in: loadState tells so
       if (access && !access.signed_in) return (signInNeeded = true)
+      ui.canBrowse = access?.can_browse ?? true
       signInNeeded = false
       show(await loadState())
     } catch (error) {
