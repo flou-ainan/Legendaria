@@ -38,3 +38,4 @@ Contributions are welcome, including translations. Read [CONTRIBUTING.md](CONTRI
 
 - Transcription engine and repository: [MIT](LICENSE)
 - Blender add-on (frozen): GPL-3.0-or-later (required by Blender's extensions platform)
+- Editor icons: [Solar Linear](https://www.figma.com/community/file/1166831539721848736) by 480 Design, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)

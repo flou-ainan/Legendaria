@@ -33,6 +33,14 @@ jobs:
         working-directory: engine
         run: uv run --extra test pytest
 
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: "22"
+
+      - name: Build the web editor (into engine/legendaria_engine/web)
+        working-directory: web
+        run: npm ci && npm run build
+
       - name: Build sdist and wheel
         working-directory: engine
         run: uv build --out-dir ../dist

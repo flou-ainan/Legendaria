@@ -38,3 +38,4 @@ Contribuições são bem-vindas, inclusive traduções. Leia o [CONTRIBUTING.md]
 
 - Motor de transcrição e repositório: [MIT](LICENSE)
 - Add-on do Blender (congelado): GPL-3.0-or-later (exigência da plataforma de extensões do Blender)
+- Ícones do editor: [Solar Linear](https://www.figma.com/community/file/1166831539721848736), de 480 Design, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)

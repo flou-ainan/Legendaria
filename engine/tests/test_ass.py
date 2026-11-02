@@ -63,10 +63,27 @@ def test_no_animation_and_escaping():
     assert "\\N" in dialogues(wrapped)[0]
 
 
-def test_box_style_uses_border_style_3():
-    text = ass.to_ass(cues("x"), {"box": True, "box_color": [0, 0, 0, 0.5]})
+def test_box_is_a_rounded_shape_under_the_text_and_keeps_the_outline():
+    look = {"box": True, "box_color": [0, 0, 0, 0.5], "outline_color": [1, 0, 0, 1]}
+    text = ass.to_ass(cues("x"), look)
     style = next(line for line in text.splitlines() if line.startswith("Style:")).split(",")
-    assert style[15] == "3" and style[5] == "&H80000000"
+    assert style[15] == "1" and style[5] == "&H000000FF"  # normal outline, in its own colour
+    box, word = [line for line in text.splitlines() if line.startswith("Dialogue:")]
+    assert (
+        box.startswith("Dialogue: 0,") and "\\p1}m " in box and " b " in box
+    )  # curves = round corners
+    assert "\\1c&H000000&\\1a&H80&" in box
+    assert word.startswith("Dialogue: 1,") and word.endswith("x")
+
+
+def test_box_grows_with_the_text_and_the_padding():
+    def width(text, **extra):
+        look = ass.with_look({"box": True, "font": "Anton", "font_size": 100}, extra)
+        shape = ass.box_shape(text, look, 100)
+        return max(int(v) for v in shape.replace("m", "").replace("l", "").replace("b", "").split())
+
+    assert width("palavra longa") > width("oi") > 0
+    assert width("oi", box_padding_x=1.0) - width("oi") == 130  # 0.65 em more on each side
 
 
 def test_export_ass_from_transcript_and_from_edited_cues(transcript, tmp_path, capsys):

@@ -1,6 +1,6 @@
 # Chat context (hand-off)
 
-**Last updated:** 2026-10-27, by Claude Code (Opus 5.5), during step 30.
+**Last updated:** 2026-11-02, by Claude Code (Opus 5.5), after step 61 (ADR-026, plan 12).
 **Policy:** `AGENTS.md` and `docs/dev-docs/README.md` ("chat-context.md"). This is a snapshot that gets replaced, never appended. It is public: no secrets and no private data.
 
 ## Summary of the conversation so far
@@ -11,6 +11,7 @@
 - The owner tests manually and then gives feedback. They prefer lean MVPs with "later" notes, and want options plus a recommendation before a decision.
 - They avoid heavy frameworks and libraries.
 - Public actions need explicit approval every time: PyPI tags, releases, and anything published.
+- At the end of each task, the agent says which model tier and effort the next task needs (owner prefers low/medium; high only with a reason). Rule in `AGENTS.md`, "Recommending the model for the next task".
 - `main` is protected: every change goes through a branch, a PR, the `ci` check and a squash merge.
 
 **Project:** Legendária (repo `flou-ainan/Legendaria`).
@@ -46,90 +47,81 @@
    - OpenReel dissected (`references/openreel_dissection.md`): snapshot undo with auto-grouping, pixel-threshold snapping (plus word boundaries), a JSON shortcut table, zoom-at-cursor, a versioned and validated project file, property-based tests;
    - this hand-off file and its policy added.
 
+9. **Step 31 (2026-10-27), PR #29 (stacked on #28):**
+   - ADR-016: the project file `<video>.legendaria.json` (own JSON, kept ranges + cues in source time; `.ass`/SRT/VTT are exports). This answers the owner's earlier question about `.ass` vs extended `.ass`.
+   - engine: `project.py`, `media.render` (one-pass cut + burn), `flosub serve` (stdlib server);
+   - `web/`: transcribe, JASSUB live preview, cuts (I/O/X, restore), cue list, undo/redo, autosave, export MP4/SRT/VTT/ASS, en + pt-BR;
+   - tested: 120 pytest, Vitest, a local Playwright run, a real transcription through the server.
+   - New `AGENTS.md` rule for model recommendations.
+
+10. **Step 32 (2026-10-27), same PR #29:** timeline with waveform from server peaks, draggable cue blocks, snapping, zoom; glossary review panel; Playwright smoke test in CI; fixed the ruff errors that made `checks` fail on step 31. The owner switched to Sonnet for this step and asked for the command to open their real video; they have notes and will start requesting edits once the MVP is finished.
+
+11. **Step 33 (2026-10-27), same PR #29:** the owner's first 8 corrections: `flosub serve` with no path (file browser + drop, ADR-017), drop-down lists, glossary tools, live snapping with a magnet button, double-click edits, optional side drawer, a Kdenlive/CapCut-style layout. The owner wants the desktop to look like Kdenlive, with CapCut/InShot-style strong editing elements so mobile can follow later.
+
+12. **Step 34 (2026-10-27), same PR #29:** round 2: fixed the timeline flicker (implicit grid column sized by the waveform; the e2e now samples it), logo and favicon, "Português (Brasil / Portugal)", File menu (hamburger on narrow screens), IndexedDB recovery copy and relinking a moved video (owner chose: same duration ±0.5 s and screen proportion ±1 %, ADR-018), interface language en/pt-BR from the menu, plan 08 from the owner's UX PDF.
+
+13. **Step 35 (2026-10-27), same PR #29:** the owner asked for priority changes before the UX-study items: a quick **Look menu** (size and height sliders, Top / Bottom presets, font), **more fonts**, **translations as plain files**, and a **mobile toolbar** that slides sideways in one row. Done: project `look` override and 19 bundled OFL fonts picked from `~/.local/share/fonts` (ADR-019), locale files auto-discovered with a translators' guide and a test, mobile toolbar. Plan 08 reordered: this is "priority round 3", then the contextual toolbar, orange track, generate-captions sheet, per-cue style.
+
+14. **Step 36 (2026-10-27), same PR #29:** the owner asked to remove the permanent tips (an interactive tutorial comes after the MVP) and to continue: plan 08 step 1 done, a contextual toolbar (5 tools max, changes with the selection).
+
+15. **Step 37 (2026-10-27), same PR #29:** owner's corrections: touch scrolling on the timeline moved and resized blocks, so only the selected block can be dragged now; the snap stuck far from the pointer, so it is a real magnet now (keeps the pointer's position apart from the drawn one); Undo/Redo first in the toolbar; Solar Linear icons (ADR-020, CC BY 4.0).
+
+16. **Step 38 (2026-10-27), same PR #29:** `settings.json` (basic/advanced, snap 4 px), toolbar without labels and dark selected icons, draggable playhead arrow and a centred-playhead mode for touch screens (ADR-021).
+
+17. **Step 39:** playhead fixes: overlay arrow above the timeline, no jitter, blocks drawn left of the line (empty start by `transform`, not margins).
+
+18. **Step 40:** orange subtitle blocks, grey-blue cuts, blue mark.
+
+19. **Step 41:** Generate captions sheet (File menu), keeps cuts and look when regenerating.
+
+20. **Step 42:** Look menu: text and outline colour, rectangle, ALL CAPS checkbox (pop stays caps by default); square toolbar buttons.
+
+21. **Step 43:** colours seemed broken because the owner's server predated step 42; added an API version check with a restart banner, a heading in the Look menu, e2e coverage. Owner switched to Opus.
+
+22. **Step 44:** rounded, padded rectangle drawn as its own shape (colour, transparency, width, height, roundness), outline colour and thickness, full screen keeps subtitles, "Edit this track's subtitles" (multiple tracks noted in plan 08).
+
+23. **Step 45 (plan 09, ADR-022):** style per subtitle: Look menu "Whole track | This subtitle", "Apply to all", ✦ on blocks with their own style.
+
+24. **Step 46:** shadow controls (on/off, colour, size, intensity) in the Look menu.
+
+25. **Step 47:** breakpoint 1024 px, bottom sheets that slide up (drawer, Look), pinch zoom on the timeline.
+
+26. **Step 48:** sheets take at most 44 % of the screen and the video stays pinned above them.
+
+27. **Step 49:** robust full-screen sizing after a rotation (to confirm on the phone); a tall video is cropped to the part with the subtitles when a sheet is open.
+
+28. **Steps 50–56 (2026-10-28):** phone testing through tunnels. Fixes: pinch zoom jump, squashed letters on 9:16 (JASSUB canvas size), unreachable end of the video in centred mode, a notice as soon as the video is missing. Plan 08 desktop extras: subtitle list open by default with search and replace, right-click menu on blocks, Ctrl+B split.
+29. **Steps 57–58 (plan 11, ADR-023):** one server session per browser (cookie `legendaria_client`, API version 5); open a video from the computer's files or from the device; "Save to this device" after an export.
+30. **Step 59 (plan 11, A):** a video picked on the device is played from the device (object URL), not streamed back; kept only until a reload (OPFS is the open part).
+31. **Access decisions (ADR-024, plan 12, owner 2026-10-28):** the focus is local use, with the phone as another screen. ngrok ran out of bandwidth, so Tailscale is the recommended way away from home (private network, `tailscale serve` for HTTPS). LAN is the default and needs no third party. An own user name and password is required once the server listens beyond localhost. Headscale is only mentioned. After the MVP: reorganize, slim down, and an end-user installer ("next > next").
+
+32. **Plans 13 and 14, ADR-025 (2026-10-29):** `ROADMAP.md` became the one list of pending work. Plan 13 proposed cloning CapCut / InShot; plan 14 and ADR-025 proposed plain subtitle lines with effects on top.
+33. **House in order (2026-10-31, plan 15, step 60):** the owner found the plans messy and "clone CapCut" too vague. It is now a direction in `AGENTS.md`, not a plan. The focus is tying together what works, then the owner's list of corrections. Plan 14 is parked. Lint errors that failed PR #29 are fixed.
+
+34. **Access decision (2026-11-02, ADR-026, plan 12):** the owner wants ease of use, hackable, modular and robust above all. LAN is the default but only once a password is set (no password: localhost only). The password applies to every non-local access, tunnels, Tailscale and Headscale included, because a guest on the Wi-Fi must not reach the computer's files. It is set the first time the app runs (a generator helps), stored hashed in a settings JSON (`access.json`), and shared by LAN, Tailscale and Headscale. A small tkinter launcher shows a splash, asks for the password on first run (and on every run until set), opens the browser, and has an (i) balloon linking to an en + pt-BR network doc. READMEs carry a summary and link to it. Remote clients cannot browse the computer's disk. Plain HTTP on the LAN is a stated limit; optional HTTPS comes later. Commits were authorized; push and merge are still waiting.
+
 **Open and next**
-- **Next:**
-  - ADR-016: the project file `<video>.legendaria.json` (`"format": "legendaria-project"`, version 1, JSON Schema, kept ranges + cues + style; cues in source time);
-  - then the plan 07 phase 2 MVP build: `flosub serve`, the Svelte app in `web/`, the JASSUB player, the cue list, the timeline (cuts + cues + waveform), export, pt-BR.
-- **Pending owner decisions:** import `.ass`/`.srt` + `flosub align --srt` (plan 04 §11.3, item 4).
-- **Not published:** engine 0.1.0.dev4 is not on PyPI; the tag needs the owner's approval.
-- **Open PR:** #28 (the docs for steps 28–30).
+- **Next:** the owner's go-ahead to push and merge #28 and #29, then plan 12 step 1 (`access.py`).
+- **Then:** the owner sends the list of what is not good yet. No new features before that; everything else is parked in `ROADMAP.md`.
+- **Not published:** engine 0.1.0.dev4 is not on PyPI; tags and releases need the owner's approval. Branch `feat/web-editor-mvp` is not pushed since step 56.
 
 ## Last two complete replies (verbatim)
 
-### Reply 1 (2026-10-26): phase 0 results
+The replies from 2026-10-29 and the one that closed step 60 are not recorded here. These are the latest available.
 
-> Os quatro testes rodaram e funcionaram. Para o framework, recomendo **Svelte 5**, com o Vue 3 bem perto; a escolha é sua.
->
-> Tudo está em **`/mnt/work/Trabalhos/Projetos Flou/legendaria-spikes/`**, com um `LEIA-ME.md` explicando cada arquivo. A pasta fica fora do repositório porque usa o seu vídeo. O servidor dos testes está rodando agora em **http://localhost:5199**, então dá para abrir direto no navegador.
->
-> ### 1.1 OpenReel: aproveitamos as ideias, não o código
-> - São cerca de 460 mil linhas. Ele monta cada quadro em canvas porque mistura várias faixas e efeitos.
-> - Nós temos um vídeo só. Um `<video>` comum com a legenda do JASSUB por cima resolve.
-> - O motor dele, a forma de onda e a exportação são substituídos por coisas mais simples.
-> - Vale estudar como ele encaixa os blocos na timeline, o desfazer e os atalhos. Copiar o React dele traz pouco ganho.
->
-> ### 1.2 JASSUB, a prévia exata (`results/1.2-jassub/`)
-> - Comparei quadro a quadro com o FFmpeg, inclusive no meio da animação "pop".
-> - Sobram só diferenças de 1 pixel nas bordas: nos arquivos `side_*.png` a linha de baixo (a diferença) fica quase preta.
-> - Abre em 0,2 a 0,5 s.
-> - **O que precisa:** o servidor tem que entregar as fontes ao navegador, senão ele não enxerga as fontes do sistema. E o primeiro quadro só aparece depois que a fonte carrega.
->
-> ### 1.3 Forma de onda com 500 blocos (`results/1.3-wavesurfer/`)
->
-> | Caso | Abre em | Memória |
-> |---|---|---|
-> | Clipe de 20 s, 43 blocos | 35 ms | 2 MB |
-> | 10 min, 500 blocos, navegador decodifica o áudio | 1,2 s | 27 MB |
-> | 10 min, 500 blocos, **picos calculados no servidor** | **53 ms** | **9 MB** |
->
-> - Arrastar as bordas e dividir um bloco funcionam.
-> - **Decisão que sai daqui:** os picos da forma de onda vêm do servidor. Calcular 10 min leva 1,2 s.
-> - No modo de 10 min, o teste automático de arrastar não valeu, porque a tela rolou e o bloco saiu de vista. Por isso o arraste só foi conferido no clipe de 20 s.
->
-> ### 1.4 Cortar e gravar a legenda num comando só (`results/1.4-cut-burn/`)
-> - Tirei os trechos de 4–7 s e 12,5–15 s. Saiu exatamente 14,5 s, renderizado em 8 s.
-> - Dos 43 blocos sobraram 31, e o SRT e o VTT já saem no tempo novo.
-> - O `sync_check.png` mostra o original e o cortado no mesmo instante da fala. A legenda e a boca batem.
-> - Os 4 testes automáticos do ajuste de tempos passaram.
->
-> ### 2.1 Framework
-> O que pesa no editor (o vídeo, a legenda do JASSUB e a forma de onda) já funciona sem framework nenhum. O framework só cuida da lista de blocos, dos cortes, da seleção e do desfazer. A regra que vale em qualquer um: **o tempo do player não passa pelo estado a 60 quadros por segundo**. O que causa travamentos no React em projetos grandes é justamente o estado mudando a cada quadro.
->
-> - **Svelte 5 (recomendo):** é o mais leve. Os componentes ficam muito próximos de HTML/JS puro, o que combina com o seu jeito de evitar frameworks. A reatividade é precisa: atualiza só o que mudou.
-> - **Vue 3:** fica bem perto. É maduro e fácil para colaboradores.
-> - **React:** você conhece, mas não ganhamos nada copiando o OpenReel.
->
-> ### 2.2 MVP enxuto
-> Os cortes no MVP só removem trechos. Anotei no plano 07, na seção "Later", o que fica para depois:
-> - reordenar trechos e juntar vários vídeos;
-> - ajustes automáticos de tempo no estilo do Aegisub;
-> - timeline em canvas para milhares de blocos;
-> - uma versão para celular sem servidor (por enquanto o servidor local está sempre presente);
-> - escolha de fontes.
->
-> A nota técnica completa e o devlog (passo 29) foram para o **PR #28** (https://github.com/flou-ainan/Legendaria/pull/28), que segue aberto e só tem documentação.
->
-> **Svelte 5 ou Vue 3?** Com a sua escolha eu escrevo a ADR-015 e começo a fase 1.
+### Reply 1 (2026-10-31): where we left off
 
-### Reply 2 (2026-10-27): Svelte chosen, OpenReel dissected, hand-off policy
+> Paramos no planejamento: **o último código foi o step 59 (28/10)**, e em 29/10 só mexemos em documentação. Agora o próximo passo depende de você aprovar o que foi planejado.
+>
+> (The rest listed the branch state, the out-of-date docs and the pending decisions; all of it is superseded by the summary above.)
 
-> Fechado: **Svelte 5 + Vite + TypeScript**, registrado na ADR-015.
+### Reply 2 (2026-10-28): access decision recorded
+
+> Decisão registrada (commit 0f1995a, sem push):
 >
-> Sobre a sua intuição: o Vue é simples, sim, e nasceu de uma ideia parecida com a do AngularJS. Mas o Svelte 5 é ainda mais próximo de HTML/JS puro, porque um componente é basicamente HTML com um `<script>` e um `<style>`. Para quem vem do React, o principal é aprender três "runes": `$state` (o estado), `$derived` (valores calculados) e `$effect` (efeitos). Vou manter os componentes simples e comentar onde usar cada um.
+> - ADR-024: LAN como padrão, Tailscale recomendado (não obrigatório), login com usuário e senha no próprio Legendária. Headscale fica só como menção.
+> - Plano 12 com os passos: (1) modo LAN com flag para escutar na rede local; (2) login (senha com hash, cookie próprio, limite de tentativas); (3) seção "Use no celular" no README (en + pt-BR).
+> - Organizar, enxugar e o instalador "next > next" ficam anotados para depois do MVP, como plano próprio.
+> - O login tem que vir junto ou antes do modo LAN, para a rede local não ficar aberta pra qualquer um.
 >
-> **O que fiz**
-> - **README** (inglês e pt-BR): fala do editor no navegador. Parti da edição que você tinha começado no README em inglês e espelhei no português. O Blender aparece como "congelado".
-> - **ADR-015 e docs:** `PROJECT.md` (tabela de tecnologias e decisões) e plano 07 atualizados.
-> - **Dissecação do OpenReel** (`docs/dev-docs/references/openreel_dissection.md`). Vamos aproveitar as ideias, sem copiar código:
->   - **Desfazer** que junta numa só etapa as mudanças rápidas no mesmo bloco, como um arraste.
->   - **Encaixe (snap)** com limite em pixels, que funciona igual em qualquer zoom. A gente ganha um extra que ele não tem: encaixar no início e no fim de cada **palavra** da transcrição.
->   - **Atalhos** numa tabela, que no nosso caso fica num JSON editável: espaço, setas, I/O para marcar o corte, S para dividir, Q/W, Delete, Ctrl+Z, N, Ctrl+=/−, `?`.
->   - **Zoom com Ctrl+roda** mantendo fixo o ponto sob o mouse, e a timeline seguindo o playhead.
->   - **Arquivo de projeto com versão e validação**, que vira a base da ADR-016.
->   - **Testes com entradas aleatórias** para os cortes.
->   - Ficam de fora: decodificação própria, exportação no navegador, React e multitrilhas.
-> - **Nova regra no AGENTS.md:** o `docs/dev-docs/chat-context.md`, com um resumo enxuto da conversa e as minhas duas últimas respostas completas. Ele é atualizado quando você pedir, ou a cada algumas horas de trabalho, e é substituído a cada vez (o git guarda o histórico). Como o repositório é público, nada de segredos nem dados pessoais. O primeiro já está escrito.
->
-> Tudo isso foi para o PR #28, que continua só com documentação.
->
-> **Próximo passo:** a ADR-016 (formato do arquivo de projeto) e começar a construir o MVP (`flosub serve` + o app Svelte). Posso seguir?
+> **Next task:** plano 12, passo 1 (modo LAN) e depois o passo 2 (login, que mexe em segurança) — tier: standard para o passo 1 e top para o login, effort: medium — o login precisa de modelo de ameaças antes do código.

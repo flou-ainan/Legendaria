@@ -25,6 +25,7 @@ class Cue:
     end: float
     text: str
     words: list[Word] = field(default_factory=list)
+    look: dict[str, Any] = field(default_factory=dict)  # this cue's own look overrides (ADR-022)
 
 
 @dataclass
@@ -38,8 +39,12 @@ class CueList:
     version: int = CUES_VERSION
 
     def to_dict(self) -> dict[str, Any]:
-        """Plain dict ready for JSON."""
-        return asdict(self)
+        """Plain dict ready for JSON (a cue's `look` only when it has one)."""
+        data = asdict(self)
+        for cue in data["cues"]:
+            if not cue["look"]:
+                del cue["look"]
+        return data
 
     def save(self, path: Path) -> None:
         """Write as pretty UTF-8 JSON."""

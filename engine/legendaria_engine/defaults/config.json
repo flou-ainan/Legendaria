@@ -114,6 +114,7 @@
   "ffmpeg": "",
   "burn": {
     "video_args": ["-c:v", "libx264", "-crf", "18", "-preset", "medium", "-pix_fmt", "yuv420p"],
-    "audio_args": ["-c:a", "copy"]
+    "audio_args": ["-c:a", "copy"],
+    "render_audio_args": ["-c:a", "aac", "-b:a", "192k"]
   }
 }

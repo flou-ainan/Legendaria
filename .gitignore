@@ -30,3 +30,7 @@ output/
 # Local-only notes (contain private data, never pushed)
 docs/whisper-blender-brainstorm.md
 docs/local/
+
+# Web editor: dependencies and the build (it is generated into the engine package)
+web/node_modules/
+engine/legendaria_engine/web/

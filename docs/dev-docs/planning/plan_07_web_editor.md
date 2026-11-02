@@ -1,8 +1,8 @@
 # Plan 07 — Web editor (replaces the Blender add-on as the main UI)
 
-**Status:** approved (owner, 2026-10-26). Phase 0 done (step 29). Framework decided: Svelte 5 (ADR-015). OpenReel dissected (step 30, `references/openreel_dissection.md`). Next: ADR-016 and the MVP build.
+**Status:** MVP done (steps 31–33), the owner is testing and sending corrections. Phase 0 done (step 29); Phase 1: Svelte 5 (ADR-015), project file (ADR-016). What is left: `ROADMAP.md`.
 **Date:** 2026-10-26
-**Related decisions:** ADR-014 (pivot), ADR-015 (Svelte 5 + Vite + TS), ADR-012 (`.ass` + libass). ADR-016 (project file) is written in phase 1.
+**Related decisions:** ADR-014 (pivot), ADR-015 (Svelte 5 + Vite + TS), ADR-016 (project file), ADR-012 (`.ass` + libass).
 **Supersedes:** plan 05 (local API + `flosub gui`), plan 06 (Blender UX) and the Blender parts of plan 04 §11.
 
 ## Why
@@ -83,6 +83,24 @@ Results: `docs/dev-docs/references/plan07_phase0_spikes.md` (step 29).
 6. An export dialog: burned MP4, SRT, VTT or ASS.
 7. pt-BR.
 
+#### Phase 2 progress
+
+| # | Item | Status |
+|---|---|---|
+| 1 | `flosub serve`: media (Range), state, project load/save, transcribe and export jobs (SSE), preview `.ass`, font, peaks, review | done (steps 31–32) |
+| 2 | Open/transcribe screen with progress | done (step 31) |
+| 3 | Player with the JASSUB preview, live update after each edit | done (step 31) |
+| 4 | Cue list: text, times, split, merge, delete, add; glossary suggestions | done (steps 31–32) |
+| 5 | Timeline: waveform, cue blocks (drag, resize, split), cuts, snapping (pixels + word boundaries), zoom at cursor | done (step 32) |
+| 6 | Export: burned MP4, SRT, VTT, ASS | done (step 31) |
+| 7 | pt-BR | done (step 31) |
+| — | Undo/redo with grouping, autosave, shortcut table (JSON) | done (step 31) |
+| — | Tests: engine pytest (remap, project, server, real cut + burn, peaks, review), Vitest (timeline, snap), Playwright smoke in CI | done (steps 31–32) |
+
+**Step 33 (owner's first corrections):** done: open with no path (file browser + drop), drop-down lists, glossary tools, live snapping with a magnet toggle, double-click edits, optional side drawer, a CapCut/Kdenlive-style layout.
+
+**Next:** the owner's manual test of the MVP (`flosub serve <video>`), then the owner's list of changes. Candidates already known: "add term to glossary" in the editor, `.ass`/`.srt` import, an LLM pass in the review panel, fonts on Windows/macOS, follow-playhead and keyboard-driven nudging of cue edges.
+
 ### 3. Freeze Blender
 
 - The README and the docs say the add-on is frozen.
@@ -105,7 +123,7 @@ Results: `docs/dev-docs/references/plan07_phase0_spikes.md` (step 29).
 - [ ] The JASSUB preview matches the burned frame (pixel diff as in step 23).
 - [ ] Engine pytest covers the remap and the project file, plus a real FFmpeg cut + burn in CI.
 - [ ] Web: Vitest for the timeline and remap logic; a Playwright smoke test (open → transcribe fixture → edit → export SRT).
-- [ ] Docs: ADR-015/016, `PROJECT.md`, a devlog step for each phase, en + pt-BR UI.
+- [x] Docs: ADR-015/016, `PROJECT.md`, a devlog step for each phase, en + pt-BR UI.
 
 ## Owner answers (2026-10-26)
 
@@ -124,4 +142,3 @@ Results: `docs/dev-docs/references/plan07_phase0_spikes.md` (step 29).
 ## Open questions for the owner
 
 None right now. Still pending from earlier: import `.ass`/`.srt` + `flosub align --srt` (plan 04 §11.3, item 4).
-3. Still pending from earlier: import `.ass`/`.srt` + `flosub align --srt` (plan 04 §11.3, item 4).
