@@ -4,13 +4,17 @@ Standard library only (`http.server`). It serves the built Svelte app, the video
 so the browser can seek), the project file, `.ass` for the live preview, and runs
 transcription and export as jobs whose events stream over Server-Sent Events.
 
-It listens on 127.0.0.1 only and rejects requests whose Host or Origin is not local, so a
-web page on the internet cannot drive it (DNS rebinding, cross-site requests).
+Who may use it (ADR-026): with no password it listens on 127.0.0.1 only. With a password it
+listens on the local network, and every request that is not from a browser on this computer
+(LAN, Tailscale, a tunnel) must carry a signed-in session. Remote clients cannot browse the
+computer's disk. Requests whose Host or Origin is not a known name are refused, so a web page on
+the internet cannot drive it (DNS rebinding, cross-site requests).
 """
 
 from __future__ import annotations
 
 import json
+import math
 import mimetypes
 import re
 import subprocess
@@ -26,7 +30,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, quote, urlsplit
 
-from legendaria_engine import fonts, formats, media, workspace
+from legendaria_engine import access, fonts, formats, media, workspace
 from legendaria_engine.ass import rgb_hex, to_ass, with_look
 from legendaria_engine.config import load_config
 from legendaria_engine.cues import CueList
@@ -34,23 +38,27 @@ from legendaria_engine.events import Reporter
 from legendaria_engine.project import Project, ProjectError, project_path
 
 WEB_DIR = Path(__file__).parent / "web"
-LOCAL_HOSTS = {"127.0.0.1", "localhost"}
 # Routes that work before a video is open (everything else answers 409).
 NO_VIDEO_ROUTES = {
     "/api/state", "/api/browse", "/api/open", "/api/upload",
     "/api/glossary", "/api/glossary/export", "/api/glossary/add", "/api/glossary/import",
     "/api/glossary/use",
+    "/api/access", "/api/access/password", "/api/login", "/api/logout",
 }  # fmt: skip
 # COOP/COEP make the page cross-origin isolated, so JASSUB can use worker threads.
 ISOLATION = {
     "Cross-Origin-Opener-Policy": "same-origin",
     "Cross-Origin-Embedder-Policy": "require-corp",
     "Cross-Origin-Resource-Policy": "same-origin",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
 }
 CHUNK = 1 << 20
 # Bumped when the editor needs something new from the server; the page compares it to warn about an old server.
-API_VERSION = 5
+API_VERSION = 6
 CLIENT_COOKIE = "legendaria_client"  # tells the browsers apart: each one has its own open video
+AUTH_COOKIE = "legendaria_auth"  # the signed session of a browser that gave the password
+LOGIN_BODY_LIMIT = 4096
 mimetypes.add_type("application/wasm", ".wasm")
 mimetypes.add_type("font/woff2", ".woff2")
 mimetypes.add_type("text/javascript", ".js")
@@ -295,6 +303,8 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "Legendaria"
     protocol_version = "HTTP/1.1"
     _new_client: str | None = None  # set when this request had no client cookie
+    remote = True  # set by `_gate`; until then a request counts as the less trusted kind
+    signed_in = False
 
     def _client(self) -> str:
         """This browser's id from its cookie; a request without one gets a new id (sent back with the response)."""
@@ -340,12 +350,82 @@ class Handler(BaseHTTPRequestHandler):
 
     # --- helpers -------------------------------------------------------------
 
-    def _local(self) -> bool:
-        host = (self.headers.get("Host") or "").rsplit(":", 1)[0].strip("[]")
+    def _peer(self) -> str:
+        """The address the connection comes from."""
+        return self.client_address[0]
+
+    def _cookie(self, name: str) -> str:
+        jar = SimpleCookie(self.headers.get("Cookie") or "")
+        return jar[name].value if name in jar else ""
+
+    def _auth_cookie(self, token: str, max_age: int) -> str:
+        secure = "; Secure" if self.headers.get("X-Forwarded-Proto", "").lower() == "https" else ""
+        return (
+            f"{AUTH_COOKIE}={token}; Path=/; HttpOnly; SameSite=Strict; Max-Age={max_age}{secure}"
+        )
+
+    def _public(self, path: str) -> bool:
+        """Routes anyone who reached the server may use: the app's files, the sign-in and the access status."""
+        if not path.startswith("/api/"):
+            return self.command in ("GET", "HEAD")
+        return (self.command, path) in {
+            ("GET", "/api/access"),
+            ("HEAD", "/api/access"),
+            ("POST", "/api/login"),
+            ("POST", "/api/logout"),
+        }
+
+    def _gate(self, path: str) -> bool:
+        """Decide whether this request may go on (ADR-026). If not, it has been answered already.
+
+        This runs before any routing, so a new route is protected without anyone remembering to
+        protect it. Order: a name we know, then a peer on a private network, then the password.
+        """
+        settings: access.Access = self.server.access  # type: ignore[attr-defined]
+        settings.refresh()
+        host = access.host_name(self.headers.get("Host") or "")
         origin = self.headers.get("Origin")
-        origin_host = urlsplit(origin).hostname if origin else None
-        allowed = LOCAL_HOSTS | self.server.allow_hosts  # type: ignore[attr-defined]
-        return host in allowed and (origin is None or origin_host in allowed)
+        origin_host = (urlsplit(origin).hostname or "") if origin is not None else None
+        extra = self.server.allow_hosts  # type: ignore[attr-defined]
+        if not access.host_allowed(host, extra) or (
+            origin_host is not None and origin_host != host
+        ):
+            self._error(HTTPStatus.FORBIDDEN, "Only local requests are allowed.")
+            return False
+        peer = self._peer()
+        self.remote = not access.is_local(peer, host, self.headers)
+        self.signed_in = False
+        if self.remote and not access.peer_allowed(peer, settings.settings["allow_public"]):
+            self._error(HTTPStatus.FORBIDDEN, "This address is not allowed.")
+            return False
+        needs_password = self.remote or (
+            settings.settings["require_password_here"] and settings.has_password
+        )
+        if not needs_password:
+            self.signed_in = True
+            return True
+        if not settings.has_password:  # fail closed: the network is never open without a password
+            self._error(
+                HTTPStatus.FORBIDDEN, "Set a password on the computer first.", "no_password"
+            )
+            return False
+        token = self._cookie(AUTH_COOKIE)
+        self.signed_in = bool(token) and settings.check_token(token)
+        if not self.signed_in and not self._public(path):
+            self._error(HTTPStatus.UNAUTHORIZED, "Sign in first.", "sign_in")
+            return False
+        return True
+
+    def _computer_only(self) -> bool:
+        """False (after answering 403) for a remote client: the computer's disk is not for it."""
+        if self.remote:
+            self._error(
+                HTTPStatus.FORBIDDEN,
+                "Files on the computer can only be opened from the computer itself.",
+                "computer_only",
+            )
+            return False
+        return True
 
     def _send(self, status: int, body: bytes, content_type: str, extra: dict | None = None) -> None:
         self.send_response(status)
@@ -358,28 +438,33 @@ class Handler(BaseHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(body)
 
-    def _json(self, data: Any, status: int = 200) -> None:
+    def _json(self, data: Any, status: int = 200, extra: dict | None = None) -> None:
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")
-        self._send(status, body, "application/json; charset=utf-8")
+        self._send(status, body, "application/json; charset=utf-8", extra)
 
-    def _error(self, status: int, message: str) -> None:
-        self._json({"error": message}, status)
+    def _error(
+        self, status: int, message: str, code: str | None = None, extra: dict | None = None
+    ) -> None:
+        """`code` is a stable key the page translates; `message` is the English fallback."""
+        self._json({"error": message, **({"code": code} if code else {})}, status, extra)
 
-    def _body(self) -> Any:
+    def _body(self, limit: int | None = None) -> Any:
         length = int(self.headers.get("Content-Length") or 0)
+        if limit is not None and length > limit:
+            raise ValueError("The request is too large.")
         return json.loads(self.rfile.read(length) or b"null")
 
     # --- routes --------------------------------------------------------------
 
     def do_GET(self) -> None:
         """Static app, state, media, font, preview `.ass` and job events."""
-        if not self._local():
-            return self._error(HTTPStatus.FORBIDDEN, "Only local requests are allowed.")
         url = urlsplit(self.path)
         path, query = url.path, parse_qs(url.query)
-        if not self._ready(path):
+        if not self._gate(path) or not self._ready(path):
             return None
         try:
+            if path == "/api/access":
+                return self._json(self._access_state())
             if path == "/api/state":
                 if self.session is None:
                     return self._json(
@@ -387,6 +472,8 @@ class Handler(BaseHTTPRequestHandler):
                     )
                 return self._json(self.session.state())
             if path == "/api/browse":
+                if not self._computer_only():
+                    return None
                 return self._json(workspace.browse((query.get("path") or [None])[0]))
             if path == "/api/glossary":
                 return self._json(workspace.glossary_state())
@@ -437,11 +524,12 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_PUT(self) -> None:
         """Save the project (validated and normalized); returns what was saved."""
-        if not self._local():
-            return self._error(HTTPStatus.FORBIDDEN, "Only local requests are allowed.")
-        if urlsplit(self.path).path != "/api/project":
+        path = urlsplit(self.path).path
+        if not self._gate(path):
+            return None
+        if path != "/api/project":
             return self._error(HTTPStatus.NOT_FOUND, "Not found.")
-        if not self._ready("/api/project"):
+        if not self._ready(path):
             return None
         try:
             project = Project.from_dict(self._body())
@@ -452,18 +540,24 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         """Start a job: `/api/transcribe` {model, language, style} or `/api/export` {format}."""
-        if not self._local():
-            return self._error(HTTPStatus.FORBIDDEN, "Only local requests are allowed.")
         url = urlsplit(self.path)
         path = url.path
-        if not self._ready(path):
+        if not self._gate(path) or not self._ready(path):
             return None
         try:
+            if path == "/api/login":
+                return self._login()
+            if path == "/api/logout":
+                return self._json({"ok": True}, extra={"Set-Cookie": self._auth_cookie("", 0)})
             if path == "/api/upload":
                 name = Path((parse_qs(url.query).get("name") or ["video"])[0]).name or "video"
                 return self._upload(name)
             options = self._body() or {}
+            if path == "/api/access/password":
+                return self._change_password(options)
             if path == "/api/open":
+                if not self._computer_only():
+                    return None
                 return self._open(Path(str(options.get("path", ""))).expanduser())
             if path == "/api/glossary/add":
                 return self._json({"added": workspace.glossary_add(str(options.get("entry", "")))})
@@ -489,6 +583,70 @@ class Handler(BaseHTTPRequestHandler):
         except (json.JSONDecodeError, ValueError, OSError) as exc:
             return self._error(HTTPStatus.BAD_REQUEST, str(exc))
         return self._json({"job": job.id})
+
+    def _access_state(self) -> dict[str, Any]:
+        """What the page needs to know about access: who this is and where else the editor can be opened."""
+        settings: access.Access = self.server.access  # type: ignore[attr-defined]
+        port = self.server.server_address[1]  # type: ignore[attr-defined]
+        listening = self.server.server_address[0] not in ("127.0.0.1", "::1")  # type: ignore[attr-defined]
+        return {
+            "password_set": settings.has_password,
+            "signed_in": self.signed_in,
+            "remote": self.remote,
+            "can_browse": not self.remote,
+            "addresses": (
+                [f"http://{ip}:{port}/" for ip in access.lan_addresses()]
+                if self.signed_in and listening
+                else []
+            ),
+        }
+
+    def _login(self) -> None:
+        """Check the password; a right one gets the session cookie, a wrong one is slowed down."""
+        settings: access.Access = self.server.access  # type: ignore[attr-defined]
+        limiter: access.RateLimiter = self.server.limiter  # type: ignore[attr-defined]
+        peer = self._peer()
+        wait = limiter.wait(peer)
+        if wait > 0:
+            seconds = math.ceil(wait)
+            return self._error(
+                HTTPStatus.TOO_MANY_REQUESTS,
+                f"Too many wrong passwords. Try again in {seconds} s.",
+                "too_many",
+                {"Retry-After": str(seconds)},
+            )
+        body = self._body(LOGIN_BODY_LIMIT)
+        password = str(body.get("password", "")) if isinstance(body, dict) else ""
+        if not settings.verify(password):
+            limiter.fail(peer)
+            sys.stderr.write(f"Wrong password from {peer}\n")
+            return self._error(HTTPStatus.UNAUTHORIZED, "Wrong password.", "wrong_password")
+        limiter.success(peer)
+        cookie = self._auth_cookie(settings.make_token(), access.SESSION_DAYS * 86400)
+        return self._json({"ok": True}, extra={"Set-Cookie": cookie})
+
+    def _change_password(self, options: Any) -> None:
+        """Set or change the password: `{current, new}` (`current` is needed once one is set)."""
+        settings: access.Access = self.server.access  # type: ignore[attr-defined]
+        limiter: access.RateLimiter = self.server.limiter  # type: ignore[attr-defined]
+        options = options if isinstance(options, dict) else {}
+        peer = self._peer()
+        if settings.has_password:
+            wait = limiter.wait(peer)
+            if wait > 0:
+                return self._error(
+                    HTTPStatus.TOO_MANY_REQUESTS, "Too many wrong passwords.", "too_many"
+                )
+            if not settings.verify(str(options.get("current", ""))):
+                limiter.fail(peer)
+                return self._error(HTTPStatus.UNAUTHORIZED, "Wrong password.", "wrong_password")
+            limiter.success(peer)
+        try:
+            settings.set_password(str(options.get("new", "")))
+        except access.AccessError as exc:  # the code says what was wrong with it
+            return self._error(HTTPStatus.BAD_REQUEST, "That password is not accepted.", exc.code)
+        cookie = self._auth_cookie(settings.make_token(), access.SESSION_DAYS * 86400)
+        return self._json({"ok": True}, extra={"Set-Cookie": cookie})
 
     def _open(self, video: Path) -> None:
         """Open `video` as the session (a project file next to it is loaded if it exists).
@@ -624,15 +782,28 @@ def make_server(
     port: int = 0,
     config: dict[str, Any] | None = None,
     allow_hosts: Iterable[str] = (),
+    settings: access.Access | None = None,
+    host: str | None = None,
 ) -> ThreadingHTTPServer:
-    """A server on 127.0.0.1 (`port` 0 picks a free one), with `video` open if given.
+    """A server with `video` open if given (`port` 0 picks a free one).
 
-    `allow_hosts` are extra Host names accepted besides localhost, for a tunnel such as ngrok.
+    It listens on the local network only when a password is set (and `lan` is not turned off in
+    `access.json`); otherwise on 127.0.0.1. `host` is for tests; a non-loopback one without a
+    password is refused. `allow_hosts` are extra Host names (a Tailscale or tunnel name): requests
+    through them are remote, so they need the password too.
     """
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    settings = settings or access.Access()
+    if host is None:
+        listen = settings.has_password and settings.settings["lan"]
+        host = "0.0.0.0" if listen else "127.0.0.1"
+    if host not in access.LOCAL_NAMES and not settings.has_password:
+        raise access.AccessError("no_password")
+    server = ThreadingHTTPServer((host, port), Handler)
     server.daemon_threads = True
     server.allow_hosts = {h.lower() for h in allow_hosts}  # type: ignore[attr-defined]
     server.config = config or load_config()  # type: ignore[attr-defined]
+    server.access = settings  # type: ignore[attr-defined]
+    server.limiter = access.RateLimiter()  # type: ignore[attr-defined]
     server.startup_video = video  # type: ignore[attr-defined]
     server.sessions = {}  # type: ignore[attr-defined]  # client id -> Session
     server.sessions_lock = threading.Lock()  # type: ignore[attr-defined]
@@ -645,12 +816,25 @@ def serve(
     open_browser: bool,
     reporter: Reporter,
     allow_hosts: Iterable[str] = (),
+    settings: access.Access | None = None,
 ) -> None:
     """Run the editor until Ctrl+C (the browser asks for a video when none is given)."""
-    server = make_server(video, port, allow_hosts=allow_hosts)
-    url = f"http://127.0.0.1:{server.server_address[1]}/"
-    reporter.emit("serving", url=url, video=str(video) if video else None)
+    server = make_server(video, port, allow_hosts=allow_hosts, settings=settings)
+    number = server.server_address[1]
+    url = f"http://127.0.0.1:{number}/"
+    network = (
+        [f"http://{ip}:{number}/" for ip in access.lan_addresses()]
+        if server.server_address[0] == "0.0.0.0"
+        else []
+    )
+    reporter.emit("serving", url=url, network=network, video=str(video) if video else None)
     reporter.log(f"Editor running at {url} (Ctrl+C to stop)")
+    if network:
+        reporter.log("On the local network (needs the password): " + ", ".join(network))
+    else:
+        reporter.log(
+            "Only this computer can open it. Set a password to use it from a phone: flosub auth set"
+        )
     if open_browser:
         webbrowser.open(url)
     try:

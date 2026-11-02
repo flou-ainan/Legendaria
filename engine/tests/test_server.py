@@ -87,17 +87,20 @@ def test_foreign_origin_is_rejected(server):
     assert err.value.code == 403
 
 
-def test_allow_host_opens_only_the_named_host(server):
+def test_a_host_name_nobody_vouched_for_is_refused(server):
+    _, base = server
+    with pytest.raises(urllib.error.HTTPError) as err:
+        call(base + "/api/state", headers={"Host": "abc.ngrok-free.app"})
+    assert err.value.code == 403
+
+
+def test_allow_host_needs_a_password(server):
+    """A tunnel or Tailscale name is remote: with no password set it is refused (see test_server_access)."""
     srv, base = server
     tunnel = "abc.ngrok-free.app"
-    with pytest.raises(urllib.error.HTTPError) as err:
-        call(base + "/api/state", headers={"Host": tunnel})
-    assert err.value.code == 403
     srv.allow_hosts = {tunnel}
-    headers = {"Host": tunnel, "Origin": f"https://{tunnel}"}
-    assert call(base + "/api/state", headers=headers)[0] == 200
     with pytest.raises(urllib.error.HTTPError) as err:
-        call(base + "/api/state", headers={"Host": tunnel, "Origin": "https://evil.example"})
+        call(base + "/api/state", headers={"Host": tunnel, "Origin": f"https://{tunnel}"})
     assert err.value.code == 403
 
 
