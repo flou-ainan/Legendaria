@@ -2,15 +2,17 @@
   // The page: pick a video, transcribe it, then edit. Everything happens under the video and on the
   // timeline; the side drawer (subtitle list, glossary, cuts, export) is optional.
   import { onMount, tick } from 'svelte'
+  import Access from './components/Access.svelte'
   import Browse from './components/Browse.svelte'
   import Drawer from './components/Drawer.svelte'
   import Inspector from './components/Inspector.svelte'
   import Menu from './components/Menu.svelte'
   import Player from './components/Player.svelte'
+  import SignIn from './components/SignIn.svelte'
   import Timeline from './components/Timeline.svelte'
   import Transcribe from './components/Transcribe.svelte'
   import Welcome from './components/Welcome.svelte'
-  import { API_VERSION, loadState, openVideo, pickFile, uploadVideo, type State } from './lib/api'
+  import { API_VERSION, loadAccess, loadState, openVideo, pickFile, SIGN_IN_EVENT, uploadVideo, type State } from './lib/api'
   import { editor } from './lib/editor.svelte'
   import { t } from './lib/i18n'
   import { ui } from './lib/ui.svelte'
@@ -18,13 +20,34 @@
   let info = $state<State | null>(null)
   let failure = $state('')
 
-  onMount(async () => {
+  let signInNeeded = $state(false) // the password is asked before anything else on a phone
+  let sessionEnded = $state(false) // ...and the reason is that the session was lost while editing
+  let showAccess = $state(false)
+
+  async function start() {
     try {
+      const access = await loadAccess().catch(() => null) // an older server has no sign-in: loadState tells so
+      if (access && !access.signed_in) return (signInNeeded = true)
+      signInNeeded = false
       show(await loadState())
     } catch (error) {
       failure = (error as Error).message
     }
+  }
+
+  onMount(() => {
+    void start()
+    const lost = () => {
+      sessionEnded = signInNeeded = true
+    }
+    window.addEventListener(SIGN_IN_EVENT, lost)
+    return () => window.removeEventListener(SIGN_IN_EVENT, lost)
   })
+
+  const afterSignIn = () => {
+    sessionEnded = false
+    void start()
+  }
 
   // `restored`: the project came from the copy in this browser, so it is saved to the server again.
   function show(next: State, restored = false) {
@@ -105,17 +128,20 @@
   <p class="muted upload">{t('uploading', { pct: Math.round(uploading * 100) })}</p>
 {/if}
 
-{#if failure}
+{#if signInNeeded}
+  <SignIn onDone={afterSignIn} expired={sessionEnded} />
+{:else if failure}
   <p class="error center">{t('server_error', { message: failure })}</p>
 {:else if !info}
   <p class="muted center">{t('loading')}</p>
 {:else if !info.video}
   <Welcome onOpen={(state, restored) => { missing = false; show(state, restored) }} {missing} />
+  <footer class="foot"><button class="link" onclick={() => (showAccess = true)}>{t('menu.access')}</button></footer>
 {:else if !editor.project}
   <Transcribe {info} onDone={(project) => editor.load(project)} onChange={closeVideo} />
 {:else}
   <header>
-    <Menu onOpenVideo={chooseVideo} onOpenFromComputer={() => (browsing = true)} onOpenProject={chooseVideo} onNew={closeVideo} onGenerate={() => (generating = true)} onSave={() => editor.saveNow()} onDownload={download} />
+    <Menu onOpenVideo={chooseVideo} onOpenFromComputer={() => (browsing = true)} onOpenProject={chooseVideo} onNew={closeVideo} onGenerate={() => (generating = true)} onSave={() => editor.saveNow()} onDownload={download} onAccess={() => (showAccess = true)} />
     <img class="logo" src="/logo.svg" alt="" />
     <strong class="brand">Legendária</strong>
     <button class="link" onclick={closeVideo} title={t('header.open')}>{info.video}</button>
@@ -138,6 +164,10 @@
 
 {#if generating && info}
   <Transcribe {info} sheet onDone={(project) => { generating = false; editor.load(project); void editor.refreshPreview() }} onChange={() => (generating = false)} />
+{/if}
+
+{#if showAccess}
+  <Access onClose={() => (showAccess = false)} onSignedOut={() => { showAccess = false; signInNeeded = true; info = null }} />
 {/if}
 
 {#if browsing}
@@ -163,6 +193,7 @@
   .upload { margin: 0; padding: 0.5rem 1rem; background: var(--panel); }
   .outdated { margin: 0; padding: 0.5rem 1rem; background: var(--cut); color: #fff; }
   .center { text-align: center; margin-top: 30vh; }
+  .foot { text-align: center; padding: 1rem; }
   @media (max-width: 1023px) {
     /* a bottom sheet is open: keep room under the page for it, and the video (with its toolbar) pinned on top to see the subtitles change */
     main.sheet { padding-bottom: 46vh; }

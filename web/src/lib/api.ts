@@ -62,19 +62,40 @@ export type GlossaryState = { active: string; names: string[]; text: string }
 
 export type JobEvent = { event: string; [key: string]: unknown }
 
+/** A failed request: `code` is a stable key from the server (`sign_in`, `wrong_password`...), `retryAfter` is in seconds. */
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number, readonly code?: string, readonly retryAfter?: number) {
+    super(message)
+  }
+}
+
+/** Fired when the server says the session is gone (the password changed, or it expired): the page shows the sign-in. */
+export const SIGN_IN_EVENT = 'legendaria:sign-in'
+
 async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
   const response = await fetch(url, {
     method,
     headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
-  const data = await response.json()
-  if (!response.ok) throw new Error(data.error ?? response.statusText)
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    if (data.code === 'sign_in') window.dispatchEvent(new Event(SIGN_IN_EVENT))
+    throw new ApiError(data.error ?? response.statusText, response.status, data.code, Number(response.headers.get('Retry-After')) || undefined)
+  }
   return data as T
 }
 
 /** The server API this page was built for (server.py API_VERSION); a different one means `flosub serve` is older. */
-export const API_VERSION = 5
+export const API_VERSION = 6
+
+/** Who is asking and where else the editor can be opened (`/api/access`, open to anyone who reached the server). */
+export type AccessState = { password_set: boolean; signed_in: boolean; remote: boolean; can_browse: boolean; addresses: string[] }
+
+export const loadAccess = () => request<AccessState>('GET', '/api/access')
+export const signIn = (password: string) => request<{ ok: true }>('POST', '/api/login', { password })
+export const signOut = () => request<{ ok: true }>('POST', '/api/logout')
+export const changePassword = (current: string, next: string) => request<{ ok: true }>('POST', '/api/access/password', { current, new: next })
 
 export const loadState = () => request<State>('GET', '/api/state')
 
@@ -98,7 +119,10 @@ export function uploadVideo(file: File, onProgress: (fraction: number) => void):
         useLocalFile(file) // play the picked file here; the upload is only for the server's jobs
         resolve(data as State)
       }
-      else reject(new Error(data.error ?? xhr.statusText))
+      else {
+        if (data.code === 'sign_in') window.dispatchEvent(new Event(SIGN_IN_EVENT))
+        reject(new ApiError(data.error ?? xhr.statusText, xhr.status, data.code))
+      }
     }
     xhr.onerror = () => reject(new Error('Upload failed.'))
     xhr.send(file)
