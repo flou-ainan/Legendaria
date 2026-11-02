@@ -38,6 +38,16 @@ const server = spawn('uv', ['run', 'flosub', 'serve', '--port', String(PORT), '-
   { cwd: fileURLToPath(new URL('../../engine', import.meta.url)), stdio: 'inherit',
     env: { ...process.env, LEGENDARIA_CONFIG_DIR: join(dir, 'config'), LEGENDARIA_DATA_DIR: join(dir, 'data') } })
 
+// A second server with a password, reached under another name so it counts as a phone on the network (ADR-026).
+const PHONE_PORT = PORT + 1
+const phoneConfig = { ...process.env, LEGENDARIA_CONFIG_DIR: join(dir, 'config-phone'), LEGENDARIA_DATA_DIR: join(dir, 'data-phone') }
+const engine = fileURLToPath(new URL('../../engine', import.meta.url))
+const made = spawnSync('uv', ['run', 'flosub', 'auth', 'set', '--generate'], { cwd: engine, env: phoneConfig, encoding: 'utf8' })
+const password = /Your password is: (\S+)/.exec(made.stdout)?.[1]
+assert.ok(password, `flosub auth set --generate did not print a password: ${made.stdout}${made.stderr}`)
+const phoneServer = spawn('uv', ['run', 'flosub', 'serve', '--port', String(PHONE_PORT), '--no-browser', '--no-prompt', '--allow-host', 'phone.test'],
+  { cwd: engine, stdio: 'inherit', env: phoneConfig })
+
 let jar // the editor page's request context: it carries the session cookie, so this reads the same open video
 const project = async () => (await (await jar.get(`${base}/api/state`)).json()).project
 let browser
@@ -45,7 +55,7 @@ try {
   for (let i = 0; ; i++) {
     try { await fetch(base); break } catch { if (i > 60) throw new Error('server did not start'); await new Promise((r) => setTimeout(r, 500)) }
   }
-  browser = await chromium.launch()
+  browser = await chromium.launch({ args: ['--host-resolver-rules=MAP phone.test 127.0.0.1'] })
   const page = await browser.newPage({ viewport: { width: 1400, height: 1000 }, locale: 'en-US' })
   jar = page.context().request
   const errors = []
@@ -416,8 +426,33 @@ try {
   await page.reload()
   await page.getByText('The video was moved or removed').waitFor({ timeout: 15000 })
   renameSync(`${video}.gone`, video)
+  // a phone on the network: the password comes first, then the editor, and the computer's disk stays out of reach
+  for (let i = 0; ; i++) {
+    try { await fetch(`http://127.0.0.1:${PHONE_PORT}/api/access`, { headers: { Host: `phone.test:${PHONE_PORT}` } }); break } catch { if (i > 60) throw new Error('phone server did not start'); await new Promise((r) => setTimeout(r, 500)) }
+  }
+  const phone = await browser.newPage({ viewport: { width: 390, height: 800 }, locale: 'en-US' })
+  const phoneBase = `http://phone.test:${PHONE_PORT}`
+  await phone.goto(phoneBase)
+  const status = (path) => phone.evaluate(async (p) => (await fetch(p)).status, path) // from the page: it resolves phone.test
+  await phone.getByRole('heading', { name: 'Sign in' }).waitFor()
+  assert.equal(await status('/api/state'), 401, 'no data before the password')
+  await phone.getByPlaceholder('Password').fill('not the password')
+  await phone.getByRole('button', { name: 'Sign in' }).click()
+  await phone.getByRole('alert').filter({ hasText: 'Wrong password.' }).waitFor()
+  await phone.getByPlaceholder('Password').fill(password)
+  await phone.getByRole('button', { name: 'Sign in' }).click()
+  await phone.getByRole('button', { name: 'Choose a file from this device…' }).waitFor({ timeout: 15000 })
+  assert.equal(await status('/api/browse'), 200, 'a signed-in phone can browse the computer')
+  await phone.getByRole('button', { name: "Choose from the computer's files…" }).waitFor()
+  await phone.getByRole('button', { name: 'Access and password…' }).click()
+  await phone.getByText('You are signed in from another device.').waitFor()
+  await phone.getByRole('button', { name: 'Sign out' }).click()
+  await phone.getByRole('heading', { name: 'Sign in' }).waitFor()
+  assert.equal(await status('/api/state'), 401, 'signed out')
+  await phone.close()
   console.log('e2e smoke: ok')
 } finally {
   await browser?.close()
   server.kill()
+  phoneServer.kill()
 }

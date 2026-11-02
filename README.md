@@ -19,6 +19,10 @@
 - **Export** SRT, VTT or ASS for YouTube and other platforms, or the video with the subtitles burned in.
 - **Word-by-word animated captions** (CapCut style), coming after the first version.
 
+## Use it from your phone
+
+The editor runs on your computer, and your phone can open it on the same Wi-Fi, or from anywhere through [Tailscale](https://tailscale.com) or Headscale. A password you set the first time keeps visitors on your network out; it is asked on the phone, never on the computer. Without a password, the editor only opens on the computer. Details, limits and steps: [network access guide](docs/network-access.md).
+
 ## Goals
 
 - A simple installer: next → next → finish, open the editor in your browser, drop your video in, click **Generate subtitles** and edit.

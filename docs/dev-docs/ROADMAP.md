@@ -2,7 +2,7 @@
 
 **The one list of what is left.** Start here, not in the latest plan. Each item points to the plan that holds its details. When an item is done, move it to "Done" with its step number; when a plan is finished, set its status line to `done`.
 
-**Last updated:** 2026-11-02 (access decision, step 61).
+**Last updated:** 2026-11-02 (network access built, step 62).
 
 **Focus (owner, 2026-10-31):** tie together what already works, then fix what the owner lists. No new features until then. The product direction (CapCut / InShot feel on the phone) is in `AGENTS.md`; it is not a work item.
 
@@ -10,8 +10,7 @@
 
 | Item | Plan | Notes |
 |---|---|---|
-| Get what exists into `main`: push, CI green, merge #28 and then #29 | 15 | Needs the owner's approval. Lint fixed in step 60. |
-| **Network access:** LAN by default with a password for every non-local access, a tkinter launcher, docs in en + pt-BR | 12 | Decided (ADR-026, 2026-11-02). Seven steps; the core (`access.py`) and the server gate are security-sensitive. |
+| **Owner's hands-on test of network access:** the launcher, the password, the phone on the Wi-Fi, then Tailscale | 12 | Built in step 62 (ADR-026). Not yet checked on a real phone, a real Tailscale network, or the launcher on Windows and macOS. |
 | Test on a real phone: video from the device, Save to this device, desktop extras | 10, 11 | Owner tests. |
 
 ## Next: the owner's corrections
@@ -31,6 +30,8 @@ The owner will send a list of what is not good yet, once the items above are clo
 | Several subtitle tracks | 08 | Project file version bump + ADR. |
 | "Voice only" as a caption source | 08 | |
 | Interactive tutorial | 08 | The permanent tips were removed in step 36. |
+| Network access, step 7: optional HTTPS (self-signed, fingerprint in the launcher), stricter CSP, upload quota for remote clients, pairing QR | 12 | After the owner's test. |
+| Launcher: logo image, a settings/language option, "start with the computer" | 12 | The MVP launcher has one action. |
 | Reorganize, slim the code, end-user installer ("next > next") | new plan | Owner, 2026-10-28. |
 | Fonts on Windows and macOS, drive list on Windows, cleaning old uploads | 07 | |
 | LLM pass in the review panel (experimental) | 03 | Off by default. |
@@ -46,7 +47,7 @@ The owner will send a list of what is not good yet, once the items above are clo
 
 ## Done (recent)
 
-Web editor MVP (steps 31–33), look and fonts (35, 42–46), contextual toolbar (36), phone layout and sheets (47–49), tunnels (50–51), desktop extras (52–53), phone fixes (54–56), one session per browser (57), files on both sides (58), local playback of the device's video (59), roadmap reorganized and lint fixed (60), network access designed (61, docs only).
+Web editor MVP (steps 31–33), look and fonts (35, 42–46), contextual toolbar (36), phone layout and sheets (47–49), tunnels (50–51), desktop extras (52–53), phone fixes (54–56), one session per browser (57), files on both sides (58), local playback of the device's video (59), roadmap reorganized and lint fixed (60), network access designed (61) and built (62), landed in `main` through #28 and #29 (2026-11-02).
 
 ## Plans at a glance
 
@@ -58,7 +59,7 @@ Web editor MVP (steps 31–33), look and fonts (35, 42–46), contextual toolbar
 | 07 | web editor: MVP done, owner testing; leftovers are in the tables above |
 | 08 | reference for the UX study and the PWA; its open items live here |
 | 11 | A, B, D mostly done; E and C parked |
-| 12 | network access: approved (ADR-026), not started |
+| 12 | network access: steps 1–6 built (step 62), owner testing; step 7 parked |
 | 13 | abandoned: became the product direction in `AGENTS.md` |
 | 14 | parked: raw subtitles + effects (ADR-025 proposed) |
-| 15 | in progress: house in order |
+| 15 | done: roadmap reorganized, #28 and #29 merged |

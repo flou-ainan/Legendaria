@@ -594,13 +594,50 @@ def cmd_overlay(args: argparse.Namespace, reporter: Reporter) -> int:
 
 def cmd_serve(args: argparse.Namespace, reporter: Reporter) -> int:
     """`flosub serve [VIDEO]`: open the web editor, with a video or asking for one (plan 07)."""
+    from legendaria_engine import access_prompt
+    from legendaria_engine.access import Access
     from legendaria_engine.server import serve
 
     video = Path(args.file).expanduser().resolve() if args.file else None
     if video and not video.is_file():
         reporter.error(f"File not found: {video}")
         return 2
-    serve(video, args.port, not args.no_browser, reporter, args.allow_host)
+    settings = Access()
+    # Until a password is set the question comes back on every start (ADR-026); not in scripts or pipes.
+    if (
+        not args.no_prompt
+        and sys.stdin.isatty()
+        and sys.stdout.isatty()
+        and args.progress != "json"
+    ):
+        access_prompt.offer_password(settings)
+    serve(video, args.port, not args.no_browser, reporter, args.allow_host, settings)
+    return 0
+
+
+def cmd_auth(args: argparse.Namespace, reporter: Reporter) -> int:
+    """`flosub auth status|set|reset`: the password that guards the editor on the network (ADR-026)."""
+    from legendaria_engine import access, access_prompt
+    from legendaria_engine.i18n import t
+
+    settings = access.Access()
+    if args.action == "set":
+        if args.generate:
+            password = access.generate_password()
+            settings.set_password(password)
+            print(t("password.generated", password=password))
+            print(t("password.saved"))
+            return 0
+        if not (sys.stdin.isatty() and sys.stdout.isatty()):
+            reporter.error("`flosub auth set` needs a terminal (or use --generate).")
+            return 2
+        return 0 if access_prompt.set_password_interactively(settings) else 1
+    if args.action == "reset":
+        settings.clear_password()
+        print(t("password.removed"))
+        return 0
+    print(t("password.status.set" if settings.has_password else "password.status.unset"))
+    print(f"{access.access_file()}")
     return 0
 
 
@@ -769,9 +806,20 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         metavar="HOST",
-        help="also accept this Host name, e.g. an ngrok domain (repeatable; off by default)",
+        help="also accept this Host name, e.g. a Tailscale or ngrok name (repeatable); "
+        "requests through it need the password",
+    )
+    s.add_argument(
+        "--no-prompt", action="store_true", help="do not ask to set the password when it is missing"
     )
     s.set_defaults(func=cmd_serve)
+
+    a = sub.add_parser("auth", help="the access password for the phone and the network")
+    a.add_argument("action", choices=["status", "set", "reset"], help="show, set or remove it")
+    a.add_argument(
+        "--generate", action="store_true", help="with `set`: make a random one and print it"
+    )
+    a.set_defaults(func=cmd_auth)
 
     m = sub.add_parser("models", help="list or download Whisper models")
     m_sub = m.add_subparsers(dest="action", required=True)

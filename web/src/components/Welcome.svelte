@@ -121,7 +121,7 @@
         <strong>{t('relink.title')}</strong>
         <p class="muted">{t('relink.body', { name: last.video.name, path: last.video.path })}</p>
         <button class="primary" onclick={() => choose('relink')} disabled={busy}>{t('relink.choose')}</button>
-        {#if ui.remote}<button onclick={() => choose('relink', 'computer')} disabled={busy}>{t('welcome.choose_computer')}</button>{/if}
+        {#if ui.remote && ui.canBrowse}<button onclick={() => choose('relink', 'computer')} disabled={busy}>{t('welcome.choose_computer')}</button>{/if}
         <button class="link" onclick={discard}>{t('relink.forget')}</button>
       </div>
     {:else if last}
@@ -135,7 +135,7 @@
     <p class="drop">{dragging ? t('welcome.release') : t('welcome.drop')}</p>
     <p class="muted">{t('welcome.or')}</p>
     <button class="primary big" onclick={() => choose('new')} disabled={busy}>{ui.remote ? t('welcome.choose_device') : t('welcome.choose')}</button>
-    {#if ui.remote}<button onclick={() => choose('new', 'computer')} disabled={busy}>{t('welcome.choose_computer')}</button>{/if}
+    {#if ui.remote && ui.canBrowse}<button onclick={() => choose('new', 'computer')} disabled={busy}>{t('welcome.choose_computer')}</button>{/if}
     {#if busy}<progress max="1" value={progress || undefined}></progress>{/if}
     {#if error}<p class="error">{error}</p>{/if}
     <p class="muted small">{t('welcome.note')}</p>
