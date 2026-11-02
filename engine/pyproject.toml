@@ -33,6 +33,10 @@ test = ["pytest>=8", "jsonschema>=4"]
 [project.scripts]
 flosub = "legendaria_engine.cli:main"
 
+# the launcher window: a gui script, so on Windows it opens no console
+[project.gui-scripts]
+legendaria = "legendaria_engine.launcher:main"
+
 [project.urls]
 Homepage = "https://github.com/flou-ainan/Legendaria"
 Issues = "https://github.com/flou-ainan/Legendaria/issues"

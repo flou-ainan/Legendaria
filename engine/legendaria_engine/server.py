@@ -587,18 +587,12 @@ class Handler(BaseHTTPRequestHandler):
     def _access_state(self) -> dict[str, Any]:
         """What the page needs to know about access: who this is and where else the editor can be opened."""
         settings: access.Access = self.server.access  # type: ignore[attr-defined]
-        port = self.server.server_address[1]  # type: ignore[attr-defined]
-        listening = self.server.server_address[0] not in ("127.0.0.1", "::1")  # type: ignore[attr-defined]
         return {
             "password_set": settings.has_password,
             "signed_in": self.signed_in,
             "remote": self.remote,
             "can_browse": not self.remote,
-            "addresses": (
-                [f"http://{ip}:{port}/" for ip in access.lan_addresses()]
-                if self.signed_in and listening
-                else []
-            ),
+            "addresses": network_urls(self.server) if self.signed_in else [],
         }
 
     def _login(self) -> None:
@@ -777,6 +771,14 @@ class Handler(BaseHTTPRequestHandler):
             pass  # the browser cancels range requests while seeking
 
 
+def network_urls(server: ThreadingHTTPServer) -> list[str]:
+    """Where a phone on the same network can open the editor (empty when it listens on this computer only)."""
+    host, number = server.server_address[0], server.server_address[1]
+    if host in access.LOCAL_NAMES:
+        return []
+    return [f"http://{ip}:{number}/" for ip in access.lan_addresses()]
+
+
 def make_server(
     video: Path | None = None,
     port: int = 0,
@@ -822,11 +824,7 @@ def serve(
     server = make_server(video, port, allow_hosts=allow_hosts, settings=settings)
     number = server.server_address[1]
     url = f"http://127.0.0.1:{number}/"
-    network = (
-        [f"http://{ip}:{number}/" for ip in access.lan_addresses()]
-        if server.server_address[0] == "0.0.0.0"
-        else []
-    )
+    network = network_urls(server)
     reporter.emit("serving", url=url, network=network, video=str(video) if video else None)
     reporter.log(f"Editor running at {url} (Ctrl+C to stop)")
     if network:
