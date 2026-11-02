@@ -18,11 +18,11 @@ import sys
 import threading
 import uuid
 import webbrowser
+from collections.abc import Iterable
 from http import HTTPStatus
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from collections.abc import Iterable
 from typing import Any
 from urllib.parse import parse_qs, quote, urlsplit
 
@@ -309,7 +309,10 @@ class Handler(BaseHTTPRequestHandler):
     def end_headers(self) -> None:
         """Every response carries the cookie that tells the browser which session is its own."""
         if self._new_client:
-            self.send_header("Set-Cookie", f"{CLIENT_COOKIE}={self._new_client}; Path=/; HttpOnly; SameSite=Strict; Max-Age=31536000")
+            self.send_header(
+                "Set-Cookie",
+                f"{CLIENT_COOKIE}={self._new_client}; Path=/; HttpOnly; SameSite=Strict; Max-Age=31536000",
+            )
         super().end_headers()
 
     @property
@@ -410,7 +413,10 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/output":
                 # an export made earlier, so a phone can save it on itself (only `<video>.edited.<ext>` of the open video)
                 name = parse_qs(urlsplit(self.path).query).get("name", [""])[0]
-                allowed = {f"{self.session.video.stem}.edited.{ext}" for ext in ("mp4", "srt", "vtt", "ass")}
+                allowed = {
+                    f"{self.session.video.stem}.edited.{ext}"
+                    for ext in ("mp4", "srt", "vtt", "ass")
+                }
                 target = self.session.video.parent / name
                 if name not in allowed or not target.is_file():
                     return self._error(HTTPStatus.NOT_FOUND, "No such export.")
@@ -589,7 +595,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Accept-Ranges", "bytes")
         self.send_header("Content-Length", str(end - start + 1))
         if attachment:
-            self.send_header("Content-Disposition", f"attachment; filename*=UTF-8''{quote(path.name)}")
+            self.send_header(
+                "Content-Disposition", f"attachment; filename*=UTF-8''{quote(path.name)}"
+            )
         if status == 206:
             self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
         for key, value in ISOLATION.items():

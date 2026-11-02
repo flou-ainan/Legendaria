@@ -254,7 +254,7 @@ def test_each_browser_has_its_own_session(server):
 
 
 def test_opening_a_video_does_not_change_another_browser(server, tmp_path):
-    srv, base = server
+    _, base = server
     other = tmp_path / "other.mp4"
     other.write_bytes((tmp_path / "clip.mp4").read_bytes())
     call(base + "/api/open", "POST", {"path": str(other)})  # this browser now has other.mp4
