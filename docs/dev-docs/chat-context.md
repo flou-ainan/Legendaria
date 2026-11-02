@@ -108,21 +108,31 @@
 
 ## Last two complete replies (verbatim)
 
-The replies from 2026-10-29 and the one that closed step 60 are not recorded here. These are the latest available.
+### Reply 1 (2026-11-02): the access design, committed
 
-### Reply 1 (2026-10-31): where we left off
-
-> Paramos no planejamento: **o último código foi o step 59 (28/10)**, e em 29/10 só mexemos em documentação. Agora o próximo passo depende de você aprovar o que foi planejado.
+> Fiz três commits na branch `feat/web-editor-mvp`, só com docs e a correção de lint. Não dei push nem merge, porque você só autorizou os commits.
 >
-> (The rest listed the branch state, the out-of-date docs and the pending decisions; all of it is superseded by the summary above.)
-
-### Reply 2 (2026-10-28): access decision recorded
-
-> Decisão registrada (commit 0f1995a, sem push):
+> **Como ficou o desenho (ADR-026):**
+> - Sem senha, o servidor escuta só em `127.0.0.1`. Com senha definida, a LAN passa a ser o padrão.
+> - Senha para qualquer acesso que não seja este computador: LAN, Tailscale, Headscale e túneis (reconhecidos pelos cabeçalhos do proxy). No próprio computador a senha não é pedida, com uma opção para exigi-la.
+> - Convidado do Wi-Fi não navega no disco: quem acessa de fora só envia um vídeo do próprio aparelho e baixa as próprias exportações.
+> - Uma única checagem roda antes de qualquer rota; senha gerada tipo `k7mq-x2vd-9tpr`, guardada como hash scrypt em `access.json`; bloqueio por tentativas erradas até 15 minutos; endereços públicos recusados.
+> - Launcher em tkinter com splash, pergunta da senha na primeira vez (e em toda execução até ser definida) e um balão (i) que liga ao guia em inglês ou português.
 >
-> - ADR-024: LAN como padrão, Tailscale recomendado (não obrigatório), login com usuário e senha no próprio Legendária. Headscale fica só como menção.
-> - Plano 12 com os passos: (1) modo LAN com flag para escutar na rede local; (2) login (senha com hash, cookie próprio, limite de tentativas); (3) seção "Use no celular" no README (en + pt-BR).
-> - Organizar, enxugar e o instalador "next > next" ficam anotados para depois do MVP, como plano próprio.
-> - O login tem que vir junto ou antes do modo LAN, para a rede local não ficar aberta pra qualquer um.
+> **Um limite:** na LAN o tráfego é HTTP puro, então a senha pode ser vista por quem capturar o tráfego do mesmo Wi-Fi. O guia diz isso, com duas saídas: Wi-Fi de visitantes com isolamento, ou Tailscale/Headscale. HTTPS opcional entra depois.
 >
-> **Next task:** plano 12, passo 1 (modo LAN) e depois o passo 2 (login, que mexe em segurança) — tier: standard para o passo 1 e top para o login, effort: medium — o login precisa de modelo de ameaças antes do código.
+> **Next task:** plano 12, passo 1 (`access.py` e seus testes) — tier: top, effort: medium — código sensível de segurança, mas o modelo de ameaças já está no ADR-026.
+
+### Reply 2 (2026-11-02): network access built, PR #30
+
+> O acesso pela rede está pronto e aberto como PR #30 (`feat/network-access`). Não dei merge: a sua autorização foi para o #28 e o #29, e este é código de segurança que você quer testar antes.
+>
+> **Estado do PR:** o `ci` passou em Linux, macOS e Windows. O GitGuardian reprovou, mas é falso positivo: ele marcou como "Generic Password" a mensagem de erro `"Too many wrong passwords."`. A única checagem obrigatória da `main` é o `ci`.
+>
+> **Para testar** (a partir da pasta `engine`): `uv run legendaria` abre a janela; `uv run flosub serve` é o caminho pelo terminal. Para sem senha, rode `flosub auth reset`. O guia `docs/network-access.md` tem os passos do Wi-Fi e do Tailscale.
+>
+> **Testado:** 225 testes do engine (incluindo a janela do launcher em display virtual), tipos e testes da web, e o e2e com um "celular" que entra com a senha, é barrado no navegador de arquivos e sai. Também quebrei o portão de propósito de quatro jeitos para ver se os testes pegavam: pegaram todos.
+>
+> **Não testado:** celular de verdade, uma rede Tailscale ou Headscale real (só simulei os cabeçalhos do `tailscale serve`), o launcher no Windows e no macOS, e os passos de firewall do guia.
+>
+> **Next task:** o seu teste manual (launcher, celular no Wi-Fi, depois Tailscale) e as correções — tier: standard, effort: medium — ajustes contra um desenho já escrito.
