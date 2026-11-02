@@ -86,6 +86,7 @@ engine/ (`flosub`) ── faster-whisper (GPU → CPU fallback) ──► transc
 | [022](dev-docs/decisions/ADR-022-per-cue-look.md) | Per-cue look overrides (style → track → cue), one `Style:` line per distinct look | accepted |
 | [023](dev-docs/decisions/ADR-023-session-per-client.md) | One server session per browser (a cookie), no global open video | accepted |
 | [024](dev-docs/decisions/ADR-024-access-lan-default-tailscale-recommended.md) | Phone access: LAN by default, Tailscale recommended, own login | accepted |
+| [026](dev-docs/decisions/ADR-026-network-access-password-and-launcher.md) | Network access: LAN by default with a password for every non-local access, tkinter launcher | accepted |
 | [025](dev-docs/decisions/ADR-025-raw-subtitles-and-effects.md) | Raw subtitles plus effects (pop, word and letter colour) drawn as `.ass` | proposed |
 
 ## 5. Folder structure

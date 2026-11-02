@@ -1,6 +1,6 @@
 # ADR 024 — How the phone reaches the editor: LAN by default, Tailscale recommended, own login
 
-**Status:** accepted (owner, 2026-10-28)
+**Status:** accepted (owner, 2026-10-28); **partly superseded by [ADR-026](ADR-026-network-access-password-and-launcher.md)** (2026-11-02): LAN becomes the default, but only once a password is set; the password applies to every non-local access, tunnels and Tailscale included
 **Date:** 2026-10-28
 **Related:** plan 12, plan 11, ADR-023, step 50 (tunnels)
 

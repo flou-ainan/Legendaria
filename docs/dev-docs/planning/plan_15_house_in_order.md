@@ -18,7 +18,7 @@ The owner's view (2026-10-31): the plans had become messy, and "clone CapCut / I
 2. **Roadmap by focus.** Now, next (the owner's corrections), parked, ideas. Done in step 60.
 3. **Lint.** Fix the lint and format errors that fail CI. Done in step 60.
 4. **Merge.** With the owner's approval: push the branch, wait for `ci`, merge #28, then #29.
-5. **Access.** The owner closes the open points in plan 12.
+5. **Access.** Decided on 2026-11-02 (ADR-026, plan 12). Implementation is plan 12, not part of this plan.
 6. **Phone test.** The owner tests the items listed in `ROADMAP.md`.
 
 ## Open questions
@@ -29,6 +29,6 @@ The owner's view (2026-10-31): the plans had become messy, and "clone CapCut / I
 
 - `ci` is green and both PRs are merged.
 - `ROADMAP.md`, `PROJECT.md` and `chat-context.md` match the code.
-- The access decision is recorded in plan 12 and ADR-024.
+- The access decision is recorded in plan 12 and ADR-026 (done).
 
 **Next task:** push and merge after the owner approves — tier: standard, effort: low — mechanical, with CI as the check.
