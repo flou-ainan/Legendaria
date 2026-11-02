@@ -133,7 +133,7 @@ Legendaria/
     ├── PROJECT.md           # this file
     └── dev-docs/
         ├── README.md        # documentation conventions
-        ├── ROADMAP.md       # the one list of what is left: before the MVP, after, ideas
+        ├── ROADMAP.md       # the one list of what is left: now, next, parked, ideas
         ├── chat-context.md  # condensed owner ↔ agent conversation + last two full replies (hand-off)
         ├── planning/        # plans (before implementing)
         ├── devlog/          # executed steps
@@ -420,7 +420,7 @@ Transcript format (JSON v1): the contract between the engine and the Blender add
 | `Transcript.save(path)` | 108 | Write as pretty UTF-8 JSON. |
 | `Transcript.load(path)` | 113 | Read a transcript JSON file. |
 
-### engine/legendaria_engine/server.py — 651 lines
+### engine/legendaria_engine/server.py — 659 lines
 `flosub serve`: the local web editor's backend (plan 07, ADR-014).
 
 | Function / class | Line | What it does |
@@ -441,13 +441,13 @@ Transcript format (JSON v1): the contract between the engine and the Blender add
 | `Session.export(job, fmt)` | 263 | Write the edited video (`mp4`) or subtitles (`srt`, `vtt`, `ass`) next to the source. |
 | `class Handler` | 292 | Routes for the editor. Each browser (a cookie) has its own session: the video it opened. |
 | `Handler.end_headers()` | 309 | Every response carries the cookie that tells the browser which session is its own. |
-| `Handler.session()` | 316 | This browser's session (routes that need one are guarded by `_ready`). |
-| `Handler.log_message(format, *args)` | 335 | Quiet: only errors are printed. |
-| `Handler.do_GET()` | 371 | Static app, state, media, font, preview `.ass` and job events. |
-| `Handler.do_PUT()` | 432 | Save the project (validated and normalized); returns what was saved. |
-| `Handler.do_POST()` | 447 | Start a job: `/api/transcribe` {model, language, style} or `/api/export` {format}. |
-| `make_server(video, port, config, allow_hosts)` | 614 | A server on 127.0.0.1 (`port` 0 picks a free one), with `video` open if given. |
-| `serve(video, port, open_browser, reporter, allow_hosts)` | 634 | Run the editor until Ctrl+C (the browser asks for a video when none is given). |
+| `Handler.session()` | 319 | This browser's session (routes that need one are guarded by `_ready`). |
+| `Handler.log_message(format, *args)` | 338 | Quiet: only errors are printed. |
+| `Handler.do_GET()` | 374 | Static app, state, media, font, preview `.ass` and job events. |
+| `Handler.do_PUT()` | 438 | Save the project (validated and normalized); returns what was saved. |
+| `Handler.do_POST()` | 453 | Start a job: `/api/transcribe` {model, language, style} or `/api/export` {format}. |
+| `make_server(video, port, config, allow_hosts)` | 622 | A server on 127.0.0.1 (`port` 0 picks a free one), with `video` open if given. |
+| `serve(video, port, open_browser, reporter, allow_hosts)` | 642 | Run the editor until Ctrl+C (the browser asks for a video when none is given). |
 
 ### engine/legendaria_engine/transcriber.py — 145 lines
 Speech-to-text. A small backend interface keeps room for other engines (e.g. Apple Silicon).

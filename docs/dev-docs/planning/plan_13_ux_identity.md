@@ -1,6 +1,6 @@
 # Plan 13 — UX identity: InShot / CapCut on the phone, Kdenlive on the desktop
 
-**Status:** draft (owner, 2026-10-29: "the essence is missing from the plans"). Research first, build after the owner approves the target.
+**Status:** abandoned (owner, 2026-10-31): too vague to be a plan. The idea stays as the product direction in `AGENTS.md`, and the owner will pick concrete items one at a time. The gap list below is kept as a reference only.
 **Owner correction (2026-10-29):** my reading of the Kdenlive side was off. Focus on the CapCut / InShot clone; the desktop only has to work well on a wide screen for now. The Kdenlive-style panels, menu bar and keymap are improvements for later, after the phone experience is right.
 **Related:** plan 08 (UX study, now a reference), ADR-015, ADR-021, ROADMAP
 

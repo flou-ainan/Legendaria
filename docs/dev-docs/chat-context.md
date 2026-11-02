@@ -1,6 +1,6 @@
 # Chat context (hand-off)
 
-**Last updated:** 2026-10-28, by Claude Code (Sonnet 5.5), after step 59 and plan 12.
+**Last updated:** 2026-10-31, by Claude Code (Opus 5.5), after step 60 and plan 15.
 **Policy:** `AGENTS.md` and `docs/dev-docs/README.md` ("chat-context.md"). This is a snapshot that gets replaced, never appended. It is public: no secrets and no private data.
 
 ## Summary of the conversation so far
@@ -95,26 +95,23 @@
 30. **Step 59 (plan 11, A):** a video picked on the device is played from the device (object URL), not streamed back; kept only until a reload (OPFS is the open part).
 31. **Access decisions (ADR-024, plan 12, owner 2026-10-28):** the focus is local use, with the phone as another screen. ngrok ran out of bandwidth, so Tailscale is the recommended way away from home (private network, `tailscale serve` for HTTPS). LAN is the default and needs no third party. An own user name and password is required once the server listens beyond localhost. Headscale is only mentioned. After the MVP: reorganize, slim down, and an end-user installer ("next > next").
 
+32. **Plans 13 and 14, ADR-025 (2026-10-29):** `ROADMAP.md` became the one list of pending work. Plan 13 proposed cloning CapCut / InShot; plan 14 and ADR-025 proposed plain subtitle lines with effects on top.
+33. **House in order (2026-10-31, plan 15, step 60):** the owner found the plans messy and "clone CapCut" too vague. It is now a direction in `AGENTS.md`, not a plan. The focus is tying together what works, then the owner's list of corrections. Plan 14 is parked. Lint errors that failed PR #29 are fixed.
+
 **Open and next**
-- **Next:** plan 12 step 1 (LAN mode), then step 2 (login, security-sensitive: threat model first). Plan 11 leftovers: keep the device's video across reloads (OPFS), a warning when two browsers open the same project file, the projects folder idea (E, to refine).
-- **Owner tests by hand** on the phone (over Tailscale) and the desktop, then sends corrections. Known gaps: touch dragging on the timeline, `.ass`/`.srt` import (decision pending), fonts on Windows/macOS, installable PWA shell.
+- **Next:** close plan 15: the owner's approval to push and merge #28 and #29, and the access decision (open points in plan 12).
+- **Then:** the owner sends the list of what is not good yet. No new features before that; everything else is parked in `ROADMAP.md`.
 - **Not published:** engine 0.1.0.dev4 is not on PyPI; tags and releases need the owner's approval. Branch `feat/web-editor-mvp` is not pushed since step 56.
 
 ## Last two complete replies (verbatim)
 
-### Reply 1 (2026-10-28): item A done
+The replies from 2026-10-29 and the one that closed step 60 are not recorded here. These are the latest available.
 
-> Item A feito (commit cdb7686, branch feat/web-editor-mvp, sem push).
+### Reply 1 (2026-10-31): where we left off
+
+> Paramos no planejamento: **o último código foi o step 59 (28/10)**, e em 29/10 só mexemos em documentação. Agora o próximo passo depende de você aprovar o que foi planejado.
 >
-> O vídeo escolhido no celular agora toca direto do aparelho (blob local). O servidor recebe o upload só para transcrever e exportar, e não manda mais o vídeo de volta. Vídeos do PC continuam vindo do servidor.
->
-> Testei com o e2e (confirma que o vídeo é blob: e que nenhum /api/media é pedido, nem ao pular no tempo), svelte-check e Vitest. Não testei no celular de verdade. O build já está servido: recarregue a página no celular para pegar a versão nova.
->
-> Limite: se você recarregar a página, o arquivo local se perde e ele volta a ser transmitido pelo servidor (guardar no aparelho entre recargas fica para depois).
->
-> Teste manual: abra o link, escolha um vídeo do aparelho e veja se toca e se pula bem.
->
-> **Next task:** guardar o vídeo no aparelho entre recargas (OPFS) ou aviso de dois navegadores no mesmo projeto — tier: standard, effort: medium — padrão já definido no plano 11.
+> (The rest listed the branch state, the out-of-date docs and the pending decisions; all of it is superseded by the summary above.)
 
 ### Reply 2 (2026-10-28): access decision recorded
 

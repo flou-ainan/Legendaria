@@ -28,6 +28,12 @@ Goal: someone who clones the repository, with no access to any agent memory, can
 - **User-facing content is translatable** with English as the source: README (`README.md` + `README.pt-BR.md`), user docs, and the Blender UI (locale files). Brazilian Portuguese (`pt_BR`) is always maintained; other languages are welcome from contributors.
 - Never hardcode a user-visible string in code without routing it through the translation layer.
 
+## Product direction
+
+On the phone, the editor should feel familiar to someone who has used CapCut or InShot. On the desktop, it only has to work well on a wide screen for now.
+
+This is a direction for choosing between options, not a plan or a work item. The owner picks concrete items one at a time, and they go in `docs/dev-docs/ROADMAP.md`. Copy interaction patterns only, never branding, artwork or assets.
+
 ## Engineering principles
 
 - **Cross-platform from day one:** Linux, macOS, Windows 10+. Use `pathlib`, never shell strings, no OS-specific paths in code.

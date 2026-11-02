@@ -1,6 +1,6 @@
 # Plan 14 — Raw subtitles plus effects
 
-**Status:** draft; build after the owner approves ADR-025
+**Status:** parked (2026-10-31, plan 15); build only after the owner asks and approves ADR-025
 **Related:** ADR-025, ADR-016, ADR-022, plan 13, `ass.py`, `cues.py`
 
 ## Goal

@@ -2,28 +2,32 @@
 
 **The one list of what is left.** Start here, not in the latest plan. Each item points to the plan that holds its details. When an item is done, move it to "Done" with its step number; when a plan is finished, set its status line to `done`.
 
-**Last updated:** 2026-10-29 (plan 13 added). **The "Before the MVP" column is a proposal; the owner confirms it.**
+**Last updated:** 2026-10-31 (reorganized, step 60).
 
-## Before the MVP (proposed)
+**Focus (owner, 2026-10-31):** tie together what already works, then fix what the owner lists. No new features until then. The product direction (CapCut / InShot feel on the phone) is in `AGENTS.md`; it is not a work item.
+
+## Now: put the house in order (plan 15)
 
 | Item | Plan | Notes |
 |---|---|---|
-| **Raw subtitles + effects:** cues are plain subtitle lines with word timings; pop, word highlight and letter colour become effects that the engine turns into `.ass` | 14 | Draft; touches the project file, so it goes before more UI is built on cues. |
-| **UX identity (the essence of the project):** phone clones InShot / CapCut; the desktop just has to work well on a wide screen (Kdenlive feel and keymap come later) | 13 | Draft; step 0 is research with the owner's screenshots. Replaces the old "touch dragging" item: block dragging and the rest of the touch feel are part of it. |
+| Get what exists into `main`: push, CI green, merge #28 and then #29 | 15 | Needs the owner's approval. Lint fixed in step 60. |
+| Decide how the phone reaches the editor | 12 | The owner's decision is pending; the open points are in plan 12. |
+| Test on a real phone: video from the device, Save to this device, desktop extras | 10, 11 | Owner tests. |
+
+## Next: the owner's corrections
+
+The owner will send a list of what is not good yet, once the items above are closed. It comes before everything below.
+
+## Parked (start only when the owner asks)
+
+| Item | Plan | Notes |
+|---|---|---|
+| Raw subtitles + effects | 14 | ADR-025 is still proposed. It changes the project file, so it should come before large UI work on cues. |
 | Warn when two browsers open the same project file | 11 (B) | Sessions are per browser already (step 57). |
-| LAN mode (listen on the local network, opt-in) | 12 (1) | ADR-024. |
-| Login with user name and password | 12 (2) | Needs a threat model first; required once the server listens beyond localhost. |
-| "Use it from your phone" in the READMEs (LAN, then Tailscale) | 12 (3) | en + pt-BR. |
 | Import `.ass` / `.srt` and align | 04 §11.3 | Owner decision pending. |
-| Test on a real phone: video from the device, Save to this device, desktop extras | 10, 11 | Owner tests, then sends corrections. |
-
-## After the MVP
-
-| Item | Plan | Notes |
-|---|---|---|
-| Keep the device's video across reloads (OPFS) | 11 (A) | After a reload the server's copy is streamed. |
+| Keep the device's video across reloads (OPFS) | 11 (A) | After a reload the server's copy is streamed. Needs HTTPS. |
 | Projects folder: list, switch, create from the phone | 11 (E) | To refine: does the video move into the folder? where is the folder? |
-| Installable PWA shell (manifest, service worker, fluidity checklist) | 08 | HTTPS needed (Tailscale gives it). |
+| Installable PWA shell (manifest, service worker, fluidity checklist) | 08 | Needs HTTPS. |
 | Several subtitle tracks | 08 | Project file version bump + ADR. |
 | "Voice only" as a caption source | 08 | |
 | Interactive tutorial | 08 | The permanent tips were removed in step 36. |
@@ -42,18 +46,19 @@
 
 ## Done (recent)
 
-Web editor MVP (steps 31–33), look and fonts (35, 42–46), contextual toolbar (36), phone layout and sheets (47–49), tunnels (50–51), desktop extras (52–53), phone fixes (54–56), one session per browser (57), files on both sides (58), local playback of the device's video (59).
+Web editor MVP (steps 31–33), look and fonts (35, 42–46), contextual toolbar (36), phone layout and sheets (47–49), tunnels (50–51), desktop extras (52–53), phone fixes (54–56), one session per browser (57), files on both sides (58), local playback of the device's video (59), roadmap reorganized and lint fixed (60).
 
 ## Plans at a glance
 
 | Plan | Status |
 |---|---|
 | 01–03, 09, 10 | done |
-| 04 | MVP subset done; the rest is after the MVP |
+| 04 | MVP subset done; the rest is parked |
 | 05, 06 | superseded by 07 |
 | 07 | web editor: MVP done, owner testing; leftovers are in the tables above |
 | 08 | reference for the UX study and the PWA; its open items live here |
-| 14 | draft: raw subtitles + effects layer (ADR-025 proposed) |
-| 13 | draft: UX identity (InShot / CapCut phone, Kdenlive desktop); research first |
-| 11 | A, B, D mostly done; E and C after the MVP |
-| 12 | LAN and login; open |
+| 11 | A, B, D mostly done; E and C parked |
+| 12 | LAN and login; not started, decision pending |
+| 13 | abandoned: became the product direction in `AGENTS.md` |
+| 14 | parked: raw subtitles + effects (ADR-025 proposed) |
+| 15 | in progress: house in order |
